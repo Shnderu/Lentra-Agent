@@ -1,36 +1,36 @@
 import redis
+import json
+import time
 
 class RedisQueue:
-    def __init__(self, name: str):
-        self.client = redis.Redis(
-            host="redis",
-            port=6379,
-            decode_responses=True
-        )
+    def __init__(self, name):
+        self.client = redis.Redis(host="redis", port=6379, decode_responses=True)
         self.name = name
 
-    def push(self, value: str):
-        self.client.lpush(self.name, value)
+    def push(self, obj: dict):
+        self.client.lpush(self.name, json.dumps(obj))
 
     def pop(self):
-        return self.client.rpop(self.name)
+        raw = self.client.rpop(self.name)
+        return json.loads(raw) if raw else None
 
 
-# TASKS
 task_queue = RedisQueue("tasks")
+result_queue = RedisQueue("results")
+failed_queue = RedisQueue("failed")
 
-def push_task(value: str):
-    task_queue.push(value)
+
+def push_task(task):
+    task_queue.push(task)
+
 
 def pop_task():
     return task_queue.pop()
 
 
-# RESULTS
-result_queue = RedisQueue("results")
+def push_result(result):
+    result_queue.push(result)
 
-def push_result(value: str):
-    result_queue.push(value)
 
-def pop_result():
-    return result_queue.pop()
+def push_failed(task):
+    failed_queue.push(task)
