@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: root-bot
-    command: python bot/main.py
+    command: python /app/main.py
     restart: always
     depends_on:
       - redis

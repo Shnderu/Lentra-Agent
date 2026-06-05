@@ -1,6 +1,7 @@
 import uuid
 import time
 
+
 class Task:
     def __init__(self, task_type, payload, priority=5, retry=0):
         self.id = str(uuid.uuid4())
@@ -17,4 +18,5 @@ class Task:
             "payload": self.payload,
             "priority": self.priority,
             "retry": self.retry,
-            "created_at": self.created_at
+            "created_at": self.created_at,
+        }

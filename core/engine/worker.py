@@ -1,13 +1,12 @@
 import time
-import json
 import logging
 
 from core.engine.redis_queue import pop_task, push_result
 
 logging.basicConfig(level=logging.INFO)
 
+
 def process(task: dict):
-    # временная mock логика (позже Kiwi API)
     return {
         "results": [
             {
@@ -21,29 +20,54 @@ def process(task: dict):
     }
 
 
+def safe_extract(task: dict):
+    """
+    Жесткая защита от битых задач
+    """
+    if not isinstance(task, dict):
+        return None, None
+
+    task_id = task.get("id")
+    payload = task.get("payload")
+
+    if not task_id or not isinstance(payload, dict):
+        return None, None
+
+    user_id = payload.get("user_id")
+
+    if not user_id:
+        return None, None
+
+    return task_id, user_id
+
+
 def main():
     print("WORKER STARTED")
 
     while True:
-        raw = pop_task()
+        try:
+            task = pop_task()
 
-        if raw:
-            try:
-                task = json.loads(raw)
+            if not task:
+                time.sleep(1)
+                continue
 
-                user_id = task["payload"]["user_id"]
-                task_id = task["id"]
+            task_id, user_id = safe_extract(task)
 
-                result_data = process(task)
+            if not task_id or not user_id:
+                logging.warning(f"SKIP BAD TASK: {task}")
+                continue
 
-                push_result(json.dumps({
-                    "task_id": task_id,
-                    "user_id": user_id,
-                    "data": result_data
-                }))
+            result_data = process(task)
 
-            except Exception as e:
-                logging.error(f"WORKER ERROR: {e}")
+            push_result({
+                "task_id": task_id,
+                "user_id": user_id,
+                "data": result_data
+            })
+
+        except Exception as e:
+            logging.error(f"WORKER CRASH-PROTECTED ERROR: {e}")
 
         time.sleep(1)
 
