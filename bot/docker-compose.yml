@@ -6,14 +6,14 @@ services:
     env_file:
       - .env
     depends_on:
-      - flyrum_db
+      - db
       - flyrum_redis
     networks:
       - flyrum_net
 
-  flyrum_db:
+  db:
     image: postgres:15
-    container_name: flyrum_db
+    container_name: db
     networks:
       - flyrum_net
 
