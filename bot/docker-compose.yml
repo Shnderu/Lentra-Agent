@@ -1,0 +1,28 @@
+services:
+  flyrum_bot:
+    build: .
+    container_name: flyrum_bot
+    restart: always
+    env_file:
+      - .env
+    depends_on:
+      - flyrum_db
+      - flyrum_redis
+    networks:
+      - flyrum_net
+
+  flyrum_db:
+    image: postgres:15
+    container_name: flyrum_db
+    networks:
+      - flyrum_net
+
+  flyrum_redis:
+    image: redis:7
+    container_name: flyrum_redis
+    networks:
+      - flyrum_net
+
+networks:
+  flyrum_net:
+    driver: bridge
