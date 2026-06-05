@@ -1,51 +1,37 @@
-from core.db_init import get_conn
-from core.event_bus import publish
+
+import logging
+from core.db.connection import get_conn
 
 
-def add_route(user_id, route):
-    conn = get_conn()
-    cur = conn.cursor()
+def add_route(user_id: int, route: str):
+    conn = None
+    cur = None
 
-    cur.execute(
-        "INSERT INTO routes (user_id, route) VALUES (%s, %s)",
-        (user_id, route)
-    )
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
 
-    conn.commit()
-    cur.close()
-    conn.close()
+        cur.execute(
+            """
+            INSERT INTO routes (user_id, route)
+            VALUES (%s, %s)
+            """,
+            (user_id, route)
+        )
 
-    publish("route_created", {"user_id": user_id, "route": route})
+        conn.commit()
+        return True
 
+    except Exception as e:
+        logging.error(f"[DB:add_route] failed: {e}")
 
-def get_routes(user_id):
-    conn = get_conn()
-    cur = conn.cursor()
+        if conn:
+            conn.rollback()
 
-    cur.execute(
-        "SELECT route FROM routes WHERE user_id=%s",
-        (user_id,)
-    )
+        return False
 
-    data = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return [d[0] for d in data]
-
-
-def delete_routes(user_id):
-    conn = get_conn()
-    cur = conn.cursor()
-
-    cur.execute(
-        "DELETE FROM routes WHERE user_id=%s",
-        (user_id,)
-    )
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    publish("route_deleted", {"user_id": user_id})
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
