@@ -1,4 +1,12 @@
-from core.engine.postgres_queue import claim_tasks, mark_done, mark_failed
+import time
+import traceback
+from psycopg2 import OperationalError
+
+from core.engine.postgres_queue import (
+    claim_tasks,
+    mark_done,
+    mark_failed
+)
 
 WORKER_ID = "worker-1"
 
@@ -10,26 +18,36 @@ def main():
         try:
             tasks = claim_tasks(WORKER_ID, limit=5)
 
+            print("CLAIMED TASKS:", tasks)
+
             if not tasks:
+                time.sleep(1)
                 continue
 
             for task in tasks:
-                # ⚠️ FIX: tuple unpacking (не dict!)
-
-                task_id = task[0]
-                task_type = task[1]
-                payload = task[2]
-
-                print("TASK:", task_type)
-
                 try:
+                    task_id = task["id"]
+                    task_type = task["type"]
+                    payload = task["payload"]
+
+                    print("TASK:", task_type, payload)
+
                     mark_done(task_id)
 
                 except Exception as e:
+                    print("TASK ERROR:", repr(e))
+                    print(traceback.format_exc())
+
                     mark_failed(task_id, str(e))
 
+        except OperationalError as db_err:
+            print("DB ERROR (retrying):", repr(db_err))
+            time.sleep(3)
+
         except Exception as e:
-            print("WORKER LOOP ERROR:", str(e))
+            print("WORKER LOOP ERROR:", repr(e))
+            print(traceback.format_exc())
+            time.sleep(2)
 
 
 if __name__ == "__main__":
