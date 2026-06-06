@@ -1,5 +1,4 @@
 from aiogram import Router
-
 from .start import router as start_router
 from .flights import router as flights_router
 

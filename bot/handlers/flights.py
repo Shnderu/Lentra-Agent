@@ -1,32 +1,37 @@
-import logging
-from aiogram import Router, types
+from aiogram import Router
 from aiogram.filters import Command
+from aiogram.types import Message
 
-from bot.services.routes import add_route
+from core.engine.postgres_queue import push_task
 
 router = Router()
 
 
 @router.message(Command("add_flight"))
-async def add_flight(message: types.Message):
+async def add_flight(message: Message):
+    parts = message.text.split()
+
+    if len(parts) < 3:
+        await message.answer("Использование: /add_flight MOW DXB")
+        return
+
+    origin = parts[1]
+    destination = parts[2]
+
     try:
-        user_id = message.from_user.id
+        task_id = push_task(
+            "flight_search",
+            {
+                "user_id": message.from_user.id,
+                "origin": origin,
+                "destination": destination,
+            },
+            priority=5,
+        )
 
-        # пример: текст после команды
-        route = message.text.replace("/add_flight", "").strip()
-
-        if not route:
-            await message.answer("⚠️ Укажи маршрут: /add_flight MOW → DXB")
-            return
-
-        result = add_route(user_id, route)
-
-        if not result:
-            await message.answer("❌ Ошибка сохранения маршрута. Попробуйте позже.")
-            return
-
-        await message.answer(f"✅ Маршрут сохранён: {route}")
+        await message.answer(
+            f"✈️ Задача создана\nID: {task_id}\n{origin} → {destination}"
+        )
 
     except Exception as e:
-        logging.error(f"[HANDLER:add_flight] unexpected error: {e}")
-        await message.answer("❌ Внутренняя ошибка обработки запроса")
+        await message.answer(f"Ошибка: {str(e)}")

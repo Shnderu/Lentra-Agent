@@ -11,6 +11,8 @@ services:
       - db
     env_file:
       - .env
+    environment:
+      - PYTHONPATH=/app
 
   worker:
     build:
@@ -24,6 +26,8 @@ services:
       - db
     env_file:
       - .env
+    environment:
+      - PYTHONPATH=/app
 
   redis:
     image: redis:7-alpine
@@ -38,3 +42,11 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: root
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  pgdata:

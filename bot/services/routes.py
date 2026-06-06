@@ -1,37 +1,28 @@
+# /opt/flyrum/bot/services/routes.py
 
-import logging
-from core.db.connection import get_conn
+import json
+from core.engine.redis_queue import push_task as redis_push_task
 
 
-def add_route(user_id: int, route: str):
-    conn = None
-    cur = None
+def add_route(user_id: int, origin: str, destination: str):
+    """
+    Создание задачи поиска маршрута / перелета
+    """
 
-    try:
-        conn = get_conn()
-        cur = conn.cursor()
+    task_payload = {
+        "user_id": user_id,
+        "origin": origin,
+        "destination": destination,
+    }
 
-        cur.execute(
-            """
-            INSERT INTO routes (user_id, route)
-            VALUES (%s, %s)
-            """,
-            (user_id, route)
-        )
+    # ВАЖНО: исправление сигнатуры push_task
+    # (убраны task_type и keyword-аргументы)
+    task_id = redis_push_task(
+        json.dumps({
+            "type": "flight_search",
+            "payload": task_payload,
+            "priority": 5
+        })
+    )
 
-        conn.commit()
-        return True
-
-    except Exception as e:
-        logging.error(f"[DB:add_route] failed: {e}")
-
-        if conn:
-            conn.rollback()
-
-        return False
-
-    finally:
-        if cur:
-            cur.close()
-        if conn:
-            conn.close()
+    return task_id
