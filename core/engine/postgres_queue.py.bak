@@ -1,0 +1,82 @@
+from core.db.connection import get_conn
+
+
+def claim_tasks(worker_id: str, limit: int = 5):
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT id, type, payload, retries, max_retries
+        FROM tasks
+        WHERE status = 'new'
+        ORDER BY priority DESC, id ASC
+        LIMIT %s
+        FOR UPDATE SKIP LOCKED
+    """, (limit,))
+
+    rows = cur.fetchall()
+
+    if not rows:
+        conn.commit()
+        cur.close()
+        conn.close()
+        return []
+
+    task_ids = []
+
+    tasks = []
+
+    for row in rows:
+        task_id, ttype, payload, retries, max_retries = row
+
+        tasks.append({
+            "id": task_id,
+            "type": ttype,
+            "payload": payload,
+            "retries": retries,
+            "max_retries": max_retries
+        })
+
+        task_ids.append(task_id)
+
+    cur.execute("""
+        UPDATE tasks
+        SET status = 'processing'
+        WHERE id = ANY(%s)
+    """, (task_ids,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return tasks
+
+def mark_done(task_id: int):
+    conn = get_conn()
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            UPDATE tasks
+            SET status = 'done'
+            WHERE id = %s
+        """, (task_id,))
+        conn.commit()
+    finally:
+        cur.close()
+        conn.close()
+
+
+def mark_failed(task_id: int, error: str):
+    conn = get_conn()
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            UPDATE tasks
+            SET status = 'failed',
+                last_error = %s
+            WHERE id = %s
+        """, (error, task_id))
+        conn.commit()
+    finally:
+        cur.close()
+        conn.close()

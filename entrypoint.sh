@@ -1,21 +1,25 @@
-#!/bin/sh
+#!/bin/bash
+set -e
 
 echo ">>> FLYRUM ENTRYPOINT START"
-echo ">>> SERVICE=$SERVICE"
 
-if [ "$SERVICE" = "bot" ]; then
-  echo ">>> BOT STARTED"
-  python main.py
-
-elif [ "$SERVICE" = "worker" ]; then
-  echo ">>> WORKER STARTED"
-  python worker.py
-
-elif [ "$SERVICE" = "scheduler" ]; then
-  echo ">>> SCHEDULER STARTED"
-  python scheduler.py
-
-else
-  echo "UNKNOWN SERVICE"
+# обязательная переменная
+if [ -z "$SERVICE" ]; then
+  echo "ERROR: SERVICE is not set"
   exit 1
 fi
+
+echo "SERVICE=$SERVICE"
+
+case "$SERVICE" in
+  worker)
+    exec python /app/workers/worker.py
+    ;;
+  bot)
+    exec python /app/bot/main.py
+    ;;
+  *)
+    echo "UNKNOWN SERVICE: $SERVICE"
+    exit 1
+    ;;
+esac

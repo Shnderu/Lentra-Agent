@@ -1,17 +1,36 @@
-from core.db.connection import get_conn
+import os
+import psycopg2
+
+
+def get_conn():
+    conn = psycopg2.connect(
+        host=os.getenv("DB_HOST", "db"),
+        dbname=os.getenv("DB_NAME", "readme_to_recover"),
+        user=os.getenv("DB_USER", "postgres"),
+        password=os.getenv("DB_PASSWORD", "postgres"),
+        port=os.getenv("DB_PORT", "5432"),
+    )
+
+    conn.autocommit = False
+
+    return conn
+
+
+def _ensure_schema(cur):
+    cur.execute("SET search_path TO public")
 
 
 def claim_tasks(worker_id: str, limit: int = 5):
     conn = get_conn()
-    conn.autocommit = False
     cur = conn.cursor()
 
     try:
+        _ensure_schema(cur)
+
         cur.execute("""
-            SELECT id, type, payload
-            FROM tasks
+            SELECT id, type, payload, retries, max_retries
+            FROM public.tasks
             WHERE status = 'new'
-              AND (run_after IS NULL OR run_after <= NOW())
             ORDER BY priority DESC, id ASC
             LIMIT %s
             FOR UPDATE SKIP LOCKED
@@ -19,23 +38,38 @@ def claim_tasks(worker_id: str, limit: int = 5):
 
         rows = cur.fetchall()
 
-        task_ids = [r["id"] for r in rows] if rows else []
+        if not rows:
+            conn.commit()
+            return []
 
-        if task_ids:
-            cur.execute("""
-                UPDATE tasks
-                SET status = 'processing',
-                    locked_by = %s,
-                    locked_at = NOW()
-                WHERE id = ANY(%s)
-            """, (worker_id, task_ids))
+        task_ids = []
+        tasks = []
+
+        for row in rows:
+            task_id, ttype, payload, retries, max_retries = row
+
+            tasks.append({
+                "id": task_id,
+                "type": ttype,
+                "payload": payload,
+                "retries": retries,
+                "max_retries": max_retries
+            })
+
+            task_ids.append(task_id)
+
+        cur.execute("""
+            UPDATE public.tasks
+            SET status='processing'
+            WHERE id = ANY(%s)
+        """, (task_ids,))
 
         conn.commit()
-        return rows
+        return tasks
 
     except Exception as e:
         conn.rollback()
-        print("CLAIM ERROR:", e)
+        print(f"[CLAIM ERROR] {e}")
         return []
 
     finally:
@@ -46,29 +80,50 @@ def claim_tasks(worker_id: str, limit: int = 5):
 def mark_done(task_id: int):
     conn = get_conn()
     cur = conn.cursor()
+
     try:
+        _ensure_schema(cur)
+
         cur.execute("""
-            UPDATE tasks
-            SET status = 'done'
-            WHERE id = %s
+            UPDATE public.tasks
+            SET status='done'
+            WHERE id=%s
         """, (task_id,))
+
         conn.commit()
+
+    except Exception as e:
+        conn.rollback()
+        print(f"[DONE ERROR] {e}")
+
     finally:
         cur.close()
         conn.close()
 
 
-def mark_failed(task_id: int, error: str):
+def mark_failed(task: dict):
     conn = get_conn()
     cur = conn.cursor()
+
     try:
+        _ensure_schema(cur)
+
+        new_retry = task["retries"] + 1
+        status = "failed" if new_retry >= task["max_retries"] else "new"
+
         cur.execute("""
-            UPDATE tasks
-            SET status = 'failed',
-                last_error = %s
-            WHERE id = %s
-        """, (error, task_id))
+            UPDATE public.tasks
+            SET status=%s,
+                retries=%s
+            WHERE id=%s
+        """, (status, new_retry, task["id"]))
+
         conn.commit()
+
+    except Exception as e:
+        conn.rollback()
+        print(f"[FAIL ERROR] {e}")
+
     finally:
         cur.close()
         conn.close()

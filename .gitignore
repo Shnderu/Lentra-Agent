@@ -1,7 +1,10 @@
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 .env
 .env.*
+venv/
+.venv/
+pgdata/
 *.log
-data/
-redis-data/
