@@ -10,6 +10,5 @@ def get_conn():
         dbname=os.getenv("DB_NAME", "readme_to_recover"),
         user=os.getenv("DB_USER", "postgres"),
         password=os.getenv("DB_PASSWORD", "postgres"),
-        cursor_factory=RealDictCursor,
-        connect_timeout=10
+        cursor_factory=RealDictCursor  # 🔥 КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ
     )

@@ -18,6 +18,7 @@ def claim_tasks(worker_id: str, limit: int = 5):
         """, (limit,))
 
         rows = cur.fetchall()
+
         task_ids = [r["id"] for r in rows] if rows else []
 
         if task_ids:
@@ -32,9 +33,10 @@ def claim_tasks(worker_id: str, limit: int = 5):
         conn.commit()
         return rows
 
-    except Exception:
+    except Exception as e:
         conn.rollback()
-        raise
+        print("CLAIM ERROR:", e)
+        return []
 
     finally:
         cur.close()

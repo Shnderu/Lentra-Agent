@@ -1,7 +1,4 @@
 import time
-import traceback
-from psycopg2 import OperationalError
-
 from core.engine.postgres_queue import (
     claim_tasks,
     mark_done,
@@ -18,35 +15,22 @@ def main():
         try:
             tasks = claim_tasks(WORKER_ID, limit=5)
 
-            print("CLAIMED TASKS:", tasks)
-
             if not tasks:
                 time.sleep(1)
                 continue
 
             for task in tasks:
                 try:
-                    task_id = task["id"]
-                    task_type = task["type"]
-                    payload = task["payload"]
+                    print("TASK:", task["type"], task["payload"])
 
-                    print("TASK:", task_type, payload)
-
-                    mark_done(task_id)
+                    # TODO: business logic layer
+                    mark_done(task["id"])
 
                 except Exception as e:
-                    print("TASK ERROR:", repr(e))
-                    print(traceback.format_exc())
-
-                    mark_failed(task_id, str(e))
-
-        except OperationalError as db_err:
-            print("DB ERROR (retrying):", repr(db_err))
-            time.sleep(3)
+                    mark_failed(task["id"], str(e))
 
         except Exception as e:
-            print("WORKER LOOP ERROR:", repr(e))
-            print(traceback.format_exc())
+            print("WORKER LOOP ERROR:", e)
             time.sleep(2)
 
 
