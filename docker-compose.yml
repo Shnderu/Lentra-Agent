@@ -23,12 +23,15 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./core/db/init.sql:/docker-entrypoint-initdb.d/00_init.sql:ro
 
+
   redis:
     image: redis:7-alpine
     container_name: flyrum-redis
     restart: always
+
     ports:
       - "6379:6379"
+
 
   worker:
     build: .
@@ -50,6 +53,10 @@ services:
       db:
         condition: service_healthy
 
+    volumes:
+      - .:/app
+
+
   bot:
     build: .
     container_name: flyrum-bot
@@ -70,6 +77,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+    volumes:
+      - .:/app
+
 
 volumes:
   pgdata:

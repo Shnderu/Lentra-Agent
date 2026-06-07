@@ -9,24 +9,31 @@ from core.engine.postgres_queue import (
     recover_stuck_tasks,
 )
 
-
 WORKER_ID = "worker-1"
 POLL_INTERVAL = 2
 
 
+# ----------------------------
+# RUNTIME METRICS (in-memory v1)
+# ----------------------------
+processed_count = 0
+failed_count = 0
+
+
 def process_task(task: dict):
     """
-    Здесь бизнес-логика обработки задачи.
-    Пока заглушка (SSA / flight search будет сюда подключаться позже).
+    Бизнес-логика обработки задачи.
+    Пока заглушка.
     """
     print(f"[TASK] processing id={task['id']} type={task['task_type']}")
     time.sleep(1)
 
 
 def main():
+    global processed_count, failed_count
+
     print("[WORKER] STARTED")
 
-    # защита от зависших задач при старте
     try:
         recover_stuck_tasks()
     except Exception as e:
@@ -34,8 +41,6 @@ def main():
 
     while True:
         try:
-            conn = get_conn()
-
             tasks = claim_tasks(WORKER_ID, limit=5)
 
             if not tasks:
@@ -47,11 +52,16 @@ def main():
                 try:
                     process_task(task)
                     mark_done(task["id"])
+
+                    processed_count += 1
+
                 except Exception as e:
                     print(f"[TASK ERROR] {e}")
-                    mark_failed(task["id"], str(e))
+                    mark_failed(task["id"])
 
-            conn.close()
+                    failed_count += 1
+
+            print(f"[WORKER METRICS] processed={processed_count} failed={failed_count}")
 
         except Exception:
             print("[WORKER LOOP ERROR]")

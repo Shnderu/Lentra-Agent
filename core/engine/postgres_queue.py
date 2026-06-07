@@ -4,28 +4,24 @@ import psycopg2.extras
 from typing import List, Dict, Any
 
 
-DB_CONFIG = {
-    "host": os.getenv("DB_HOST", "db"),
-    "port": os.getenv("DB_PORT", "5432"),
-    "dbname": os.getenv("DB_NAME", "readme_to_recover"),
-    "user": os.getenv("DB_USER", "postgres"),
-    "password": os.getenv("DB_PASSWORD", "postgres"),
-}
-
-
+# ----------------------------
+# CONNECTION LAYER (RESTORED COMPATIBILITY)
+# ----------------------------
 def get_conn():
-    conn = psycopg2.connect(**DB_CONFIG)
-    conn.autocommit = False
-    return conn
+    return psycopg2.connect(
+        host=os.getenv("DB_HOST", "db"),
+        port=os.getenv("DB_PORT", "5432"),
+        dbname=os.getenv("DB_NAME", "readme_to_recover"),
+        user=os.getenv("DB_USER", "postgres"),
+        password=os.getenv("DB_PASSWORD", "postgres"),
+    )
 
 
+# ----------------------------
+# QUEUE LAYER (LEGACY + COMPAT)
+# ----------------------------
 def claim_tasks(worker_id: str, limit: int = 5) -> List[Dict[str, Any]]:
-    """
-    Забирает задачи в работу.
-    НЕ использует worker_id в БД (у тебя его нет/ломается схема)
-    """
     conn = get_conn()
-
     try:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
 
@@ -108,9 +104,6 @@ def mark_failed(task_id: int):
 
 
 def recover_stuck_tasks(timeout_seconds: int = 300):
-    """
-    ВАЖНО: больше НЕ принимает worker_id (у тебя был конфликт аргументов)
-    """
     conn = get_conn()
     try:
         with conn.cursor() as cur:
@@ -124,7 +117,6 @@ def recover_stuck_tasks(timeout_seconds: int = 300):
                 """,
                 (timeout_seconds,)
             )
-
         conn.commit()
 
     except Exception as e:
