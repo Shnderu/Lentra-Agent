@@ -1,36 +1,34 @@
 import time
-from core.engine.redis_queue import pop_task
+from core.engine.postgres_queue import claim_tasks, mark_done, mark_failed
 
-print("WORKER STARTED")
+WORKER_ID = "worker-1"
 
 
-def process_task(task: str):
-    """
-    Здесь будет твоя бизнес-логика обработки задач.
-    Сейчас — просто лог.
-    """
-    print(f"PROCESS TASK: {task}")
-
-    # TODO: добавить обработку (API, поиск, travel engine и т.д.)
-    # например:
-    # travel_engine.handle(task)
+def handle(task):
+    print(f"TASK: {task['type']} {task['payload']}")
 
 
 def main():
+    print("POSTGRES WORKER STARTED")
+
     while True:
-        try:
-            task = pop_task()
+        tasks = claim_tasks(WORKER_ID, limit=5)
 
-            if task:
-                print(f"DEBUG TASK: {task}")
-                process_task(task)
-            else:
-                # важно: не грузим CPU
-                time.sleep(1)
-
-        except Exception as e:
-            print(f"WORKER ERROR: {e}")
+        if not tasks:
+            print("CLAIMED TASKS: []")
             time.sleep(2)
+            continue
+
+        print(f"CLAIMED TASKS: {tasks}")
+
+        for task in tasks:
+            try:
+                handle(task)
+                mark_done(task["id"])
+            except Exception as e:
+                mark_failed(task["id"], str(e))
+
+        time.sleep(1)
 
 
 if __name__ == "__main__":
