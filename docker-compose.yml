@@ -17,7 +17,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 3s
       timeout: 3s
-      retries: 20
+      retries: 30
 
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -34,22 +34,19 @@ services:
   worker:
     build: .
     container_name: flyrum-worker
-    working_dir: /app
     restart: always
+
+    working_dir: /app
 
     environment:
       PYTHONPATH: /app
-
       DB_HOST: db
-      DB_PORT: 5432
+      DB_PORT: "5432"
       DB_NAME: readme_to_recover
       DB_USER: postgres
       DB_PASSWORD: postgres
 
-    command:
-      - python
-      - -u
-      - workers/worker.py
+    command: ["python", "-u", "workers/worker.py"]
 
     depends_on:
       db:
@@ -58,24 +55,19 @@ services:
   bot:
     build: .
     container_name: flyrum-bot
-    working_dir: /app
     restart: always
+
+    working_dir: /app
 
     environment:
       PYTHONPATH: /app
-
       DB_HOST: db
-      DB_PORT: 5432
+      DB_PORT: "5432"
       DB_NAME: readme_to_recover
       DB_USER: postgres
       DB_PASSWORD: postgres
 
-      BOT_TOKEN: ${BOT_TOKEN}
-
-    command:
-      - python
-      - -u
-      - main.py
+    command: ["python", "-u", "main.py"]
 
     depends_on:
       db:
