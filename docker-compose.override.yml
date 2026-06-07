@@ -1,0 +1,8 @@
+services:
+  bot:
+    env_file:
+      - .env
+
+  worker:
+    env_file:
+      - .env

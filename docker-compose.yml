@@ -1,85 +1,44 @@
 services:
-
   db:
     image: postgres:15
-    container_name: flyrum-db
-    restart: always
-
+    restart: unless-stopped
     environment:
       POSTGRES_DB: readme_to_recover
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-
     ports:
       - "5432:5432"
-
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 3s
-      timeout: 3s
-      retries: 20
-
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./init_tasks.sql:/docker-entrypoint-initdb.d/init_tasks.sql
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:7-alpine
-    container_name: flyrum-redis
-    restart: always
-
+    restart: unless-stopped
     ports:
       - "6379:6379"
 
-  worker:
-    build: .
-    container_name: flyrum-worker
-    working_dir: /app
-    restart: always
-
-    environment:
-      PYTHONPATH: /app
-
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_NAME: readme_to_recover
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-
-    command:
-      - python
-      - -u
-      - workers/worker.py
-
-    depends_on:
-      db:
-        condition: service_healthy
-
   bot:
-    build: .
-    container_name: flyrum-bot
-    working_dir: /app
-    restart: always
-
-    environment:
-      PYTHONPATH: /app
-
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_NAME: readme_to_recover
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-
-      BOT_TOKEN: ${BOT_TOKEN}
-
-    command:
-      - python
-      - -u
-      - main.py
-
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    restart: unless-stopped
     depends_on:
-      db:
-        condition: service_healthy
+      - db
+      - redis
 
-volumes:
-  pgdata:
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    restart: unless-stopped
+    depends_on:
+      - db
+      - redis
+    environment:
+      WORKER_ID: worker
+
+    deploy:
+      replicas: 3

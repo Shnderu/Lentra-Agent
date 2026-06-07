@@ -1,33 +1,30 @@
+import os
 import time
-from core.engine.postgres_queue import claim_tasks
 
+import bootstrap  # BLOCKS UNTIL DB READY
 
-WORKER_ID = "worker-1"
+from core.engine.postgres_queue import (
+    claim_tasks,
+    mark_done,
+    mark_failed,
+)
 
+WORKER_ID = os.getenv("WORKER_ID", "worker")
+BATCH_SIZE = 5
 
-def process(task):
-    print(f"[WORKER] processing {task['id']} type={task['type']}")
+print("[WORKER START]", WORKER_ID)
 
+while True:
+    tasks = claim_tasks(WORKER_ID, BATCH_SIZE)
 
-def main():
-    print("[WORKER] STARTED")
+    if not tasks:
+        print("[idle]")
+        time.sleep(2)
+        continue
 
-    while True:
+    for t in tasks:
         try:
-            tasks = claim_tasks(WORKER_ID, limit=5)
-
-            if not tasks:
-                print("[WORKER] idle")
-                time.sleep(2)
-                continue
-
-            for t in tasks:
-                process(t)
-
+            print("[TASK]", t["id"])
+            mark_done(t["id"], WORKER_ID)
         except Exception as e:
-            print(f"[WORKER ERROR] {e}")
-            time.sleep(2)
-
-
-if __name__ == "__main__":
-    main()
+            mark_failed(t["id"], WORKER_ID, str(e))

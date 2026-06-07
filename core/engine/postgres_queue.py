@@ -1,50 +1,81 @@
-from core.db.connection import get_conn
+import psycopg2
+from psycopg2.extras import RealDictCursor
+import time
+
+DB_CONFIG = {
+    "host": "db",
+    "dbname": "readme_to_recover",
+    "user": "postgres",
+    "password": "postgres",
+}
+
+
+def get_connection():
+    return psycopg2.connect(**DB_CONFIG)
 
 
 def claim_tasks(worker_id: str, limit: int = 5):
-    conn = get_conn()
-    cur = conn.cursor()
-
+    conn = None
     try:
-        cur.execute("""
-            SELECT id, type, payload, retries, max_retries
-            FROM public.tasks
-            WHERE status = 'new'
-            ORDER BY priority DESC, id ASC
-            LIMIT %s
-            FOR UPDATE SKIP LOCKED
-        """, (limit,))
+        conn = get_connection()
+        conn.autocommit = True
 
-        rows = cur.fetchall()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("""
+                UPDATE tasks
+                SET status = 'processing',
+                    worker_id = %s,
+                    locked_at = NOW(),
+                    attempts = attempts + 1
+                WHERE id IN (
+                    SELECT id
+                    FROM tasks
+                    WHERE status = 'pending'
+                    ORDER BY priority DESC, id ASC
+                    LIMIT %s
+                    FOR UPDATE SKIP LOCKED
+                )
+                RETURNING *;
+            """, (worker_id, limit))
 
-        if not rows:
-            return []
+            return cur.fetchall()
 
-        task_ids = []
-
-        tasks = []
-
-        for row in rows:
-            task_id, ttype, payload, retries, max_retries = row
-
-            tasks.append({
-                "id": task_id,
-                "type": ttype,
-                "payload": payload,
-                "retries": retries,
-                "max_retries": max_retries
-            })
-
-            task_ids.append(task_id)
-
-        cur.execute("""
-            UPDATE public.tasks
-            SET status = 'processing'
-            WHERE id = ANY(%s)
-        """, (task_ids,))
-
-        return tasks
+    except Exception as e:
+        print(f"[QUEUE ERROR] {e}")
+        return []
 
     finally:
-        cur.close()
-        conn.close()
+        if conn:
+            conn.close()
+
+
+def mark_done(task_id: int, worker_id: str):
+    conn = get_connection()
+    conn.autocommit = True
+
+    with conn.cursor() as cur:
+        cur.execute("""
+            UPDATE tasks
+            SET status='done',
+                worker_id=%s,
+                updated_at=NOW()
+            WHERE id=%s
+        """, (worker_id, task_id))
+
+    conn.close()
+
+
+def mark_failed(task_id: int, worker_id: str, error: str):
+    conn = get_connection()
+    conn.autocommit = True
+
+    with conn.cursor() as cur:
+        cur.execute("""
+            UPDATE tasks
+            SET status='failed',
+                worker_id=%s,
+                updated_at=NOW()
+            WHERE id=%s
+        """, (worker_id, task_id))
+
+    conn.close()
