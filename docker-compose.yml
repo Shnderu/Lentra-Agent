@@ -39,6 +39,9 @@ services:
     working_dir: /app
     restart: always
 
+    volumes:
+      - /opt/flyrum:/app
+
     environment:
       PYTHONPATH: /app
       DB_HOST: db
@@ -53,15 +56,15 @@ services:
       db:
         condition: service_healthy
 
-    volumes:
-      - .:/app
-
 
   bot:
     build: .
     container_name: flyrum-bot
     working_dir: /app
     restart: always
+
+    volumes:
+      - /opt/flyrum:/app
 
     environment:
       PYTHONPATH: /app
@@ -77,9 +80,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-
-    volumes:
-      - .:/app
 
 
 volumes:
