@@ -1,25 +1,25 @@
-import time
 import psycopg2
 from contextlib import contextmanager
 from core.db.connection import get_conn
 
 
 @contextmanager
-def _conn():
-    conn = get_conn()
+def conn():
+    c = get_conn()
     try:
-        conn.autocommit = True
-        yield conn
+        c.autocommit = True
+        yield c
     finally:
-        conn.close()
+        c.close()
 
 
 def claim_tasks(worker_id: str, limit: int = 5):
     """
-    SAFE CLAIM (без гонок)
+    Atomic + safe claim (NO race conditions)
     """
-    with _conn() as conn:
-        cur = conn.cursor()
+
+    with conn() as c:
+        cur = c.cursor()
 
         cur.execute(
             """
@@ -27,17 +27,20 @@ def claim_tasks(worker_id: str, limit: int = 5):
                 SELECT id
                 FROM tasks
                 WHERE status = 'pending'
-                ORDER BY priority DESC, id ASC
+                  AND attempts < max_attempts
+                ORDER BY priority DESC, created_at ASC
                 FOR UPDATE SKIP LOCKED
                 LIMIT %s
             )
             UPDATE tasks t
             SET status = 'processing',
                 worker_id = %s,
-                updated_at = NOW()
+                locked_at = NOW(),
+                updated_at = NOW(),
+                attempts = attempts + 1
             FROM cte
             WHERE t.id = cte.id
-            RETURNING t.*;
+            RETURNING t.id, t.task_type, t.payload;
             """,
             (limit, worker_id)
         )
@@ -46,8 +49,8 @@ def claim_tasks(worker_id: str, limit: int = 5):
 
 
 def mark_done(task_id: int):
-    with _conn() as conn:
-        cur = conn.cursor()
+    with conn() as c:
+        cur = c.cursor()
         cur.execute(
             """
             UPDATE tasks
@@ -60,15 +63,38 @@ def mark_done(task_id: int):
 
 
 def mark_failed(task_id: int, error: str):
-    with _conn() as conn:
-        cur = conn.cursor()
+    with conn() as c:
+        cur = c.cursor()
         cur.execute(
             """
             UPDATE tasks
-            SET status = 'failed',
-                error = %s,
-                updated_at = NOW()
+            SET status = CASE
+                WHEN attempts >= max_attempts THEN 'dead'
+                ELSE 'pending'
+            END,
+            last_error = %s,
+            updated_at = NOW()
             WHERE id = %s
             """,
             (error, task_id)
+        )
+
+
+def recover_stuck_tasks(timeout_seconds: int = 300):
+    """
+    Возвращает зависшие processing задачи обратно в очередь
+    """
+    with conn() as c:
+        cur = c.cursor()
+
+        cur.execute(
+            """
+            UPDATE tasks
+            SET status = 'pending',
+                worker_id = NULL,
+                locked_at = NULL
+            WHERE status = 'processing'
+              AND locked_at < NOW() - INTERVAL '%s seconds'
+            """,
+            (timeout_seconds,)
         )
