@@ -21,22 +21,20 @@ services:
 
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./init_tasks.sql:/docker-entrypoint-initdb.d/init_tasks.sql
+      - ./core/db/init.sql:/docker-entrypoint-initdb.d/00_init.sql:ro
 
   redis:
     image: redis:7-alpine
     container_name: flyrum-redis
     restart: always
-
     ports:
       - "6379:6379"
 
   worker:
     build: .
     container_name: flyrum-worker
-    restart: always
-
     working_dir: /app
+    restart: always
 
     environment:
       PYTHONPATH: /app
@@ -55,9 +53,8 @@ services:
   bot:
     build: .
     container_name: flyrum-bot
-    restart: always
-
     working_dir: /app
+    restart: always
 
     environment:
       PYTHONPATH: /app
@@ -66,6 +63,7 @@ services:
       DB_NAME: readme_to_recover
       DB_USER: postgres
       DB_PASSWORD: postgres
+      BOT_TOKEN: "${BOT_TOKEN}"
 
     command: ["python", "-u", "main.py"]
 

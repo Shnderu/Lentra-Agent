@@ -1,100 +1,135 @@
+import os
 import psycopg2
-from contextlib import contextmanager
-from core.db.connection import get_conn
+import psycopg2.extras
+from typing import List, Dict, Any
 
 
-@contextmanager
-def conn():
-    c = get_conn()
+DB_CONFIG = {
+    "host": os.getenv("DB_HOST", "db"),
+    "port": os.getenv("DB_PORT", "5432"),
+    "dbname": os.getenv("DB_NAME", "readme_to_recover"),
+    "user": os.getenv("DB_USER", "postgres"),
+    "password": os.getenv("DB_PASSWORD", "postgres"),
+}
+
+
+def get_conn():
+    conn = psycopg2.connect(**DB_CONFIG)
+    conn.autocommit = False
+    return conn
+
+
+def claim_tasks(worker_id: str, limit: int = 5) -> List[Dict[str, Any]]:
+    """
+    Забирает задачи в работу.
+    НЕ использует worker_id в БД (у тебя его нет/ломается схема)
+    """
+    conn = get_conn()
+
     try:
-        c.autocommit = True
-        yield c
-    finally:
-        c.close()
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
 
-
-def claim_tasks(worker_id: str, limit: int = 5):
-    """
-    Atomic + safe claim (NO race conditions)
-    """
-
-    with conn() as c:
-        cur = c.cursor()
-
-        cur.execute(
-            """
-            WITH cte AS (
-                SELECT id
-                FROM tasks
-                WHERE status = 'pending'
-                  AND attempts < max_attempts
-                ORDER BY priority DESC, created_at ASC
-                FOR UPDATE SKIP LOCKED
-                LIMIT %s
+            cur.execute(
+                """
+                UPDATE tasks
+                SET status = 'processing',
+                    locked_at = NOW(),
+                    attempts = attempts + 1
+                WHERE id IN (
+                    SELECT id
+                    FROM tasks
+                    WHERE status = 'pending'
+                      AND attempts < max_attempts
+                    ORDER BY priority DESC, id ASC
+                    LIMIT %s
+                )
+                RETURNING *;
+                """,
+                (limit,)
             )
-            UPDATE tasks t
-            SET status = 'processing',
-                worker_id = %s,
-                locked_at = NOW(),
-                updated_at = NOW(),
-                attempts = attempts + 1
-            FROM cte
-            WHERE t.id = cte.id
-            RETURNING t.id, t.task_type, t.payload;
-            """,
-            (limit, worker_id)
-        )
 
-        return cur.fetchall()
+            tasks = cur.fetchall()
+            conn.commit()
+            return tasks
+
+    except Exception as e:
+        conn.rollback()
+        print(f"[QUEUE ERROR] claim_tasks: {e}")
+        return []
+
+    finally:
+        conn.close()
 
 
 def mark_done(task_id: int):
-    with conn() as c:
-        cur = c.cursor()
-        cur.execute(
-            """
-            UPDATE tasks
-            SET status = 'done',
-                updated_at = NOW()
-            WHERE id = %s
-            """,
-            (task_id,)
-        )
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE tasks
+                SET status = 'done',
+                    updated_at = NOW()
+                WHERE id = %s
+                """,
+                (task_id,)
+            )
+        conn.commit()
+
+    except Exception as e:
+        conn.rollback()
+        print(f"[QUEUE ERROR] mark_done: {e}")
+
+    finally:
+        conn.close()
 
 
-def mark_failed(task_id: int, error: str):
-    with conn() as c:
-        cur = c.cursor()
-        cur.execute(
-            """
-            UPDATE tasks
-            SET status = CASE
-                WHEN attempts >= max_attempts THEN 'dead'
-                ELSE 'pending'
-            END,
-            last_error = %s,
-            updated_at = NOW()
-            WHERE id = %s
-            """,
-            (error, task_id)
-        )
+def mark_failed(task_id: int):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE tasks
+                SET status = 'failed',
+                    updated_at = NOW()
+                WHERE id = %s
+                """,
+                (task_id,)
+            )
+        conn.commit()
+
+    except Exception as e:
+        conn.rollback()
+        print(f"[QUEUE ERROR] mark_failed: {e}")
+
+    finally:
+        conn.close()
 
 
 def recover_stuck_tasks(timeout_seconds: int = 300):
     """
-    Возвращает зависшие processing задачи обратно в очередь
+    ВАЖНО: больше НЕ принимает worker_id (у тебя был конфликт аргументов)
     """
-    with conn() as c:
-        cur = c.cursor()
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE tasks
+                SET status = 'pending',
+                    locked_at = NULL
+                WHERE status = 'processing'
+                  AND locked_at < NOW() - INTERVAL '%s seconds'
+                """,
+                (timeout_seconds,)
+            )
 
-        cur.execute(
-            """
-            UPDATE tasks
-            SET status = 'pending',
-                worker_id = NULL,
-                locked_at = NULL
-            WHERE status = 'processing'
-              AND locked_at < NOW() - INTERVAL '%s seconds'
-            """,
-            (timeout_seconds,)
-        )
+        conn.commit()
+
+    except Exception as e:
+        conn.rollback()
+        print(f"[QUEUE ERROR] recover_stuck_tasks: {e}")
+
+    finally:
+        conn.close()

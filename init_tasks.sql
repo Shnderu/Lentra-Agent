@@ -8,19 +8,22 @@ CREATE TABLE tasks (
 
     status TEXT NOT NULL DEFAULT 'pending',
 
-    priority INT NOT NULL DEFAULT 5,
+    priority INT DEFAULT 5,
 
-    worker_id TEXT,
+    attempts INT DEFAULT 0,
+    max_attempts INT DEFAULT 3,
 
-    attempts INT NOT NULL DEFAULT 0,
-    max_attempts INT NOT NULL DEFAULT 3,
+    locked_at TIMESTAMP NULL,
 
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
 );
 
 CREATE INDEX idx_tasks_status_priority
-ON tasks(status, priority);
+    ON tasks(status, priority DESC);
 
-CREATE INDEX idx_tasks_created_at
-ON tasks(created_at);
+CREATE INDEX idx_tasks_locked_at
+    ON tasks(locked_at);
+
+CREATE INDEX idx_tasks_attempts
+    ON tasks(attempts);

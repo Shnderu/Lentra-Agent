@@ -1,29 +1,32 @@
-import asyncio
 import os
-import logging
-
+import asyncio
 from aiogram import Bot, Dispatcher
-from bot.router import router
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
+from dotenv import load_dotenv
 
-logging.basicConfig(level=logging.INFO)
+load_dotenv()
+
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+
+if not BOT_TOKEN:
+    raise RuntimeError("BOT_TOKEN missing")
+
+
+async def on_startup(bot: Bot):
+    await bot.delete_webhook(drop_pending_updates=True)
+    print(">>> FLYRUM BOT STARTED")
 
 
 async def main():
-    print(">>> FLYRUM v3.6 START")
-
-    token = os.getenv("BOT_TOKEN")
-    if not token:
-        raise RuntimeError("BOT_TOKEN missing")
-
-    bot = Bot(token=token)
+    bot = Bot(
+        token=BOT_TOKEN,
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+    )
 
     dp = Dispatcher()
-    dp.include_router(router)
 
-    print(">>> ROUTER LOADED")
-    print(">>> START POLLING")
-
-    await bot.delete_webhook(drop_pending_updates=True)
+    dp.startup.register(on_startup)
 
     await dp.start_polling(bot)
 
