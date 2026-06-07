@@ -1,50 +1,74 @@
+import time
+import psycopg2
+from contextlib import contextmanager
 from core.db.connection import get_conn
 
 
-def claim_tasks(worker_id: str, limit: int = 5):
+@contextmanager
+def _conn():
     conn = get_conn()
-    cur = conn.cursor()
-
     try:
-        cur.execute("""
-            SELECT id, type, payload, retries, max_retries
-            FROM public.tasks
-            WHERE status = 'new'
-            ORDER BY priority DESC, id ASC
-            LIMIT %s
-            FOR UPDATE SKIP LOCKED
-        """, (limit,))
-
-        rows = cur.fetchall()
-
-        if not rows:
-            return []
-
-        task_ids = []
-
-        tasks = []
-
-        for row in rows:
-            task_id, ttype, payload, retries, max_retries = row
-
-            tasks.append({
-                "id": task_id,
-                "type": ttype,
-                "payload": payload,
-                "retries": retries,
-                "max_retries": max_retries
-            })
-
-            task_ids.append(task_id)
-
-        cur.execute("""
-            UPDATE public.tasks
-            SET status = 'processing'
-            WHERE id = ANY(%s)
-        """, (task_ids,))
-
-        return tasks
-
+        conn.autocommit = True
+        yield conn
     finally:
-        cur.close()
         conn.close()
+
+
+def claim_tasks(worker_id: str, limit: int = 5):
+    """
+    SAFE CLAIM (без гонок)
+    """
+    with _conn() as conn:
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            WITH cte AS (
+                SELECT id
+                FROM tasks
+                WHERE status = 'pending'
+                ORDER BY priority DESC, id ASC
+                FOR UPDATE SKIP LOCKED
+                LIMIT %s
+            )
+            UPDATE tasks t
+            SET status = 'processing',
+                worker_id = %s,
+                updated_at = NOW()
+            FROM cte
+            WHERE t.id = cte.id
+            RETURNING t.*;
+            """,
+            (limit, worker_id)
+        )
+
+        return cur.fetchall()
+
+
+def mark_done(task_id: int):
+    with _conn() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            UPDATE tasks
+            SET status = 'done',
+                updated_at = NOW()
+            WHERE id = %s
+            """,
+            (task_id,)
+        )
+
+
+def mark_failed(task_id: int, error: str):
+    with _conn() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            UPDATE tasks
+            SET status = 'failed',
+                error = %s,
+                updated_at = NOW()
+            WHERE id = %s
+            """,
+            (error, task_id)
+        )
