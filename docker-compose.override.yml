@@ -1,8 +1,10 @@
 services:
-  bot:
-    env_file:
-      - .env
-
   worker:
-    env_file:
-      - .env
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  bot:
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1

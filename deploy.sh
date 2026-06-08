@@ -1,15 +1,14 @@
 #!/bin/bash
-
 set -e
 
-cd /opt/flyrum
+TAG="stable-$(date +%Y%m%d-%H%M%S)"
 
-echo "=== PULL LATEST CODE ==="
-git fetch origin
-git reset --hard origin/main
+echo "[DEPLOY] Building images: $TAG"
 
-echo "=== REBUILD CONTAINERS ==="
-docker compose down
-docker compose up -d --build
+docker compose build
 
-echo "=== DONE ==="
+echo "[DEPLOY] Restarting stack"
+
+docker compose up -d
+
+echo "[DEPLOY] Done: $TAG"
