@@ -1,14 +1,20 @@
-from core.handlers.test import handle_test
+from aiogram import Router
+from aiogram.filters import Command, CommandStart
+from aiogram.types import Message
+
+router = Router()
 
 
-class TaskRouter:
-    def __init__(self):
-        self.registry = {
-            "test": handle_test,
-        }
+@router.message(CommandStart())
+async def start(message: Message):
+    await message.answer("FlyRum AI started 🚀")
 
-    def route(self, task_type: str, payload: dict):
-        if task_type not in self.registry:
-            raise ValueError(f"No handler registered for task_type={task_type}")
 
-        return self.registry[task_type](payload)
+@router.message(Command("help"))
+async def help_cmd(message: Message):
+    await message.answer("Available commands: /start /help")
+
+
+@router.message()
+async def fallback(message: Message):
+    await message.answer("⚠️ Command not recognized")
