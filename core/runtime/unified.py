@@ -1,7 +1,7 @@
 
-from core.fsm.manager import handle_message as fsm_handle
-from core.fsm.context import get_state
 from core.intent.router import route as intent_route
+from core.fsm.context import get_state
+from core.fsm.manager import handle_message as fsm_handle
 from core.router.ui_router import handle_ui
 
 
@@ -13,23 +13,26 @@ async def unified_entry(update):
     data = getattr(update, "data", None)
 
     # -------------------------
-    # 1. CALLBACK UI ROUTING
+    # UI CALLBACK FLOW (FIXED)
     # -------------------------
     if data:
-        return await handle_ui(data, update.message)
+        result = await handle_ui(data, update.message)
+        return result
 
     # -------------------------
-    # 2. FSM OVERRIDE (HIGHEST PRIORITY)
+    # FSM OVERRIDE
     # -------------------------
     state = get_state(user_id)
 
     if state and state != "idle":
-        result = await fsm_handle(user_id, text)
-        return result
+        return await fsm_handle(user_id, text)
 
     # -------------------------
-    # 3. INTENT ROUTER v2
+    # INTENT ROUTING
     # -------------------------
     result = await intent_route(user_id, text, source="message")
+
+    if not result:
+        return "🤖 I didn't understand your request"
 
     return result

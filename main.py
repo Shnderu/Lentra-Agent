@@ -1,11 +1,13 @@
 
 import asyncio
+import os
+
 from aiogram import Bot, Dispatcher
+from aiogram.filters import CommandStart, Command
 from aiogram.types import Message, CallbackQuery
 
 from core.runtime.unified import unified_entry
-
-import os
+from core.ui.screens.home import show_home
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
@@ -14,20 +16,31 @@ dp = Dispatcher()
 
 
 # -------------------------
-# UNIFIED MESSAGE PIPELINE
+# START → UI HOME (ONLY SOURCE OF TRUTH)
+# -------------------------
+@dp.message(CommandStart())
+async def start(message: Message):
+    await show_home(message)
+
+
+@dp.message(Command("help"))
+async def help_cmd(message: Message):
+    await message.answer("FlyRum AI: /start → menu, or type request")
+
+
+# -------------------------
+# MAIN PIPELINE
 # -------------------------
 @dp.message()
-async def handle_message(message: Message):
+async def all_messages(message: Message):
     result = await unified_entry(message)
+
     if result:
         await message.answer(str(result))
 
 
-# -------------------------
-# CALLBACK PIPELINE
-# -------------------------
 @dp.callback_query()
-async def handle_callback(callback: CallbackQuery):
+async def callbacks(callback: CallbackQuery):
     result = await unified_entry(callback)
 
     if result:
@@ -38,8 +51,8 @@ async def handle_callback(callback: CallbackQuery):
 
 async def main():
     print(">>> FLYRUM UNIFIED RUNTIME v1 START")
-    print(">>> HANDLERS ATTACHED")
-    print(">>> START POLLING")
+    print(">>> SYSTEM READY")
+    print(">>> POLLING START")
 
     await dp.start_polling(bot)
 

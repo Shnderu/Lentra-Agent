@@ -1,20 +1,12 @@
+
 from aiogram import Router
-from aiogram.filters import Command, CommandStart
-from aiogram.types import Message
+from aiogram.filters import Command
 
 router = Router()
 
+# SYSTEM COMMANDS (optional fallback only, NOT catch-all)
 
-@router.message(CommandStart())
-async def start(message: Message):
-    await message.answer("FlyRum AI started 🚀")
+@router.message(Command("ping"))
+async def ping(message):
+    await message.answer("pong")
 
-
-@router.message(Command("help"))
-async def help_cmd(message: Message):
-    await message.answer("Available commands: /start /help")
-
-
-@router.message()
-async def fallback(message: Message):
-    await message.answer("⚠️ Command not recognized")
