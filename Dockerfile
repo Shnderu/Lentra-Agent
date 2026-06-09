@@ -4,11 +4,6 @@ WORKDIR /app
 
 COPY . /app
 
-ENV PYTHONPATH=/app
+RUN pip install --no-cache-dir aiogram psycopg2-binary redis
 
-RUN pip install --no-cache-dir \
-    psycopg2-binary \
-    redis \
-    aiogram
-
-CMD ["python", "-u", "/app/main.py"]
+CMD ["python", "-u", "main.py"]

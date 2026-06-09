@@ -1,23 +1,16 @@
-
 from core.intent.classifier import classify
-from core.intent.registry import execute
-from core.intent.policies import resolve
-from core.fsm.context import get_state
+from core.fsm.flows.route_flow import start_route_flow
 
+async def route(user_id: int, text: str):
 
-async def route(user_id: int, text: str, source="message"):
+    intent = classify(text)
 
-    state = get_state(user_id)
+    print("🎯 INTENT:", intent.name)
 
-    # 1. FSM override (самый высокий приоритет)
-    if state != "idle":
-        from core.fsm.manager import handle_message
-        return await handle_message(user_id, text)
+    if intent.name == "route_search":
+        await start_route_flow(user_id)
 
-    # 2. classify intent
-    intent = classify(text, source)
+        # ❌ НИКАКОГО UI ТЕКСТА
+        return None
 
-    # 3. execute by registry
-    result = await execute(intent, user_id)
-
-    return result
+    return None

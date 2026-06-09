@@ -4,6 +4,6 @@ WORKDIR /app
 
 COPY . /app
 
-RUN pip install psycopg2-binary
+RUN pip install aiogram psycopg2-binary
 
-CMD ["python", "-u", "workers/worker.py"]
+CMD ["python", "-u", "worker_main.py"]

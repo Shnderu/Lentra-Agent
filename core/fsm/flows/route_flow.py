@@ -1,9 +1,10 @@
-
 from core.fsm.context import set_state
 
 
-def start_route_flow(user_id: int):
+async def start_route_flow(user_id: int):
+    print("[FLOW] start_route_flow")
 
     set_state(user_id, "route_from")
 
-    return "✈️ Откуда вылет?"
+    # ❌ НЕ возвращаем True
+    return None

@@ -1,38 +1,35 @@
-
-from core.intent.router import route as intent_route
 from core.fsm.context import get_state
-from core.fsm.manager import handle_message as fsm_handle
-from core.router.ui_router import handle_ui
+from core.fsm.manager import handle_message
+from core.intent.router import route
 
 
-async def unified_entry(update):
+async def unified_entry(message):
 
-    user_id = update.from_user.id
+    user_id = message.from_user.id
+    text = message.text
 
-    text = getattr(update, "text", None)
-    data = getattr(update, "data", None)
-
-    # -------------------------
-    # UI CALLBACK FLOW (FIXED)
-    # -------------------------
-    if data:
-        result = await handle_ui(data, update.message)
-        return result
-
-    # -------------------------
-    # FSM OVERRIDE
-    # -------------------------
     state = get_state(user_id)
 
-    if state and state != "idle":
-        return await fsm_handle(user_id, text)
+    print("🧠 UNIFIED INPUT:", text)
+    print("🧠 CURRENT STATE:", state)
 
-    # -------------------------
-    # INTENT ROUTING
-    # -------------------------
-    result = await intent_route(user_id, text, source="message")
+    # ----------------------------------
+    # FSM FIRST
+    # ----------------------------------
 
-    if not result:
-        return "🤖 I didn't understand your request"
+    if state != "idle":
+        result = await handle_message(user_id, text)
+
+        print("🧠 FSM RESULT:", result)
+
+        return result
+
+    # ----------------------------------
+    # INTENT FLOW
+    # ----------------------------------
+
+    result = await route(user_id, text)
+
+    print("🧠 ROUTE RESULT:", result)
 
     return result

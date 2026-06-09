@@ -1,16 +1,23 @@
-
 import redis
 import json
+import os
 
-r = redis.Redis(host="redis", port=6379, decode_responses=True)
+r = redis.Redis(
+    host=os.getenv("REDIS_HOST", "flyrum-redis"),
+    port=6379,
+    decode_responses=True
+)
 
 
 def set_state(user_id: int, state: str):
+    print("[FSM SET STATE]", user_id, state)
     r.set(f"fsm:{user_id}:state", state)
 
 
 def get_state(user_id: int):
-    return r.get(f"fsm:{user_id}:state") or "idle"
+    value = r.get(f"fsm:{user_id}:state")
+    print("[FSM GET STATE]", user_id, value)
+    return value or "idle"
 
 
 def set_data(user_id: int, key: str, value):

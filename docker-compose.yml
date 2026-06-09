@@ -1,34 +1,44 @@
 services:
-  db:
+
+  bot:
+    container_name: flyrum-bot
+    build: .
+    command: python -u main.py
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN}
+      DATABASE_URL: postgresql://flyrum:flyrum@flyrum-db:5432/flyrum
+      REDIS_HOST: flyrum-redis
+    depends_on:
+      - flyrum-db
+      - flyrum-redis
+
+  worker:
+    container_name: flyrum-worker
+    build: .
+    command: python -u worker_main.py
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN}
+      DATABASE_URL: postgresql://flyrum:flyrum@flyrum-db:5432/flyrum
+      REDIS_HOST: flyrum-redis
+    depends_on:
+      - flyrum-db
+      - flyrum-redis
+
+  flyrum-db:
     image: postgres:15
     container_name: flyrum-db
-    restart: always
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - flyrum_db_data:/var/lib/postgresql/data
+      POSTGRES_USER: flyrum
+      POSTGRES_PASSWORD: flyrum
+      POSTGRES_DB: flyrum
     ports:
       - "5432:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
-  redis:
+  flyrum-redis:
     image: redis:7-alpine
     container_name: flyrum-redis
-    restart: always
     ports:
       - "6379:6379"
 
-  worker:
-    build: .
-    container_name: flyrum-worker
-    restart: always
-    env_file:
-      - .env
-    command: ["python", "-u", "/app/main.py"]
-    depends_on:
-      - db
-      - redis
-
-volumes:
-  flyrum_db_data:

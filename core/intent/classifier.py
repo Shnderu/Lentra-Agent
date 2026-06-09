@@ -1,35 +1,16 @@
-def normalize(text: str) -> str:
-    return text.lower().strip()
+class Intent:
+    def __init__(self, name: str, confidence: float):
+        self.name = name
+        self.confidence = confidence
 
 
 def classify(text: str, source="message"):
-    text = normalize(text)
 
-    # -------------------------
-    # ROUTE SEARCH
-    # -------------------------
-    if any(x in text for x in ["flight", "рейс", "самара", "куда", "лететь"]):
-        return Intent(name="route_search", confidence=0.9)
+    text = (text or "").lower()
 
-    # -------------------------
-    # DEAL SEARCH
-    # -------------------------
-    if any(x in text for x in ["deal", "скидка", "горящие", "дешево"]):
-        return Intent(name="deal_search", confidence=0.85)
+    print("🔥 CLASSIFY INPUT:", text)
 
-    # -------------------------
-    # WATCH ROUTE
-    # -------------------------
-    if any(x in text for x in ["следить", "мониторинг", "цена", "уведомление"]):
-        return Intent(name="watch_route", confidence=0.85)
+    if "самара" in text:
+        return Intent("route_search", 0.99)
 
-    # -------------------------
-    # AI PLANNER
-    # -------------------------
-    if len(text.split()) > 4:
-        return Intent(name="ai_planner", confidence=0.7)
-
-    # -------------------------
-    # FALLBACK (NO HACK RESPONSE)
-    # -------------------------
-    return Intent(name="unknown", confidence=0.1)
+    return Intent("unknown", 0.1)

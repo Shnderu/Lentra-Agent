@@ -1,13 +1,5 @@
-
-from core.fsm.context import set_state, get_state, set_data, get_data, clear
-from core.search.engine import SearchEngine
-from core.deals.engine import DealEngine
-from core.ai.planner.engine import AIPlanner
-
-
-search_engine = SearchEngine()
-deal_engine = DealEngine()
-planner = AIPlanner()
+from core.fsm.context import get_state, set_state, set_data, get_data, clear
+from core.queue.queue import enqueue
 
 
 async def handle_message(user_id: int, text: str):
@@ -15,53 +7,43 @@ async def handle_message(user_id: int, text: str):
     state = get_state(user_id)
     data = get_data(user_id)
 
-    # ROUTE FLOW
+    print("[FSM]", user_id, state, text)
+
+    # -------------------------
+    # HARD GUARANTEE: ALWAYS RETURN STRING
+    # -------------------------
+
     if state == "route_from":
-        set_data(user_id, "from", text)
+        set_data(user_id, "origin", text)
         set_state(user_id, "route_to")
         return "✈️ Куда летим?"
 
     if state == "route_to":
-        set_data(user_id, "to", text)
+        set_data(user_id, "destination", text)
         set_state(user_id, "route_date")
         return "📅 Когда вылет?"
 
     if state == "route_date":
+        set_data(user_id, "date", text)
 
-        data = get_data(user_id)
+        payload = {
+            "origin": data.get("origin"),
+            "destination": data.get("destination"),
+            "date": text,
+            "user_id": user_id
+        }
+
+        task_id = enqueue("route_search", payload)
+
         clear(user_id)
 
-        result = search_engine.search_route(
-            origin=data["from"],
-            destination=data["to"],
-            date=text
+        return (
+            "🔍 Ищу рейсы...\n"
+            f"{payload['origin']} → {payload['destination']}\n"
+            f"Дата: {payload['date']}\n"
+            f"Task ID: {task_id}"
         )
 
-        return f"✈️ Найдено {result['count']} вариантов"
-
-    # WATCH FLOW
-    if state == "watch_from":
-        set_data(user_id, "from", text)
-        set_state(user_id, "watch_to")
-        return "👉 Куда следить?"
-
-    if state == "watch_to":
-        set_data(user_id, "to", text)
-        set_state(user_id, "watch_price")
-        return "💰 Целевая цена?"
-
-    if state == "watch_price":
-        data = get_data(user_id)
-        clear(user_id)
-
-        return "👀 Мониторинг запущен"
-
-    # PLANNER FLOW
-    if state == "planner_input":
-        clear(user_id)
-
-        result = planner.plan(text, user_id)
-
-        return f"🧠 AI обработал запрос (task {result['task_id']})"
-
-    return None
+    # 🔥 CRITICAL: NEVER RETURN NONE
+    clear(user_id)
+    return f"⚠️ FSM LOST STATE: {state}"

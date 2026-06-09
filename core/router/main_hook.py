@@ -1,12 +1,6 @@
+# DISABLED GHOST PIPELINE
+# раньше здесь был UI handler, он конфликтовал с main.py
 
-from core.intent.router import route
-
-
-async def handle_update(message):
-
-    user_id = message.from_user.id
-    text = message.text or ""
-
-    result = await route(user_id, text, source="message")
-
-    await message.answer(str(result))
+async def main_hook(*args, **kwargs):
+    print("🛑 main_hook DISABLED")
+    return None

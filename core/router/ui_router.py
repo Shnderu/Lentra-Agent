@@ -1,15 +1,13 @@
+from core.fsm.flows.route_flow import start_route_flow
 
-from core.ui.controller import route_ui
 
+async def handle_ui(action: str, message):
 
-async def handle_ui(callback_data: str, message):
+    user_id = message.chat.id
 
-    if not callback_data:
-        return None
+    print("[UI ROUTER]", action)
 
-    if callback_data.startswith("ui:"):
-        action = callback_data.replace("ui:", "")
-    else:
-        action = callback_data
+    if action == "route_search":
+        return start_route_flow(user_id)
 
-    return await route_ui(action, message)
+    return "UI: unknown action"
