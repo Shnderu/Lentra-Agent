@@ -1,31 +1,34 @@
-import asyncio
-from core.bot.client import send_message
 from core.queue.queue import ack, fail
+from core.flight_engine.engine_impl import FlightEngineImpl
+from core.bot.client import send_message
+
+engine = FlightEngineImpl()
 
 
-async def handle(task):
+async def handle(task: dict):
+
     task_id = task["id"]
     payload = task["payload"]
 
     user_id = payload["user_id"]
-    origin = payload.get("origin")
-    destination = payload.get("destination")
-    date = payload.get("date")
 
     try:
-        print("[WORKER] route_search:", payload)
-
-        # -------------------------
-        # MOCK SEARCH (пока без API)
-        # -------------------------
-        result = (
-            f"✈️ Результаты поиска\n\n"
-            f"{origin} → {destination}\n"
-            f"Дата: {date}\n\n"
-            f"💺 Найдено 3 варианта (demo)"
+        results = await engine.search(
+            payload["origin"],
+            payload["destination"],
+            payload["date"]
         )
 
-        await send_message(user_id, result)
+        text = "✈️ Результаты поиска\n\n"
+
+        for r in results:
+            text += (
+                f"{r['airline']}\n"
+                f"{r['from']} → {r['to']}\n"
+                f"💰 {r['price']}$ | ⏱ {r['duration']}\n\n"
+            )
+
+        await send_message(user_id, text)
 
         ack(task_id)
 
