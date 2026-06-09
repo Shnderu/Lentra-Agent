@@ -1,8 +1,8 @@
 from core.queue.queue import ack, fail
-from core.flight_engine.engine_impl import FlightEngineImpl
+from core.flight_engine.service import FlightSearchService
 from core.bot.client import send_message
 
-engine = FlightEngineImpl()
+service = FlightSearchService()
 
 
 async def handle(task: dict):
@@ -13,20 +13,23 @@ async def handle(task: dict):
     user_id = payload["user_id"]
 
     try:
-        results = await engine.search(
+        results = await service.search(
             payload["origin"],
             payload["destination"],
             payload["date"]
         )
 
-        text = "✈️ Результаты поиска\n\n"
+        text = "✈️ Лучшие варианты\n\n"
 
-        for r in results:
-            text += (
-                f"{r['airline']}\n"
-                f"{r['from']} → {r['to']}\n"
-                f"💰 {r['price']}$ | ⏱ {r['duration']}\n\n"
-            )
+        if not results:
+            text += "Рейсов не найдено"
+        else:
+            for r in results[:5]:
+                text += (
+                    f"{r['airline']} ({r['provider']})\n"
+                    f"{r['from']} → {r['to']}\n"
+                    f"💰 {r['price']}$ | ⏱ {r['duration']}\n\n"
+                )
 
         await send_message(user_id, text)
 
