@@ -1,118 +1,102 @@
 import psycopg2
-from psycopg2.extras import RealDictCursor
+import os
 from datetime import datetime, timedelta
 
-DB_CONFIG = {
-    "host": "db",
-    "dbname": "readme_to_recover",
-    "user": "postgres",
-    "password": "postgres",
+DB = {
+    "host": os.getenv("DB_HOST", "db"),
+    "dbname": os.getenv("POSTGRES_DB"),
+    "user": os.getenv("POSTGRES_USER"),
+    "password": os.getenv("POSTGRES_PASSWORD"),
 }
 
 
-def get_connection():
-    return psycopg2.connect(**DB_CONFIG)
+def conn():
+    c = psycopg2.connect(**DB)
+    c.autocommit = True
+    return c
 
 
-def claim_tasks(worker_id: str, limit: int = 5):
-    conn = None
-    try:
-        conn = get_connection()
-        conn.autocommit = True
+def claim_tasks(worker_id, limit=5):
+    c = conn()
+    cur = c.cursor()
 
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("""
-                WITH cte AS (
-                    SELECT id
-                    FROM tasks
-                    WHERE status = 'pending'
-                      AND (retry_at IS NULL OR retry_at <= NOW())
-                    ORDER BY priority DESC, id ASC
-                    LIMIT %s
-                    FOR UPDATE SKIP LOCKED
-                )
-                UPDATE tasks t
-                SET status = 'processing',
-                    worker_id = %s,
-                    locked_at = NOW(),
-                    attempts = attempts + 1,
-                    updated_at = NOW()
-                FROM cte
-                WHERE t.id = cte.id
-                RETURNING t.*;
-            """, (limit, worker_id))
+    cur.execute("SELECT pg_advisory_lock(123456)")
 
-            return cur.fetchall()
-
-    except Exception as e:
-        print(f"[QUEUE ERROR] {e}")
-        return []
-
-    finally:
-        if conn:
-            conn.close()
-
-
-def mark_done(task_id: int, worker_id: str):
-    conn = get_connection()
-    conn.autocommit = True
-
-    with conn.cursor() as cur:
-        cur.execute("""
-            UPDATE tasks
-            SET status = 'done',
-                worker_id = %s,
-                updated_at = NOW()
-            WHERE id = %s
-        """, (worker_id, task_id))
-
-    conn.close()
-
-
-def mark_failed(task_id: int, worker_id: str, error: str):
-    conn = get_connection()
-    conn.autocommit = True
-
-    with conn.cursor(cursor_factory=RealDictCursor) as cur:
-
-        # получаем текущие attempts
-        cur.execute("""
-            SELECT attempts, max_attempts
+    cur.execute("""
+        WITH picked AS (
+            SELECT id
             FROM tasks
-            WHERE id = %s
-        """, (task_id,))
+            WHERE status = 'pending'
+              AND (next_retry_at IS NULL OR next_retry_at <= NOW())
+            ORDER BY priority DESC, id
+            LIMIT %s
+            FOR UPDATE SKIP LOCKED
+        )
+        UPDATE tasks t
+        SET status='processing',
+            worker_id=%s,
+            started_at = COALESCE(started_at, NOW()),
+            lease_until = NOW() + INTERVAL '2 minutes'
+        FROM picked
+        WHERE t.id = picked.id
+        RETURNING t.id, t.task_type, t.payload, t.attempts, t.max_retries;
+    """, (limit, worker_id))
 
-        row = cur.fetchone()
+    rows = cur.fetchall()
 
-        if not row:
-            return
+    cur.execute("SELECT pg_advisory_unlock(123456)")
+    c.close()
 
-        attempts = row["attempts"]
-        max_attempts = row["max_attempts"]
+    return rows
 
-        # если превышен лимит → dead
-        if attempts >= max_attempts:
-            cur.execute("""
-                UPDATE tasks
-                SET status = 'dead',
-                    worker_id = %s,
-                    updated_at = NOW()
-                WHERE id = %s
-            """, (worker_id, task_id))
-            return
 
-        # exponential backoff (30s, 2m, 10m, 30m...)
-        delay = min(60 * (2 ** attempts), 1800)
+def mark_done(task_id):
+    c = conn()
+    cur = c.cursor()
 
-        retry_at = datetime.utcnow() + timedelta(seconds=delay)
+    cur.execute("""
+        UPDATE tasks
+        SET status='done',
+            finished_at=NOW()
+        WHERE id=%s
+    """, (task_id,))
+
+    c.close()
+
+
+def mark_failed(task_id, task_type, payload, error, attempts, max_retries):
+    c = conn()
+    cur = c.cursor()
+
+    new_attempts = attempts + 1
+
+    if new_attempts >= max_retries:
+        # MOVE TO DLQ
+        cur.execute("""
+            INSERT INTO tasks_dlq(original_task_id, task_type, payload, error)
+            VALUES (%s, %s, %s, %s)
+        """, (task_id, task_type, payload, error))
 
         cur.execute("""
             UPDATE tasks
-            SET status = 'pending',
-                worker_id = %s,
-                retry_at = %s,
-                updated_at = NOW()
-            WHERE id = %s
-        """, (worker_id, retry_at, task_id))
+            SET status='dead',
+                last_error=%s,
+                attempts=%s,
+                finished_at=NOW()
+            WHERE id=%s
+        """, (error, new_attempts, task_id))
 
-    conn.close()
+    else:
+        # RETRY WITH BACKOFF
+        delay = min(60 * (2 ** new_attempts), 3600)
+
+        cur.execute("""
+            UPDATE tasks
+            SET status='pending',
+                last_error=%s,
+                attempts=%s,
+                next_retry_at = NOW() + (%s || ' seconds')::interval
+            WHERE id=%s
+        """, (error, new_attempts, delay, task_id))
+
+    c.close()

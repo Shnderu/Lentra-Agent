@@ -1,0 +1,2 @@
+ALTER TABLE public.tasks
+ADD COLUMN IF NOT EXISTS started_at TIMESTAMP;

@@ -1,41 +1,40 @@
 services:
   db:
     image: postgres:15
+    container_name: flyrum-db
+    restart: always
     environment:
-      POSTGRES_DB: readme_to_recover
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - flyrum_db_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
-    volumes:
-      - db_data:/var/lib/postgresql/data
-      - ./init/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:7-alpine
+    container_name: flyrum-redis
+    restart: always
     ports:
       - "6379:6379"
 
-  bot:
-    build: .
-    environment:
-      BOT_TOKEN: ${BOT_TOKEN}
-      DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: ${REDIS_URL}
-    depends_on:
-      - db
-      - redis
-
   worker:
     build: .
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: ${REDIS_URL}
-      PYTHONPATH: /app
+    container_name: flyrum-worker
+    restart: always
+    env_file:
+      - .env
     depends_on:
-      - db
-      - redis
-    command: python -u workers/worker.py
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
 volumes:
-  db_data:
+  flyrum_db_data:

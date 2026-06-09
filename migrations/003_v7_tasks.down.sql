@@ -1,0 +1,5 @@
+ALTER TABLE tasks
+DROP COLUMN IF EXISTS trace_id,
+DROP COLUMN IF EXISTS last_error,
+DROP COLUMN IF EXISTS next_retry_at,
+DROP COLUMN IF EXISTS max_retries;

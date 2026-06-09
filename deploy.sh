@@ -1,14 +1,19 @@
 #!/bin/bash
+
 set -e
 
-TAG="stable-$(date +%Y%m%d-%H%M%S)"
+echo "[DEPLOY] start"
 
-echo "[DEPLOY] Building images: $TAG"
+echo "[DEPLOY] infra down"
+docker compose down --remove-orphans
 
-docker compose build
+echo "[DEPLOY] infra up"
+docker compose up -d --build db redis
 
-echo "[DEPLOY] Restarting stack"
+echo "[WAIT DB]"
+sleep 3
 
-docker compose up -d
+docker compose up -d --build worker
 
-echo "[DEPLOY] Done: $TAG"
+echo "[HEALTH CHECK]"
+docker logs -f flyrum-worker
