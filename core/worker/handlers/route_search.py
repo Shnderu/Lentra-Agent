@@ -1,40 +1,44 @@
-from core.queue.queue import ack, fail
 from core.flight_engine.service import FlightSearchService
-from core.bot.client import send_message
-
-service = FlightSearchService()
 
 
-async def handle(task: dict):
+async def handle(task):
 
-    task_id = task["id"]
+    service = FlightSearchService()
+
     payload = task["payload"]
 
-    user_id = payload["user_id"]
+    result = await service.search(
+        payload["origin"],
+        payload["destination"],
+        payload["date"]
+    )
 
-    try:
-        results = await service.search(
-            payload["origin"],
-            payload["destination"],
-            payload["date"]
+    if not isinstance(result, dict):
+        return str(result)
+
+    offers = result.get("offers", [])
+
+    if not offers:
+        return "❌ Рейсы не найдены"
+
+    top = offers[:3]
+
+    lines = []
+    lines.append("✈️ Результаты поиска\n")
+    lines.append(f"{result['origin']} → {result['destination']}")
+    lines.append(f"Дата: {result['date']}\n")
+
+    for i, o in enumerate(top, 1):
+        lines.append(
+            f"💺 Вариант {i}\n"
+            f"💰 {o.price} {o.currency}\n"
+            f"⏱ {o.duration}\n"
+            f"✈️ {o.airline}\n"
+            f"📡 {o.provider}\n"
         )
 
-        text = "✈️ Лучшие варианты\n\n"
+    best = top[0]
+    lines.append("\n🏆 Лучший вариант")
+    lines.append(f"{best.price} {best.currency} — {best.airline}")
 
-        if not results:
-            text += "Рейсов не найдено"
-        else:
-            for r in results[:5]:
-                text += (
-                    f"{r['airline']} ({r['provider']})\n"
-                    f"{r['from']} → {r['to']}\n"
-                    f"💰 {r['price']}$ | ⏱ {r['duration']}\n\n"
-                )
-
-        await send_message(user_id, text)
-
-        ack(task_id)
-
-    except Exception as e:
-        print("[WORKER ERROR]", e)
-        fail(task_id)
+    return "\n".join(lines)

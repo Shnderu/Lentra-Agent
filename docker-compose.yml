@@ -1,44 +1,66 @@
+
 services:
-
-  bot:
-    container_name: flyrum-bot
-    build: .
-    command: python -u main.py
-    environment:
-      BOT_TOKEN: ${BOT_TOKEN}
-      DATABASE_URL: postgresql://flyrum:flyrum@flyrum-db:5432/flyrum
-      REDIS_HOST: flyrum-redis
-    depends_on:
-      - flyrum-db
-      - flyrum-redis
-
-  worker:
-    container_name: flyrum-worker
-    build: .
-    command: python -u worker_main.py
-    environment:
-      BOT_TOKEN: ${BOT_TOKEN}
-      DATABASE_URL: postgresql://flyrum:flyrum@flyrum-db:5432/flyrum
-      REDIS_HOST: flyrum-redis
-    depends_on:
-      - flyrum-db
-      - flyrum-redis
 
   flyrum-db:
     image: postgres:15
     container_name: flyrum-db
+    restart: unless-stopped
     environment:
+      POSTGRES_DB: flyrum
       POSTGRES_USER: flyrum
       POSTGRES_PASSWORD: flyrum
-      POSTGRES_DB: flyrum
     ports:
       - "5432:5432"
     volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - flyrum_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flyrum"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   flyrum-redis:
     image: redis:7-alpine
     container_name: flyrum-redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
+
+  bot:
+    build: .
+    container_name: flyrum-bot
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - /opt/flyrum:/app
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN}
+      DATABASE_URL: postgresql://flyrum:flyrum@flyrum-db:5432/flyrum
+      REDIS_HOST: flyrum-redis
+    depends_on:
+      flyrum-db:
+        condition: service_healthy
+      flyrum-redis:
+        condition: service_started
+    command: ["python", "-u", "main.py"]
+
+  worker:
+    build: .
+    container_name: flyrum-worker
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - /opt/flyrum:/app
+    environment:
+      DATABASE_URL: postgresql://flyrum:flyrum@flyrum-db:5432/flyrum
+      REDIS_HOST: flyrum-redis
+    depends_on:
+      flyrum-db:
+        condition: service_healthy
+      flyrum-redis:
+        condition: service_started
+    command: ["python", "-u", "worker_main.py"]
+
+volumes:
+  flyrum_pg:
 

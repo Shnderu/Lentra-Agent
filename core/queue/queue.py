@@ -1,116 +1,178 @@
-import os
-import json
-import uuid
 import psycopg2
-from datetime import datetime
+import json
+import os
+import time
 
 
+# -----------------------------
+# CONNECTION RESET (CRITICAL)
+# -----------------------------
 def get_conn():
-    return psycopg2.connect(os.getenv("DATABASE_URL"))
+    """
+    Production-safe connection with reset logic.
+    Prevents stale connections in long-running worker.
+    """
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    conn.autocommit = False
+    return conn
 
 
-# -------------------------
+def _reset_conn(conn):
+    """
+    Hard reset connection (required for long-running worker stability)
+    """
+    try:
+        conn.rollback()
+    except Exception:
+        pass
+    try:
+        conn.close()
+    except Exception:
+        pass
+
+
+# -----------------------------
 # ENQUEUE
-# -------------------------
+# -----------------------------
 def enqueue(task_type: str, payload: dict):
     conn = get_conn()
     cur = conn.cursor()
 
-    cur.execute("""
-        INSERT INTO tasks(type, payload)
-        VALUES (%s, %s)
-        RETURNING id
-    """, (task_type, json.dumps(payload)))
+    try:
+        cur.execute("""
+            INSERT INTO tasks (type, payload, status, run_after)
+            VALUES (%s, %s, 'queued', NOW())
+            RETURNING id
+        """, (task_type, json.dumps(payload)))
 
-    task_id = cur.fetchone()[0]
+        task_id = cur.fetchone()[0]
+        conn.commit()
+        return task_id
 
-    conn.commit()
-    conn.close()
+    except Exception as e:
+        conn.rollback()
+        raise e
 
-    return task_id
+    finally:
+        _reset_conn(conn)
 
 
-# -------------------------
-# CLAIM TASK (LOCK SAFE)
-# -------------------------
-def claim(worker_id: str, limit: int = 1):
+# -----------------------------
+# CLAIM (CRITICAL FIX)
+# -----------------------------
+def claim(worker_id: str = "worker"):
     conn = get_conn()
     cur = conn.cursor()
 
-    cur.execute("""
-        SELECT id, type, payload
-        FROM tasks
-        WHERE status = 'queued'
-          AND run_after <= NOW()
-        ORDER BY id
-        FOR UPDATE SKIP LOCKED
-        LIMIT %s
-    """, (limit,))
-
-    rows = cur.fetchall()
-
-    tasks = []
-
-    for r in rows:
-        task_id = r[0]
-
+    try:
         cur.execute("""
             UPDATE tasks
             SET status = 'processing',
-                locked_at = NOW(),
-                locked_by = %s,
-                updated_at = NOW()
+                locked_by = %s
+            WHERE id = (
+                SELECT id FROM tasks
+                WHERE status = 'queued'
+                AND run_after <= NOW()
+                ORDER BY id ASC
+                LIMIT 1
+                FOR UPDATE SKIP LOCKED
+            )
+            RETURNING id, type, payload
+        """, (worker_id,))
+
+        row = cur.fetchone()
+
+        conn.commit()
+
+        if not row:
+            return []
+
+        payload = row[2]
+
+        if isinstance(payload, str):
+            payload = json.loads(payload)
+
+        return [{
+            "id": row[0],
+            "type": row[1],
+            "payload": payload
+        }]
+
+    except Exception as e:
+        conn.rollback()
+        raise e
+
+    finally:
+        _reset_conn(conn)
+
+
+# -----------------------------
+# MARK DONE
+# -----------------------------
+def mark_done(task_id: int, result: str):
+    conn = get_conn()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            UPDATE tasks
+            SET status = 'done',
+                result = %s
             WHERE id = %s
-        """, (worker_id, task_id))
+        """, (result, task_id))
 
-        tasks.append({
-            "id": task_id,
-            "type": r[1],
-            "payload": r[2]
-        })
+        conn.commit()
 
-    conn.commit()
-    conn.close()
+    except Exception as e:
+        conn.rollback()
+        raise e
 
-    return tasks
+    finally:
+        _reset_conn(conn)
 
 
-# -------------------------
-# ACK SUCCESS
-# -------------------------
-def ack(task_id: int):
+# -----------------------------
+# MARK FAILED
+# -----------------------------
+def mark_failed(task_id: int, error: str):
     conn = get_conn()
     cur = conn.cursor()
 
-    cur.execute("""
-        UPDATE tasks
-        SET status = 'done',
-            updated_at = NOW()
-        WHERE id = %s
-    """, (task_id,))
+    try:
+        cur.execute("""
+            UPDATE tasks
+            SET status = 'failed',
+                error = %s
+            WHERE id = %s
+        """, (error, task_id))
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+
+    except Exception:
+        conn.rollback()
+
+    finally:
+        _reset_conn(conn)
 
 
-# -------------------------
-# FAIL + RETRY
-# -------------------------
-def fail(task_id: int, retry_delay_sec: int = 30):
+# -----------------------------
+# MARK SENT (for bot notifications if needed)
+# -----------------------------
+def mark_sent(task_id: int):
     conn = get_conn()
     cur = conn.cursor()
 
-    cur.execute("""
-        UPDATE tasks
-        SET status = CASE
-            WHEN attempts >= 3 THEN 'dead'
-            ELSE 'queued'
-        END,
-        attempts = attempts + 1,
-        run_after = NOW() + (%s || ' seconds')::interval,
-        updated_at = NOW()
-        WHERE id = %s
-    """, (retry_delay_sec, task_id))
+    try:
+        cur.execute("""
+            UPDATE tasks
+            SET status = 'sent'
+            WHERE id = %s
+        """, (task_id,))
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+
+    except Exception:
+        conn.rollback()
+
+    finally:
+        _reset_conn(conn)
