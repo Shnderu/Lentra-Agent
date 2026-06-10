@@ -4,7 +4,7 @@ from core.flight_engine.providers.mock_provider import MockProvider
 from core.flight_engine.providers.kiwi_provider import KiwiProvider
 from core.flight_engine.providers.amadeus_provider import AmadeusProvider
 
-from core.flight_engine.ranker import FlightRanker
+from core.flight_engine.ranking.engine_v2 import FlightRankingEngineV2
 
 
 class FlightEngineImpl:
@@ -15,17 +15,17 @@ class FlightEngineImpl:
             providers=[
                 KiwiProvider(),
                 AmadeusProvider(),
-                MockProvider()  # fallback always last
+                MockProvider()
             ]
         )
 
-        self.ranker = FlightRanker()
+        self.ranker = FlightRankingEngineV2()
 
     async def search(self, origin: str, destination: str, date: str):
 
         offers = await self.gateway.search(origin, destination, date)
 
-        ranked = self.ranker.rank(offers)
+        ranked = await self.ranker.rank(offers)
 
         return {
             "origin": origin,
