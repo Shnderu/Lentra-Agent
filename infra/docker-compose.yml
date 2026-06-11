@@ -1,5 +1,6 @@
-services:
+version: "3.9"
 
+services:
   redis:
     image: redis:7-alpine
     container_name: lentra-redis
@@ -10,18 +11,17 @@ services:
     image: postgres:15
     container_name: lentra-db
     environment:
-      POSTGRES_USER: lentra
-      POSTGRES_PASSWORD: lentra
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: lentra
     ports:
       - "5432:5432"
-    volumes:
-      - lentra_pg:/var/lib/postgresql/data
 
   api:
-    build: ../api
+    build:
+      context: ..
+      dockerfile: infra/api.Dockerfile
     container_name: lentra-api
-    restart: always
     depends_on:
       - redis
       - db
@@ -29,27 +29,41 @@ services:
       - "8000:8000"
 
   worker:
-    build: ../worker
+    build:
+      context: ..
+      dockerfile: infra/worker.Dockerfile
     container_name: lentra-worker
-    restart: always
+    depends_on:
+      - redis
+      - db
 
-  worker_stream:
-    build: ../worker
+  worker-stream:
+    build:
+      context: ..
+      dockerfile: infra/worker-stream.Dockerfile
     container_name: lentra-worker-stream
-    restart: always
-    command: ["python", "-u", "worker_stream.py"]
+    depends_on:
+      - redis
+
+  worker-retry:
+    build:
+      context: ..
+      dockerfile: infra/worker-retry.Dockerfile
+    container_name: lentra-worker-retry
+    depends_on:
+      - redis
 
   bot:
-    build: ../bot
+    build:
+      context: ..
+      dockerfile: infra/bot.Dockerfile
     container_name: lentra-bot
-    restart: always
+    depends_on:
+      - api
+      - redis
 
   miniapp:
-    build: ../miniapp
+    image: nginx:alpine
     container_name: lentra-miniapp
-    restart: always
     ports:
       - "8080:80"
-
-volumes:
-  lentra_pg:

@@ -1,62 +1,42 @@
 import redis
 import json
 import time
-from core.service import RentCoreService
+
+from core.queue.streams import STREAM_TASKS
+from core.reliability.recovery import StreamRecovery
 
 r = redis.Redis(host="redis", port=6379, decode_responses=True)
-service = RentCoreService()
 
-STREAM = "stream:rent:tasks"
-GROUP = "group:rent-workers"
+GROUP = "workers"
 CONSUMER = "worker-1"
 
-# init consumer group
 try:
-    r.xgroup_create(STREAM, GROUP, id="0", mkstream=True)
-except:
+    r.xgroup_create(STREAM_TASKS, GROUP, mkstream=True)
+except Exception:
     pass
 
-print("LENTRA WORKER STARTED (V6.2 STREAM MODE)")
+recovery = StreamRecovery(r)
 
-def process(message_id, data):
-    payload = json.loads(data["payload"])
 
-    result = service.search(payload)
-
-    # update task state
-    r.set(
-        f"task:{data['id']}",
-        json.dumps({
-            "status": "done",
-            "result": result.dict(),
-            "updated_at": time.time()
-        })
-    )
-
+def process(task):
+    time.sleep(0.1)
     return True
 
+
 while True:
-    resp = r.xreadgroup(
-        GROUP,
-        CONSUMER,
-        {STREAM: ">"},
-        count=10,
-        block=5000
-    )
+    recovery.recover_stuck(CONSUMER)
+
+    resp = r.xreadgroup(GROUP, CONSUMER, {STREAM_TASKS: ">"}, count=10, block=5000)
 
     if not resp:
         continue
 
     for _, messages in resp:
         for msg_id, data in messages:
-
             try:
-                process(msg_id, data)
-                r.xack(STREAM, GROUP, msg_id)
+                process(data)
+                r.xack(STREAM_TASKS, GROUP, msg_id)
 
-            except Exception as e:
-                # DLQ
-                r.xadd("stream:rent:dlq", {
-                    "error": str(e),
-                    "payload": json.dumps(data)
-                })
+            except Exception:
+                r.xadd("stream:rent:dlq", data)
+                r.xack(STREAM_TASKS, GROUP, msg_id)

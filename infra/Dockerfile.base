@@ -3,9 +3,18 @@ FROM python:3.11-slim
 WORKDIR /app
 
 ENV PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PYTHONPATH=/app
 
 RUN pip install --upgrade pip
 
-COPY ../requirements.core.txt /tmp/core.txt
-RUN pip install -r /tmp/core.txt
+RUN pip install \
+    fastapi \
+    uvicorn \
+    redis \
+    pydantic \
+    httpx \
+    requests \
+    aiogram \
+    python-dotenv

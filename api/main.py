@@ -1,55 +1,40 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-import redis
-import json
-import uuid
 import time
+import redis
+
+from core.reliability.backpressure import BackpressureController
+from core.reliability.idempotency import IdempotencyGuard
+from core.queue.streams import STREAM_TASKS
+
+app = FastAPI()
 
 r = redis.Redis(host="redis", port=6379, decode_responses=True)
 
-app = FastAPI(title="Lentra Rent Core API")
+bp = BackpressureController(r)
+idem = IdempotencyGuard(r)
 
-class RentTask(BaseModel):
+
+class TaskIn(BaseModel):
     type: str
     payload: dict
 
+
 @app.post("/task")
-def create_task(task: RentTask):
+def create_task(task: TaskIn):
+    task_id = str(time.time_ns())
 
-    task_id = str(uuid.uuid4())
+    if not bp.allowed():
+        return {"error": "backpressure_active"}
 
-    payload = {
-        "id": task_id,
+    if not idem.acquire(task_id):
+        return {"error": "duplicate_task"}
+
+    r.xadd(STREAM_TASKS, {
+        "task_id": task_id,
         "type": task.type,
-        "payload": task.payload,
-        "status": "queued",
-        "result": None,
-        "created_at": time.time(),
-        "updated_at": time.time(),
-        "meta": {
-            "sources_enabled": ["faswaz", "facebook"]
-        }
-    }
-
-    # V5 (legacy queue)
-    r.set(f"task:{task_id}", json.dumps(payload))
-    r.lpush("queue:rent:tasks", task_id)
-
-    # V6 STREAM (event bus)
-    r.xadd(
-        "stream:rent:tasks",
-        {
-            "id": task_id,
-            "type": task.type,
-            "payload": json.dumps(task.payload)
-        }
-    )
+        "payload": str(task.payload),
+        "retry": 0
+    })
 
     return {"task_id": task_id}
-
-@app.get("/task/{task_id}")
-def get_task(task_id: str):
-    raw = r.get(f"task:{task_id}")
-    if not raw:
-        return {"error": "not found"}
-    return json.loads(raw)
