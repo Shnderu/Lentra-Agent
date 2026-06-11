@@ -15,29 +15,41 @@ services:
       POSTGRES_DB: lentra
     ports:
       - "5432:5432"
+    volumes:
+      - lentra_pg:/var/lib/postgresql/data
 
   api:
-    build:
-      context: /opt/lentra
-      dockerfile: api/Dockerfile
+    build: ../api
     container_name: lentra-api
+    restart: always
+    depends_on:
+      - redis
+      - db
     ports:
       - "8000:8000"
 
   worker:
-    build:
-      context: /opt/lentra
-      dockerfile: worker/Dockerfile
+    build: ../worker
     container_name: lentra-worker
+    restart: always
+
+  worker_stream:
+    build: ../worker
+    container_name: lentra-worker-stream
+    restart: always
+    command: ["python", "-u", "worker_stream.py"]
 
   bot:
-    build:
-      context: /opt/lentra
-      dockerfile: bot/Dockerfile
+    build: ../bot
     container_name: lentra-bot
+    restart: always
 
   miniapp:
-    build: /opt/lentra/miniapp
+    build: ../miniapp
     container_name: lentra-miniapp
+    restart: always
     ports:
       - "8080:80"
+
+volumes:
+  lentra_pg:

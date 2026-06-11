@@ -9,18 +9,16 @@ r = redis.Redis(host="redis", port=6379, decode_responses=True)
 
 app = FastAPI(title="Lentra Rent Core API")
 
-
 class RentTask(BaseModel):
     type: str
     payload: dict
-
 
 @app.post("/task")
 def create_task(task: RentTask):
 
     task_id = str(uuid.uuid4())
 
-    data = {
+    payload = {
         "id": task_id,
         "type": task.type,
         "payload": task.payload,
@@ -33,11 +31,21 @@ def create_task(task: RentTask):
         }
     }
 
-    r.set(f"task:{task_id}", json.dumps(data))
+    # V5 (legacy queue)
+    r.set(f"task:{task_id}", json.dumps(payload))
     r.lpush("queue:rent:tasks", task_id)
 
-    return {"task_id": task_id}
+    # V6 STREAM (event bus)
+    r.xadd(
+        "stream:rent:tasks",
+        {
+            "id": task_id,
+            "type": task.type,
+            "payload": json.dumps(task.payload)
+        }
+    )
 
+    return {"task_id": task_id}
 
 @app.get("/task/{task_id}")
 def get_task(task_id: str):
