@@ -1,0 +1,12 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+RUN pip install --upgrade pip
+
+# ---- CORE DEPENDENCIES LAYER (CACHEABLE) ----
+COPY ../requirements.core.txt /tmp/core.txt
+RUN pip install -r /tmp/core.txt

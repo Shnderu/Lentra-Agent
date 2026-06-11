@@ -2,9 +2,9 @@ FROM lentra-base:latest
 
 WORKDIR /app
 
-ENV PYTHONPATH=/app
+COPY worker/ /app/worker/
+COPY core/ /app/core/
 
-COPY core /app/core
-COPY worker /app/worker
+ENV PYTHONPATH=/app
 
 CMD ["python", "-u", "worker/worker.py"]
