@@ -1,12 +1,23 @@
+from enum import Enum
 
-from aiogram import Router
-from aiogram.filters import Command
+class IntentType(str, Enum):
+    GENERIC = "generic"
+    INFO = "info"
+    ACTION = "action"
+    ALERT = "alert"
 
-router = Router()
+class Router:
+    def classify(self, text: str) -> IntentType:
+        # временно rule-based, позже LLM
+        text = text.lower()
 
-# SYSTEM COMMANDS (optional fallback only, NOT catch-all)
+        if "напомни" in text or "alert" in text:
+            return IntentType.ALERT
 
-@router.message(Command("ping"))
-async def ping(message):
-    await message.answer("pong")
+        if "как" in text or "что" in text:
+            return IntentType.INFO
 
+        if "забронировать" in text or "создать" in text:
+            return IntentType.ACTION
+
+        return IntentType.GENERIC
