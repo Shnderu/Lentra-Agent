@@ -1,6 +1,12 @@
 services:
 
-  postgres:
+  redis:
+    image: redis:7-alpine
+    container_name: lentra-redis
+    ports:
+      - "6379:6379"
+
+  db:
     image: postgres:15
     container_name: lentra-db
     environment:
@@ -12,25 +18,40 @@ services:
     volumes:
       - lentra_pg:/var/lib/postgresql/data
 
-  redis:
-    image: redis:7-alpine
-    container_name: lentra-redis
-    ports:
-      - "6379:6379"
-
   api:
     build: ../api
     container_name: lentra-api
-    ports:
-      - "8000:8000"
+    restart: always
     depends_on:
       - redis
+      - db
+    ports:
+      - "8000:8000"
 
   worker:
     build: ../worker
     container_name: lentra-worker
+    restart: always
     depends_on:
       - redis
+      - db
+
+  bot:
+    build: ../bot
+    container_name: lentra-bot
+    restart: always
+    depends_on:
+      - api
+      - redis
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  miniapp:
+    build: ../miniapp
+    container_name: lentra-miniapp
+    restart: always
+    ports:
+      - "8080:80"
 
 volumes:
   lentra_pg:
