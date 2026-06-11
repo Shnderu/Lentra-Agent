@@ -1,9 +1,10 @@
-FROM python:3.11
+FROM lentra-base:latest
 
 WORKDIR /app
 
-COPY . /app
+ENV PYTHONPATH=/app
 
-RUN pip install -r requirements.txt
+COPY core /app/core
+COPY bot /app/bot
 
-CMD ["python", "main.py"]
+CMD ["python", "bot/main.py"]

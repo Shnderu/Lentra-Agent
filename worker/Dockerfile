@@ -1,11 +1,10 @@
-FROM python:3.11-slim
+FROM lentra-base:latest
 
 WORKDIR /app
 
-COPY . /app
+ENV PYTHONPATH=/app
 
-ENV PYTHONUNBUFFERED=1
+COPY core /app/core
+COPY worker /app/worker
 
-RUN pip install --no-cache-dir -r requirements.txt
-
-CMD ["python", "-u", "worker.py"]
+CMD ["python", "-u", "worker/worker.py"]

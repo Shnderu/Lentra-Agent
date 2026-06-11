@@ -1,9 +1,10 @@
-FROM python:3.11-slim
+FROM lentra-base:latest
 
 WORKDIR /app
 
-COPY . /app
+ENV PYTHONPATH=/app
 
-RUN pip install --no-cache-dir -r requirements.txt
+COPY core /app/core
+COPY api /app/api
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
