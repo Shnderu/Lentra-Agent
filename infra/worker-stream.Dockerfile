@@ -1,4 +1,4 @@
-FROM lentra-python-base:latest
+FROM lentra-base:latest
 
 WORKDIR /app
 
@@ -7,4 +7,4 @@ COPY core/ /app/core/
 
 ENV PYTHONPATH=/app
 
-CMD ["python", "-u", "worker/stream.py"]
+CMD ["python","-u","worker/worker_stream_v7.py"]

@@ -1,13 +1,63 @@
-version: "3.9"
-
 services:
-  redis:
-    image: redis:7-alpine
-    container_name: lentra-redis
+  lentra-api:
+    build:
+      context: ..
+      dockerfile: api/Dockerfile
+    image: infra-api
+    container_name: lentra-api
     ports:
-      - "6379:6379"
+      - "8000:8000"
+    depends_on:
+      - lentra-redis
+      - lentra-db
+    environment:
+      - REDIS_HOST=lentra-redis
 
-  db:
+  lentra-worker:
+    build:
+      context: ..
+      dockerfile: worker/Dockerfile
+    image: infra-worker
+    container_name: lentra-worker
+    depends_on:
+      - lentra-redis
+    environment:
+      - REDIS_HOST=lentra-redis
+
+  lentra-worker-stream:
+    build:
+      context: ..
+      dockerfile: infra/worker-stream.Dockerfile
+    image: infra-worker-stream
+    container_name: lentra-worker-stream
+    depends_on:
+      - lentra-redis
+    environment:
+      - REDIS_HOST=lentra-redis
+
+  lentra-worker-retry:
+    build:
+      context: ..
+      dockerfile: worker/Dockerfile
+    image: infra-worker-retry
+    container_name: lentra-worker-retry
+    depends_on:
+      - lentra-redis
+    environment:
+      - REDIS_HOST=lentra-redis
+
+  lentra-bot:
+    build:
+      context: ..
+      dockerfile: bot/Dockerfile
+    image: infra-bot
+    container_name: lentra-bot
+    depends_on:
+      - lentra-redis
+    environment:
+      - REDIS_HOST=lentra-redis
+
+  lentra-db:
     image: postgres:15
     container_name: lentra-db
     environment:
@@ -17,52 +67,13 @@ services:
     ports:
       - "5432:5432"
 
-  api:
-    build:
-      context: ..
-      dockerfile: infra/api.Dockerfile
-    container_name: lentra-api
-    depends_on:
-      - redis
-      - db
+  lentra-redis:
+    image: redis:7-alpine
+    container_name: lentra-redis
     ports:
-      - "8000:8000"
+      - "6379:6379"
 
-  worker:
-    build:
-      context: ..
-      dockerfile: infra/worker.Dockerfile
-    container_name: lentra-worker
-    depends_on:
-      - redis
-      - db
-
-  worker-stream:
-    build:
-      context: ..
-      dockerfile: infra/worker-stream.Dockerfile
-    container_name: lentra-worker-stream
-    depends_on:
-      - redis
-
-  worker-retry:
-    build:
-      context: ..
-      dockerfile: infra/worker-retry.Dockerfile
-    container_name: lentra-worker-retry
-    depends_on:
-      - redis
-
-  bot:
-    build:
-      context: ..
-      dockerfile: infra/bot.Dockerfile
-    container_name: lentra-bot
-    depends_on:
-      - api
-      - redis
-
-  miniapp:
+  lentra-miniapp:
     image: nginx:alpine
     container_name: lentra-miniapp
     ports:
