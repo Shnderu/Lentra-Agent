@@ -4,7 +4,10 @@ import json
 import os
 
 from core.queue.streams import STREAM_TASKS
+from core.queue.streams import STREAM_RESULTS
 from core.reliability.retry import RetryHandler
+
+from worker.handlers.rent_search import run as rent_search
 
 r = redis.Redis(
     host=os.getenv("REDIS_HOST", "lentra-redis"),
@@ -26,9 +29,22 @@ print("STREAM WORKER V12 ACTIVE")
 
 
 def process(task):
-    # TODO: real business logic hook
-    if task["type"] == "rent.search":
+    task_type = task.get("type")
+
+    if task_type == "rent.search":
+        result = rent_search(task["payload"])
+
+        r.xadd(
+            STREAM_RESULTS,
+            {
+                "task_id": task["task_id"],
+                "type": "rent.search.result",
+                "payload": json.dumps(result)
+            }
+        )
+
         return True
+
     return True
 
 
@@ -59,6 +75,7 @@ while True:
                         r.xack(STREAM_TASKS, GROUP, msg_id)
 
                 except Exception as e:
+                    print("[ERROR]", str(e))
                     retry.schedule_retry(data)
                     r.xack(STREAM_TASKS, GROUP, msg_id)
 

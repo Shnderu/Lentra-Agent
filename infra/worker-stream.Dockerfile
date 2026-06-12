@@ -7,4 +7,4 @@ COPY core/ /app/core/
 
 ENV PYTHONPATH=/app
 
-CMD ["python","-u","worker/worker_stream_v7.py"]
+CMD ["python","-u","worker/worker_stream_v12.py"]
