@@ -1,34 +1,13 @@
-import json
+def handle_rent_search(task):
+    city = task.payload.get("city")
 
-
-def handle_rent_search(task: dict):
-    """
-    Deterministic business logic layer (mock provider stage).
-    """
-
-    payload = task.get("payload", {})
-    if isinstance(payload, str):
-        try:
-            payload = json.loads(payload)
-        except Exception:
-            payload = {}
-
-    city = payload.get("city", "unknown")
-
-    # MOCK provider response
-    results = [
+    # MOCK provider layer (позже заменим на реальные источники)
+    return [
         {
             "title": f"Apartment in {city}",
             "price": 850,
             "currency": "USD",
-            "source": "faswaz"
+            "city": city,
+            "source": "mock"
         }
     ]
-
-    return {
-        "ok": True,
-        "result": {
-            "city": city,
-            "items": results
-        }
-    }
