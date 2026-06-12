@@ -2,48 +2,47 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import time
 import redis
-import hashlib
+import json
+
+from core.queue.streams import STREAM_TASKS
+from core.reliability.backpressure import BackpressureController
 
 app = FastAPI()
 
 r = redis.Redis(host="lentra-redis", port=6379, decode_responses=True)
 
-SHARDS = 2
-STREAM_PREFIX = "stream:tasks:shard:"
-VISIBILITY_ZSET = "queue:visibility"
-DLQ = "stream:dlq"
+bp = BackpressureController(r)
+
 
 class TaskIn(BaseModel):
     type: str
     payload: dict
 
-def shard(task_id: str):
-    return int(hashlib.md5(task_id.encode()).hexdigest(), 16) % SHARDS
 
 @app.post("/task")
 def create_task(task: TaskIn):
     task_id = str(time.time_ns())
-    shard_id = shard(task_id)
 
-    stream = f"{STREAM_PREFIX}{shard_id}"
+    # idempotency key
+    idem_key = f"idem:{task_id}"
+    if r.setnx(idem_key, 1) == 0:
+        return {"error": "duplicate_task"}
 
-    r.set(f"idem:{task_id}", 1, nx=True, ex=3600)
+    r.expire(idem_key, 3600)
 
-    r.hset(f"task:{task_id}", mapping={
-        "type": task.type,
-        "payload": str(task.payload),
-        "status": "queued",
-        "retry": 0,
-        "locked_by": "",
-        "locked_at": 0
-    })
+    if not bp.allowed():
+        return {"error": "backpressure_active"}
 
-    r.xadd(stream, {
+    r.xadd(STREAM_TASKS, {
         "task_id": task_id,
         "type": task.type,
-        "payload": str(task.payload),
+        "payload": json.dumps(task.payload),
         "retry": 0,
-        "status": "queued"
+        "status": "queued",
+        "ts": time.time()
     })
 
-    return {"task_id": task_id, "stream": stream}
+    return {
+        "task_id": task_id,
+        "stream": STREAM_TASKS
+    }
