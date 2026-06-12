@@ -1,49 +1,85 @@
-import redis
 import json
 import time
+import redis
 
-class SelfHealingEngine:
-    """
-    SAFE MODE:
-    - only reacts to explicit diagnostics signals
-    - NEVER auto-executes fixes
-    """
+"""
+Lentra Stability Layer v3
+SELF HEALING ENGINE (SAFE MODE)
+- does NOT auto-fix anything destructive
+- only controlled patch suggestions
+"""
 
-    def __init__(self):
-        self.r = redis.Redis(host="lentra-redis", port=6379, decode_responses=True)
-        self.channel = "stream:telemetry:errors"
+r = redis.Redis(host="lentra-redis", port=6379, decode_responses=True)
 
-    def listen(self):
-        print("[HEALING] engine started (SAFE MODE)")
+STREAM_SUGGESTIONS = "stream:system:suggestions"
+STREAM_HEALTH = "stream:system:health"
 
-        while True:
-            try:
-                events = self.r.xread({self.channel: "0"}, block=2000, count=1)
 
-                if not events:
-                    continue
+def evaluate(suggestion):
+    fixes = []
 
-                for stream, messages in events:
-                    for msg_id, msg in messages:
-                        self.handle(msg)
-                        self.r.xack(self.channel, "healing-group", msg_id)
+    for fix in suggestion.get("suggested_fixes", []):
+        if "redis" in fix:
+            fixes.append({
+                "type": "CONFIG",
+                "action": "CHECK_REDIS_RETRY_POLICY",
+                "risk": "LOW"
+            })
 
-            except Exception as e:
-                print("[HEALING ERROR]", e)
-                time.sleep(2)
+        if "worker" in fix:
+            fixes.append({
+                "type": "OBSERVABILITY",
+                "action": "ENABLE_WORKER_HEARTBEAT",
+                "risk": "LOW"
+            })
 
-    def handle(self, msg):
-        print("[HEALING EVENT]", msg)
+        if "pipeline" in fix:
+            fixes.append({
+                "type": "ARCHITECTURE",
+                "action": "ISOLATE_EXECUTION_LAYER",
+                "risk": "MEDIUM"
+            })
 
-        # IMPORTANT: NO AUTO FIX HERE
-        decision = {
-            "action": "SUGGEST_ONLY",
-            "root_cause": msg.get("error_type", "unknown"),
-            "confidence": 0.0
-        }
+    return fixes
 
-        self.r.xadd("stream:healing:decisions", decision)
+
+def run():
+    print(">>> SELF HEALING ENGINE STARTED")
+
+    last_id = "0"
+
+    while True:
+        try:
+            resp = r.xread({STREAM_SUGGESTIONS: last_id}, block=5000, count=10)
+
+            if not resp:
+                continue
+
+            for stream, messages in resp:
+                for msg_id, msg in messages:
+                    last_id = msg_id
+
+                    print(">>> SUGGESTION RECEIVED:", msg)
+
+                    parsed = msg
+                    fixes = evaluate(parsed)
+
+                    payload = {
+                        "source_id": msg_id,
+                        "fixes": fixes,
+                        "timestamp": time.time(),
+                        "applied": False,
+                        "mode": "SAFE_ONLY"
+                    }
+
+                    r.xadd(STREAM_HEALTH, payload)
+
+                    print(">>> FIX PLAN:", json.dumps(payload, indent=2))
+
+        except Exception as e:
+            print("[SELF HEAL ERROR]", e)
+            time.sleep(3)
 
 
 if __name__ == "__main__":
-    SelfHealingEngine().listen()
+    run()

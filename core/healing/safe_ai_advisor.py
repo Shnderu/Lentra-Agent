@@ -1,116 +1,106 @@
 import json
-import redis
-import traceback
 import time
-import socket
-from dataclasses import dataclass, asdict
-from typing import Dict, Any, List
+import redis
+
+"""
+Lentra Stability Layer v3
+SAFE AI ADVISOR (read-only + suggestion engine)
+"""
+
+REDIS_HOST = "lentra-redis"
+REDIS_PORT = 6379
+
+STREAM_ERRORS = "stream:system:errors"
+STREAM_HEALTH = "stream:system:health"
+STREAM_SUGGESTIONS = "stream:system:suggestions"
+
+r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
 
 
-@dataclass
-class HealthReport:
-    status: str
-    root_cause: str
-    severity: str
-    stage: str
-    metrics: Dict[str, Any]
-    analysis: Dict[str, Any]
-    suggestions: List[str]
-    safety: Dict[str, Any]
+def analyze_system():
+    error_count = 0
+    success_count = 0
+    error_types = {}
 
+    try:
+        # ошибки системы (если есть)
+        errors = r.xrange(STREAM_ERRORS, min="-", max="+", count=100)
 
-class SafeAIAdvisor:
-    """
-    SAFE MODE ONLY:
-    - No writes
-    - No auto-fix
-    - No system mutation
-    """
+        for _, msg in errors:
+            error_count += 1
+            etype = msg.get("type", "unknown")
+            error_types[etype] = error_types.get(etype, 0) + 1
 
-    def __init__(self, redis_host="lentra-redis", redis_port=6379):
-        self.redis_host = redis_host
-        self.redis_port = redis_port
+        results = r.xrange("stream:rent:results", "-", "+", count=200)
+        success_count = len(results)
 
-    def _check_redis(self):
-        try:
-            r = redis.Redis(
-                host=self.redis_host,
-                port=self.redis_port,
-                decode_responses=True,
-                socket_connect_timeout=2
-            )
-            return {
-                "status": "ok",
-                "ping": r.ping()
-            }
-        except Exception as e:
-            return {
-                "status": "fail",
-                "error": str(e),
-                "trace": traceback.format_exc()
-            }
-
-    def _check_dns(self):
-        try:
-            socket.gethostbyname(self.redis_host)
-            return {"status": "ok"}
-        except Exception as e:
-            return {"status": "fail", "error": str(e)}
-
-    def analyze_pipeline(self) -> HealthReport:
-        redis_check = self._check_redis()
-        dns_check = self._check_dns()
-
-        metrics = {
-            "redis": redis_check,
-            "dns": dns_check,
-            "timestamp": time.time()
+    except Exception as e:
+        return {
+            "status": "ERROR",
+            "error": str(e)
         }
 
-        # ROOT CAUSE CLASSIFICATION (NO EXECUTION)
-        if redis_check["status"] == "fail":
-            if "Name or service not known" in redis_check.get("error", ""):
-                root_cause = "DNS_RESOLUTION_FAILURE"
-            elif "timeout" in redis_check.get("error", "").lower():
-                root_cause = "REDIS_TIMEOUT"
-            else:
-                root_cause = "REDIS_CONNECTION_FAILURE"
-        else:
-            root_cause = "NO_FAILURES"
+    health_ratio = success_count / max(success_count + error_count, 1)
 
-        suggestions = []
+    return {
+        "status": "SAFE_AI_ADVISOR",
+        "analysis": {
+            "error_count": error_count,
+            "success_count": success_count,
+            "error_types": error_types,
+            "health_ratio": health_ratio
+        }
+    }
 
-        if root_cause == "DNS_RESOLUTION_FAILURE":
-            suggestions.append("Check docker network attachment (worker -> infra_default)")
-            suggestions.append("Verify service name 'lentra-redis' in docker DNS")
-        elif root_cause == "REDIS_TIMEOUT":
-            suggestions.append("Increase socket_connect_timeout")
-            suggestions.append("Check Redis CPU/IO saturation")
-        elif root_cause == "REDIS_CONNECTION_FAILURE":
-            suggestions.append("Verify Redis container health and port binding")
 
-        return HealthReport(
-            status="SAFE_AI_ADVISOR",
-            root_cause=root_cause,
-            severity="HIGH" if root_cause != "NO_FAILURES" else "LOW",
-            stage="PIPELINE_ANALYSIS",
-            metrics=metrics,
-            analysis={
-                "redis_status": redis_check["status"],
-                "dns_status": dns_check["status"]
-            },
-            suggestions=suggestions,
-            safety={
-                "auto_apply": False,
-                "mode": "SUGGEST_ONLY"
-            }
-        )
+def generate_suggestions(analysis: dict):
+    suggestions = []
+
+    if analysis["analysis"]["error_count"] > 0:
+        suggestions.append("add retry backoff on redis xreadgroup")
+        suggestions.append("add worker heartbeat monitoring")
+
+    if analysis["analysis"]["health_ratio"] < 0.5:
+        suggestions.append("pipeline instability detected - isolate worker execution layer")
+
+    if not suggestions:
+        suggestions.append("system stable - no action required")
+
+    return suggestions
 
 
 def run():
-    advisor = SafeAIAdvisor()
-    report = advisor.analyze_pipeline()
-    print(json.dumps(asdict(report), indent=2))
+    print(">>> SAFE AI ADVISOR STARTED")
+
+    while True:
+        data = analyze_system()
+
+        if data["status"] == "ERROR":
+            print(data)
+            time.sleep(5)
+            continue
+
+        suggestions = generate_suggestions(data)
+
+        payload = {
+            "ts": time.time(),
+            "analysis": data,
+            "suggested_fixes": suggestions,
+            "mode": "SUGGEST_ONLY",
+            "safety": {
+                "auto_apply": False,
+                "risk_level": "CONTROLLED"
+            }
+        }
+
+        print(json.dumps(payload, indent=2))
+
+        try:
+            r.xadd(STREAM_SUGGESTIONS, payload)
+        except Exception as e:
+            print("[REDIS ERROR]", e)
+
+        time.sleep(10)
 
 
 if __name__ == "__main__":

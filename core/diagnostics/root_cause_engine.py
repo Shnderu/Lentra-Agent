@@ -1,98 +1,45 @@
-import subprocess
+import redis
 import json
 
-class RootCauseEngine:
+r = redis.Redis(host="lentra-redis", port=6379, decode_responses=True)
 
-    def __init__(self, redis_cli="docker exec -i lentra-redis redis-cli"):
-        self.redis = redis_cli
 
-    # -----------------------------
-    # DATA COLLECTION
-    # -----------------------------
-    def collect_metrics(self):
-        tasks = self._cmd("XLEN stream:rent:tasks")
-        results = self._cmd("XLEN stream:rent:results")
-        pending = self._cmd("XPENDING stream:rent:tasks workers")
-        logs = self._logs()
+def analyze():
+    events = r.xrange("stream:telemetry", "-", "+", count=200)
 
+    errors = []
+    successes = []
+
+    for _, e in events:
+        if e.get("type") == "task.error":
+            errors.append(e)
+        if e.get("type") == "task.success":
+            successes.append(e)
+
+    if not errors:
         return {
-            "tasks": int(tasks),
-            "results": int(results),
-            "pending": pending,
-            "logs": logs
+            "status": "OK",
+            "root_cause": "NO_FAILURES",
+            "message": "System healthy"
         }
 
-    def _cmd(self, cmd):
-        return subprocess.getoutput(f"{self.redis} {cmd}")
+    # simple clustering by stage
+    by_stage = {}
+    for e in errors:
+        stage = e.get("stage", "unknown")
+        by_stage.setdefault(stage, 0)
+        by_stage[stage] += 1
 
-    def _logs(self):
-        return subprocess.getoutput(
-            "docker logs --tail 50 lentra-worker-stream"
-        )
+    worst_stage = max(by_stage.items(), key=lambda x: x[1])[0]
 
-    # -----------------------------
-    # ANALYSIS ENGINE
-    # -----------------------------
-    def analyze(self, m):
-        tasks = m["tasks"]
-        results = m["results"]
-        logs = m["logs"]
-
-        # 1. Worker crash / import error
-        if "ImportError" in logs:
-            return {
-                "root_cause": "WORKER_IMPORT_FAILURE",
-                "severity": "CRITICAL",
-                "reason": "Python module import mismatch or broken lifecycle module",
-                "action": "fix_imports_and_rebuild_worker"
-            }
-
-        # 2. Execution failure inside process()
-        if "Invalid input of type: 'dict'" in logs:
-            return {
-                "root_cause": "SERIALIZATION_FAILURE",
-                "severity": "HIGH",
-                "reason": "Redis XADD received dict instead of flat fields",
-                "action": "fix_result_serialization_layer"
-            }
-
-        # 3. Tasks stuck
-        if tasks > 0 and results == 0:
-            return {
-                "root_cause": "PIPELINE_EXECUTION_STUCK",
-                "severity": "HIGH",
-                "reason": "Worker consumes tasks but does not produce results",
-                "action": "inspect_worker_process_flow"
-            }
-
-        # 4. Idle system
-        if tasks == 0:
-            return {
-                "root_cause": "SYSTEM_IDLE",
-                "severity": "INFO",
-                "reason": "No incoming workload",
-                "action": "no_action_required"
-            }
-
-        return {
-            "root_cause": "UNKNOWN_STATE",
-            "severity": "MEDIUM",
-            "reason": "No matching failure pattern",
-            "action": "manual_inspection_required"
-        }
-
-    # -----------------------------
-    # ENTRYPOINT
-    # -----------------------------
-    def run(self):
-        metrics = self.collect_metrics()
-        result = self.analyze(metrics)
-
-        print(json.dumps({
-            "metrics": metrics,
-            "diagnosis": result
-        }, indent=2))
+    return {
+        "status": "FAILURE_CLUSTER",
+        "root_cause": f"ISSUES_IN_{worst_stage}",
+        "error_count": len(errors),
+        "stage_distribution": by_stage,
+        "note": "first deterministic RCA layer"
+    }
 
 
 if __name__ == "__main__":
-    RootCauseEngine().run()
+    print(json.dumps(analyze(), indent=2))

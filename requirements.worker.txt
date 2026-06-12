@@ -1,0 +1,4 @@
+redis
+aiogram
+psycopg2-binary
+httpx

@@ -7,3 +7,4 @@ httpx
 httpx
 aiogram
 redis
+redis

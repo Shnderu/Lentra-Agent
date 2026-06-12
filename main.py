@@ -1,30 +1,8 @@
-import traceback
-import logging
-import subprocess
+from core.runtime.bootstrap_v2 import main
 
-logging.basicConfig(level=logging.INFO)
-
-print(">>> MAIN START")
-
-try:
-    from aiogram import Bot, Dispatcher
-    print(">>> AIROGRAM OK")
-except Exception:
-    print(">>> BOOT ERROR:")
-    traceback.print_exc()
-    raise
-
-
-def main():
-    print(">>> STARTING SYSTEM")
-
-    print(">>> STARTING WORKER PROCESS")
-
-    # 🔥 FIX: correct container path is /app
-    subprocess.Popen(["python3", "/app/worker_main.py"])
-
-    print(">>> MAIN READY (BOOTSTRAPPED)")
-
+"""
+Lentra Main v2 Hardened Entry
+"""
 
 if __name__ == "__main__":
     main()

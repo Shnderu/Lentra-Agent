@@ -5,3 +5,4 @@ pydantic
 httpx
 aiogram
 tenacity
+redis>=5.0.0
