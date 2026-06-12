@@ -1,8 +1,20 @@
-import redis
-import time
 import os
+import time
+import json
+import redis
 
-STREAM_TASKS = "stream:rent:tasks"
+from core.queue.streams import STREAM_TASKS
+from core.lifecycle.task_lifecycle import TaskLifecycle
+from core.lifecycle.execution_envelope import ExecutionEnvelope
+from core.lifecycle.retry_policy import RetryPolicy
+from core.lifecycle.idempotency_store import IdempotencyStore
+
+from core.workflow.ai_workflow_engine import AIWorkflowEngine
+from core.workflow.workflow_executor import WorkflowExecutor
+from core.workflow.handlers import HANDLERS
+
+from worker.handlers.rent_search import handle_rent_search
+
 
 r = redis.Redis(
     host=os.getenv("REDIS_HOST", "lentra-redis"),
@@ -10,19 +22,30 @@ r = redis.Redis(
     decode_responses=True
 )
 
+lifecycle = TaskLifecycle(r)
+envelope = ExecutionEnvelope()
+retry_policy = RetryPolicy()
+idem = IdempotencyStore(r)
+
+workflow_engine = AIWorkflowEngine()
+executor = WorkflowExecutor()
+
 GROUP = "workers"
-CONSUMER = "worker-1"
-
-try:
-    r.xgroup_create(STREAM_TASKS, GROUP, id="0", mkstream=True)
-except:
-    pass
-
-print("STREAM WORKER ACTIVE (FIXED)")
+CONSUMER = f"worker-{os.getenv('HOSTNAME', 'local')}"
 
 
-while True:
+def ensure_group():
     try:
+        r.xgroup_create(STREAM_TASKS, GROUP, id="0", mkstream=True)
+    except Exception:
+        pass
+
+
+def main():
+    ensure_group()
+    print("AI WORKFLOW ENGINE ACTIVE (DAG MODE)")
+
+    while True:
         messages = r.xreadgroup(
             GROUP,
             CONSUMER,
@@ -34,11 +57,33 @@ while True:
         if not messages:
             continue
 
-        for stream, entries in messages:
+        for _, entries in messages:
             for msg_id, data in entries:
-                print("[TASK]", data)
-                r.xack(STREAM_TASKS, GROUP, msg_id)
 
-    except Exception as e:
-        print("[ERROR]", str(e))
-        time.sleep(2)
+                task = envelope.build(data)
+
+                try:
+                    if idem.seen(task["idempotency_key"]):
+                        lifecycle.mark_completed(task, {"skipped": "duplicate"})
+                        r.xack(STREAM_TASKS, GROUP, msg_id)
+                        continue
+
+                    idem.mark(task["idempotency_key"])
+
+                    lifecycle.mark_processing(task)
+
+                    workflow = workflow_engine.build(task)
+
+                    result = executor.execute(workflow, HANDLERS)
+
+                    lifecycle.mark_completed(task, result)
+
+                    r.xack(STREAM_TASKS, GROUP, msg_id)
+
+                except Exception as e:
+                    lifecycle.mark_failed(task, str(e))
+                    r.xack(STREAM_TASKS, GROUP, msg_id)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,17 +1,34 @@
 import json
 
-from worker.sources.faswaz import FaswazSource
 
+def handle_rent_search(task: dict):
+    """
+    Deterministic business logic layer (mock provider stage).
+    """
 
-def run(payload: str):
-    query = json.loads(payload)
+    payload = task.get("payload", {})
+    if isinstance(payload, str):
+        try:
+            payload = json.loads(payload)
+        except Exception:
+            payload = {}
 
-    source = FaswazSource()
+    city = payload.get("city", "unknown")
 
-    results = source.search(query)
+    # MOCK provider response
+    results = [
+        {
+            "title": f"Apartment in {city}",
+            "price": 850,
+            "currency": "USD",
+            "source": "faswaz"
+        }
+    ]
 
     return {
-        "query": query,
-        "results": results,
-        "count": len(results)
+        "ok": True,
+        "result": {
+            "city": city,
+            "items": results
+        }
     }
