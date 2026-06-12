@@ -1,84 +1,98 @@
-import redis
+import subprocess
 import json
-from collections import defaultdict
 
 class RootCauseEngine:
-    def __init__(self, redis_host="lentra-redis"):
-        self.r = redis.Redis(host=redis_host, port=6379, decode_responses=True)
 
-    def fetch_trace(self, limit=200):
-        data = self.r.xrevrange("stream:rent:trace", count=limit)
-        return data
+    def __init__(self, redis_cli="docker exec -i lentra-redis redis-cli"):
+        self.redis = redis_cli
 
-    def build_chain(self, trace):
-        chain = defaultdict(list)
+    # -----------------------------
+    # DATA COLLECTION
+    # -----------------------------
+    def collect_metrics(self):
+        tasks = self._cmd("XLEN stream:rent:tasks")
+        results = self._cmd("XLEN stream:rent:results")
+        pending = self._cmd("XPENDING stream:rent:tasks workers")
+        logs = self._logs()
 
-        for msg_id, fields in trace:
-            task_id = fields.get("task_id", "unknown")
-            stage = fields.get("stage", "unknown")
-            error = fields.get("error", "")
-
-            chain[task_id].append({
-                "stage": stage,
-                "error": error,
-                "raw": fields
-            })
-
-        return chain
-
-    def analyze_task(self, events):
-        stages = [e["stage"] for e in events]
-        errors = [e["error"] for e in events if e["error"]]
-
-        # RULE 1: ingestion OK but no PROCESS_START
-        if "READ" in stages and "PROCESS_START" not in stages:
-            return {
-                "root_cause": "WORKER_EXECUTION_BLOCK",
-                "stage": "PROCESS_START",
-                "reason": "Task read but never entered processing layer",
-                "severity": "critical"
-            }
-
-        # RULE 2: process starts but no results
-        if "PROCESS_START" in stages and "RESULTS_WRITTEN" not in stages:
-            return {
-                "root_cause": "PROCESSING_FAILURE",
-                "stage": "process()",
-                "reason": "Execution started but never reached result emission",
-                "severity": "critical"
-            }
-
-        # RULE 3: explicit errors
-        if errors:
-            return {
-                "root_cause": "RUNTIME_EXCEPTION",
-                "stage": stages[-1] if stages else "unknown",
-                "reason": errors[-1],
-                "severity": "high"
-            }
-
-        # RULE 4: healthy
         return {
-            "root_cause": "OK",
-            "stage": "complete",
-            "reason": "Pipeline executed successfully",
-            "severity": "none"
+            "tasks": int(tasks),
+            "results": int(results),
+            "pending": pending,
+            "logs": logs
         }
 
-    def analyze(self):
-        trace = self.fetch_trace()
-        chains = self.build_chain(trace)
+    def _cmd(self, cmd):
+        return subprocess.getoutput(f"{self.redis} {cmd}")
 
-        report = {}
+    def _logs(self):
+        return subprocess.getoutput(
+            "docker logs --tail 50 lentra-worker-stream"
+        )
 
-        for task_id, events in chains.items():
-            report[task_id] = self.analyze_task(events)
+    # -----------------------------
+    # ANALYSIS ENGINE
+    # -----------------------------
+    def analyze(self, m):
+        tasks = m["tasks"]
+        results = m["results"]
+        logs = m["logs"]
 
-        return report
+        # 1. Worker crash / import error
+        if "ImportError" in logs:
+            return {
+                "root_cause": "WORKER_IMPORT_FAILURE",
+                "severity": "CRITICAL",
+                "reason": "Python module import mismatch or broken lifecycle module",
+                "action": "fix_imports_and_rebuild_worker"
+            }
+
+        # 2. Execution failure inside process()
+        if "Invalid input of type: 'dict'" in logs:
+            return {
+                "root_cause": "SERIALIZATION_FAILURE",
+                "severity": "HIGH",
+                "reason": "Redis XADD received dict instead of flat fields",
+                "action": "fix_result_serialization_layer"
+            }
+
+        # 3. Tasks stuck
+        if tasks > 0 and results == 0:
+            return {
+                "root_cause": "PIPELINE_EXECUTION_STUCK",
+                "severity": "HIGH",
+                "reason": "Worker consumes tasks but does not produce results",
+                "action": "inspect_worker_process_flow"
+            }
+
+        # 4. Idle system
+        if tasks == 0:
+            return {
+                "root_cause": "SYSTEM_IDLE",
+                "severity": "INFO",
+                "reason": "No incoming workload",
+                "action": "no_action_required"
+            }
+
+        return {
+            "root_cause": "UNKNOWN_STATE",
+            "severity": "MEDIUM",
+            "reason": "No matching failure pattern",
+            "action": "manual_inspection_required"
+        }
+
+    # -----------------------------
+    # ENTRYPOINT
+    # -----------------------------
+    def run(self):
+        metrics = self.collect_metrics()
+        result = self.analyze(metrics)
+
+        print(json.dumps({
+            "metrics": metrics,
+            "diagnosis": result
+        }, indent=2))
 
 
 if __name__ == "__main__":
-    engine = RootCauseEngine()
-    report = engine.analyze()
-
-    print(json.dumps(report, indent=2))
+    RootCauseEngine().run()

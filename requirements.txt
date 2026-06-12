@@ -3,3 +3,7 @@ uvicorn
 redis
 psycopg2-binary
 pydantic
+httpx
+httpx
+aiogram
+redis

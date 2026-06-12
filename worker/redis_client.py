@@ -1,15 +1,12 @@
 import redis
-import os
 
-REDIS_HOST = os.getenv("REDIS_HOST", "lentra-redis")
-
-def get_client():
+def create_redis():
     return redis.Redis(
-        host=REDIS_HOST,
+        host="lentra-redis",
         port=6379,
         decode_responses=True,
-        socket_timeout=10,
+        socket_timeout=30,
         socket_connect_timeout=10,
-        health_check_interval=30,
-        retry=redis.Retry(redis.ExponentialBackoff(), 3)
+        retry_on_timeout=True,
+        health_check_interval=10
     )
