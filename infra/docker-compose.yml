@@ -12,6 +12,8 @@ services:
       - lentra-db
     environment:
       - REDIS_HOST=lentra-redis
+      - DB_HOST=postgres
+    restart: unless-stopped
 
   lentra-worker:
     build:
@@ -21,19 +23,23 @@ services:
     container_name: lentra-worker
     depends_on:
       - lentra-redis
+      - lentra-db
     environment:
       - REDIS_HOST=lentra-redis
+    restart: unless-stopped
 
   lentra-worker-stream:
     build:
       context: ..
-      dockerfile: infra/worker-stream.Dockerfile
+      dockerfile: worker/Dockerfile
     image: infra-worker-stream
     container_name: lentra-worker-stream
     depends_on:
       - lentra-redis
     environment:
       - REDIS_HOST=lentra-redis
+    command: python -u worker/worker_stream_v7.py
+    restart: unless-stopped
 
   lentra-worker-retry:
     build:
@@ -45,6 +51,7 @@ services:
       - lentra-redis
     environment:
       - REDIS_HOST=lentra-redis
+    restart: unless-stopped
 
   lentra-bot:
     build:
@@ -56,25 +63,25 @@ services:
       - lentra-redis
     environment:
       - REDIS_HOST=lentra-redis
+    restart: unless-stopped
 
   lentra-db:
     image: postgres:15
     container_name: lentra-db
     environment:
-      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
       POSTGRES_DB: lentra
-    ports:
-      - "5432:5432"
+    restart: unless-stopped
 
   lentra-redis:
     image: redis:7-alpine
     container_name: lentra-redis
-    ports:
-      - "6379:6379"
+    restart: unless-stopped
 
   lentra-miniapp:
     image: nginx:alpine
     container_name: lentra-miniapp
     ports:
       - "8080:80"
+    restart: unless-stopped

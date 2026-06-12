@@ -1,14 +1,28 @@
-import redis
 import time
+import json
+import redis
 
-from core.queue.streams import STREAM_DLQ
+STREAM = "stream:rent:tasks"
+GROUP = "workers"
 
-r = redis.Redis(host="redis", port=6379, decode_responses=True)
 
-while True:
-    items = r.xread({STREAM_DLQ: "0"}, count=10, block=5000)
+def get_redis():
+    return redis.Redis(host="lentra-redis", port=6379, decode_responses=True)
 
-    if not items:
-        continue
 
-    time.sleep(5)
+def main():
+    r = get_redis()
+
+    print("RETRY WORKER V7 STARTED")
+
+    while True:
+        pending = r.xpending(STREAM, GROUP)
+
+        # placeholder recovery loop
+        print("[DLQ] pending:", pending)
+
+        time.sleep(10)
+
+
+if __name__ == "__main__":
+    main()

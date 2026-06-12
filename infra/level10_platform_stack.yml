@@ -1,0 +1,204 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: lentra-saas
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lentra-api
+  namespace: lentra-saas
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: lentra-api
+  template:
+    metadata:
+      labels:
+        app: lentra-api
+    spec:
+      containers:
+        - name: api
+          image: infra-api:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: REDIS_HOST
+              value: "redis"
+            - name: DB_HOST
+              value: "postgres"
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "1"
+              memory: "512Mi"
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lentra-worker
+  namespace: lentra-saas
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: lentra-worker
+  template:
+    metadata:
+      labels:
+        app: lentra-worker
+    spec:
+      containers:
+        - name: worker
+          image: infra-worker:latest
+          env:
+            - name: REDIS_HOST
+              value: "redis"
+          resources:
+            requests:
+              cpu: "300m"
+              memory: "512Mi"
+            limits:
+              cpu: "2"
+              memory: "1Gi"
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lentra-worker-stream
+  namespace: lentra-saas
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: lentra-worker-stream
+  template:
+    metadata:
+      labels:
+        app: lentra-worker-stream
+    spec:
+      containers:
+        - name: worker-stream
+          image: infra-worker-stream:latest
+          env:
+            - name: REDIS_HOST
+              value: "redis"
+          resources:
+            requests:
+              cpu: "300m"
+              memory: "512Mi"
+            limits:
+              cpu: "2"
+              memory: "1Gi"
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lentra-bot
+  namespace: lentra-saas
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: lentra-bot
+  template:
+    metadata:
+      labels:
+        app: lentra-bot
+    spec:
+      containers:
+        - name: bot
+          image: infra-bot:latest
+          env:
+            - name: REDIS_HOST
+              value: "redis"
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: lentra-api-svc
+  namespace: lentra-saas
+spec:
+  selector:
+    app: lentra-api
+  ports:
+    - port: 8000
+      targetPort: 8000
+  type: ClusterIP
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: lentra-redis
+  namespace: lentra-saas
+spec:
+  ports:
+    - port: 6379
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: lentra-postgres
+  namespace: lentra-saas
+spec:
+  ports:
+    - port: 5432
+
+---
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: lentra-worker-hpa
+  namespace: lentra-saas
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: lentra-worker
+  minReplicas: 2
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 65
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: lentra-ingress
+  namespace: lentra-saas
+spec:
+  rules:
+    - host: api.lentra.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: lentra-api-svc
+                port:
+                  number: 8000

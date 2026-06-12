@@ -1,15 +1,15 @@
 import uuid
 import time
 
-class TraceContext:
-    """
-    Lightweight distributed tracing context
-    """
 
-    def __init__(self, trace_id=None):
-        self.trace_id = trace_id or str(uuid.uuid4())
-        self.span_id = str(uuid.uuid4())
-        self.created_at = time.time()
+def new_trace_id():
+    return str(uuid.uuid4())
 
-    def child(self):
-        return TraceContext(self.trace_id)
+
+def enrich(task: dict, trace_id: str = None):
+    if not trace_id:
+        trace_id = new_trace_id()
+
+    task["trace_id"] = trace_id
+    task["created_at"] = time.time()
+    return task

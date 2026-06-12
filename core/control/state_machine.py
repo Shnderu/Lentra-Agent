@@ -1,20 +1,18 @@
-from enum import Enum
-
-
-class TaskState(str, Enum):
-    CREATED = "created"
-    QUEUED = "queued"
+class TaskState:
+    PENDING = "pending"
     PROCESSING = "processing"
-    RETRYING = "retrying"
+    DONE = "done"
     FAILED = "failed"
-    DLQ = "dead_letter"
-    COMPLETED = "completed"
+    RETRY = "retry"
+    DEAD = "dead"
 
 
 ALLOWED_TRANSITIONS = {
-    TaskState.CREATED: [TaskState.QUEUED],
-    TaskState.QUEUED: [TaskState.PROCESSING],
-    TaskState.PROCESSING: [TaskState.COMPLETED, TaskState.RETRYING, TaskState.FAILED],
-    TaskState.RETRYING: [TaskState.PROCESSING, TaskState.DLQ],
-    TaskState.FAILED: [TaskState.DLQ],
+    PENDING: [PROCESSING],
+    PROCESSING: [DONE, FAILED, RETRY, DEAD],
+    RETRY: [PROCESSING],
 }
+
+
+def can_transition(current: str, next_state: str) -> bool:
+    return next_state in ALLOWED_TRANSITIONS.get(current, [])
