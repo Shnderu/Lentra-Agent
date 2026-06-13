@@ -1,89 +1,85 @@
 import time
-import psycopg2
 import json
-import os
+import traceback
+from lentra.storage.db import get_conn
+from lentra.domain.property.search import search_properties
+from lentra.ux.composer.engine import compose_properties
+from lentra.telegram.ui.renderer import render_message
 
-from lentra.domain.vietnam_rent_engine import search_vietnam_properties
-from lentra.ux.pipeline import build_user_response
 
-DB = {
-    "dbname": os.getenv("DB_NAME", "lentra"),
-    "user": os.getenv("DB_USER", "postgres"),
-    "password": os.getenv("DB_PASSWORD", "postgres"),
-    "host": os.getenv("DB_HOST", "127.0.0.1"),
-    "port": int(os.getenv("DB_PORT", "5432"))
-}
-
-def get_conn():
-    return psycopg2.connect(**DB)
-
-def fetch(conn):
+def fetch_task(conn):
     cur = conn.cursor()
+
     cur.execute("""
         SELECT id, task_type, payload
         FROM processing_queue
-        WHERE status='new'
-        FOR UPDATE SKIP LOCKED
-        LIMIT 20
+        WHERE status = 'processing'
+        ORDER BY id
+        LIMIT 1
     """)
-    rows = cur.fetchall()
+
+    row = cur.fetchone()
     cur.close()
-    return rows
+    return row
 
-def process(task):
-    task_id, task_type, payload = task
 
-    if task_type == "search_property_vietnam":
-        items = payload if isinstance(payload, list) else []
-        result = build_user_response(items)
-    else:
-        result = f"unknown task: {task_type}"
-
-    return result
-
-def mark(conn, task_id, result):
+def save_result(conn, task_id, result):
     cur = conn.cursor()
+
     cur.execute("""
         UPDATE processing_queue
-        SET status='done',
-            processed_at=NOW(),
-            result=%s
-        WHERE id=%s
-    """, (json.dumps({"message": result}), task_id))
+        SET status = 'done',
+            result = %s,
+            processed_at = NOW()
+        WHERE id = %s
+    """, (json.dumps(result), task_id))
+
+    conn.commit()
     cur.close()
 
-def main():
-    conn = get_conn()
-    conn.autocommit = False
 
-    print("[UX WORKER] started")
+def execute(task_type, payload):
+    if task_type == "parse_property":
+        props = search_properties(payload)
+        ux = compose_properties(props)
+        return {
+            "ux": ux,
+            "telegram_text": render_message(ux)
+        }
+
+    return {"telegram_text": "unsupported task"}
+
+
+def main():
+    print("[WORKER TELEGRAM UX] STARTED")
 
     while True:
+        conn = get_conn()
+
+        task = fetch_task(conn)
+
+        if not task:
+            time.sleep(0.5)
+            continue
+
+        task_id, task_type, payload = task
+
         try:
-            batch = fetch(conn)
+            print(f"[WORKER] EXEC task={task_id}")
 
-            if not batch:
-                conn.commit()
-                time.sleep(0.3)
-                continue
+            result = execute(task_type, payload)
 
-            for task in batch:
-                task_id = task[0]
+            save_result(conn, task_id, result)
 
-                try:
-                    result = process(task)
-                    mark(conn, task_id, result)
-                    print(f"[DONE UX] {task_id}")
-
-                except Exception as e:
-                    print(f"[ERROR] {task_id}: {e}")
-
-            conn.commit()
+            print(f"[WORKER] DONE task={task_id}")
 
         except Exception as e:
-            conn.rollback()
-            print(f"[FATAL]: {e}")
-            time.sleep(1)
+            traceback.print_exc()
+
+        finally:
+            conn.close()
+            time.sleep(0.1)
+
 
 if __name__ == "__main__":
     main()

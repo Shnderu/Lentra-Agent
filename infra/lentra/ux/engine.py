@@ -1,35 +1,53 @@
-# ============================================================
-# UX VALUE ENGINE V17.4
-# ============================================================
+def resolve_intent(task_type, payload):
+    """
+    UX LAYER v1
+    превращает task → смысл
+    """
 
-class UXEngine:
-
-    def format_response(self, ranked_list):
-        if not ranked_list:
-            return {
-                "message": "no results found"
-            }
-
-        best = ranked_list[0]
-        others = ranked_list[1:3]
-
+    if task_type == "telegram_message":
         return {
-            "best_choice": best,
-            "alternatives": others,
-            "why_this_is_best": self._explain(best),
-            "confidence": best.get("score", 0.5)
+            "intent": "chat",
+            "scenario": "basic_reply"
         }
 
-    def _explain(self, item):
-        reasons = []
+    if task_type == "parse_property":
+        return {
+            "intent": "property_search",
+            "scenario": "list_properties"
+        }
 
-        if item.get("price_score", 0) < 0:
-            reasons.append("below market price")
+    if task_type == "ranking_event":
+        return {
+            "intent": "analytics",
+            "scenario": "ranking_report"
+        }
 
-        if item.get("trust_score", 0) > 70:
-            reasons.append("high trust source")
+    return {
+        "intent": "unknown",
+        "scenario": "fallback"
+    }
 
-        if item.get("geo_score", 0) > 70:
-            reasons.append("optimal location")
 
-        return reasons
+def build_response(intent_data, payload):
+    """
+    UX response builder
+    """
+
+    scenario = intent_data["scenario"]
+
+    if scenario == "basic_reply":
+        return {"text": "Message received and processed."}
+
+    if scenario == "list_properties":
+        return {
+            "text": "Found relevant properties for your request.",
+            "cards": []
+        }
+
+    if scenario == "ranking_report":
+        return {
+            "text": "Ranking completed successfully.",
+            "metrics": {}
+        }
+
+    return {"text": "Request processed."}
