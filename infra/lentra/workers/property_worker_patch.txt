@@ -1,0 +1,15 @@
+FROM:
+service.process(text=text_msg, raw_json=raw_json, chat_id=chat_id)
+
+TO:
+from lentra.parsers.property_parser import PropertyParser
+
+parser = PropertyParser()
+parsed = parser.parse(text_msg)
+
+service.process(
+    text=text_msg,
+    raw_json=raw_json,
+    chat_id=chat_id,
+    parsed=parsed
+)
