@@ -1,11 +1,5 @@
 from collections import defaultdict
 
-"""
-Lentra Fusion Core v7
-Incident Correlation Engine
-"""
-
-
 class IncidentCorrelation:
 
     def correlate(self, graph):
@@ -17,13 +11,10 @@ class IncidentCorrelation:
             a = nodes[i]
             b = nodes[i + 1]
 
-            key = (a["type"], b["type"])
-            correlations[key].append((a["id"], b["id"]))
+            key = f"{a['type']}->{b['type']}"   # FIX: STRING KEY
+            correlations[key].append({
+                "from": a["id"],
+                "to": b["id"]
+            })
 
-        return {
-            "correlations": dict(correlations)
-        }
-
-
-if __name__ == "__main__":
-    print("Correlation engine ready")
+        return {"correlations": dict(correlations)}

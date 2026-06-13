@@ -1,10 +1,10 @@
-"""
-Lentra Incident Similarity Engine v8
-Lightweight heuristic matcher
-"""
-
-
 class IncidentSimilarity:
+
+    def _int(self, v):
+        try:
+            return int(v)
+        except:
+            return 0
 
     def score(self, a: dict, b: dict):
         score = 0
@@ -12,22 +12,13 @@ class IncidentSimilarity:
         if a.get("severity") == b.get("severity"):
             score += 40
 
-        if abs(a.get("graph_size", 0) - b.get("graph_size", 0)) < 3:
+        if abs(self._int(a.get("graph_size")) - self._int(b.get("graph_size"))) < 3:
             score += 30
 
-        if abs(a.get("edges", 0) - b.get("edges", 0)) < 3:
+        if abs(self._int(a.get("edges")) - self._int(b.get("edges"))) < 3:
             score += 30
 
         return {
             "score": score,
             "match": score >= 70
         }
-
-
-if __name__ == "__main__":
-    sim = IncidentSimilarity()
-
-    print(sim.score(
-        {"severity": "LOW", "graph_size": 5, "edges": 4},
-        {"severity": "LOW", "graph_size": 6, "edges": 5}
-    ))

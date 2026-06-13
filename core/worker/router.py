@@ -1,26 +1,23 @@
-from core.queue.queue import claim, mark_done, mark_sent, mark_failed
-from core.worker.handlers.route_search import handle as route_search_handler
+from core.worker.handlers.send_message import SendMessageHandler
+from core.worker.handlers.notify import NotifyHandler
 
 
-async def process_once(bot, worker_id="w1"):
-    tasks = claim(worker_id)
+class TaskRouter:
 
-    for task in tasks:
+    def __init__(self):
+        self.handlers = {
+            "send_message": SendMessageHandler(),
+            "notify": NotifyHandler(),
+        }
 
-        try:
-            if task["type"] == "route_search":
+    async def route(self, task: dict):
+        task_id = task["id"]
+        task_type = task["type"]
+        payload = task.get("payload", {})
 
-                result = await route_search_handler(task)
+        handler = self.handlers.get(task_type)
 
-                # 1. сохраняем результат
-                mark_done(task["id"], result)
+        if not handler:
+            raise ValueError(f"Unknown task type: {task_type}")
 
-                # 2. отправка в Telegram (PRODUCTION FLOW)
-                user_id = task["payload"]["user_id"]
-                await bot.send_message(user_id, result)
-
-                # 3. фиксируем отправку
-                mark_sent(task["id"])
-
-        except Exception as e:
-            mark_failed(task["id"], str(e))
+        return await handler.handle(task_id, payload)
