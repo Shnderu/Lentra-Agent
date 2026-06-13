@@ -1,0 +1,3 @@
+ALTER TABLE processing_queue
+ADD COLUMN IF NOT EXISTS ingested_at TIMESTAMP,
+ADD COLUMN IF NOT EXISTS processed_at TIMESTAMP;

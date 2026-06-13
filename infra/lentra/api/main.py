@@ -1,32 +1,26 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
-
-from lentra.services.search_service import SearchService
-from lentra.ranking.property_ranker import PropertyRanker
-from lentra.responses.search_response import SearchResponseBuilder
+from fastapi import FastAPI, Query
+from lentra.services.ranking_service import get_feed
 
 app = FastAPI()
 
-search_service = SearchService()
+
+@app.get("/feed")
+def feed(
+    user_id: int = Query(None),
+    limit: int = 10
+):
+    user = None
+
+    if user_id:
+        user = {
+            "min_price": 0,
+            "max_price": 1000,
+            "prefers_sea_view": True
+        }
+
+    return get_feed(limit=limit, user=user)
 
 
-class SearchRequest(BaseModel):
-    query: str
-    budget: float = 500
-
-
-@app.post("/search")
-async def search(request: SearchRequest):
-
-    properties = await search_service.search(
-        request.query
-    )
-
-    ranked = PropertyRanker.rank(
-        properties,
-        request.budget
-    )
-
-    return SearchResponseBuilder.build(
-        ranked
-    )
+@app.get("/health")
+def health():
+    return {"status": "ok"}

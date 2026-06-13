@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS user_profiles (
+    user_id BIGINT PRIMARY KEY,
+    min_price DOUBLE PRECISION DEFAULT 0,
+    max_price DOUBLE PRECISION DEFAULT 999999,
+    prefers_sea_view BOOLEAN DEFAULT FALSE,
+    updated_at TIMESTAMP DEFAULT NOW()
+);

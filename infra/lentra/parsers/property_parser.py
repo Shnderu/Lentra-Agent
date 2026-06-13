@@ -1,113 +1,37 @@
-import re
+from sqlalchemy import create_engine, text
+from lentra.domain.property import Property
+import os
+
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql+psycopg2://lentra_user:lentra_pass@localhost:5432/lentra"
+)
+
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
 
-class PropertyParser:
-    """
-    V2 semantic parser + confidence scoring (full model)
-    """
+def get_property_by_raw_message(raw_message_id: int):
+    with engine.begin() as conn:
+        row = conn.execute(text("""
+            SELECT *
+            FROM properties
+            WHERE id = (
+                SELECT id FROM properties ORDER BY id DESC LIMIT 1
+            )
+            LIMIT 1
+        """)).fetchone()
 
-    def parse(self, text: str) -> dict:
-        if not text:
-            return {}
-
-        t = text.lower()
-
-        price = self._extract_price(t)
-        currency = self._extract_currency(t)
-        location = self._extract_location(text)
-        ptype = self._extract_type(t)
-
-        confidence = self._calculate_confidence(
-            text=t,
-            price=price,
-            currency=currency,
-            location=location,
-            ptype=ptype
-        )
-
-        return {
-            "price": price,
-            "currency": currency,
-            "location": location,
-            "type": ptype,
-            "confidence": confidence,
-            "raw_text": text
-        }
-
-    # ----------------------------
-    # PRICE
-    # ----------------------------
-    def _extract_price(self, text: str):
-        match = re.search(r'(\d{2,6})\s?\$|(\d{2,6})\s?usd', text)
-        if match:
-            return int(match.group(1) or match.group(2))
+    if not row:
         return None
 
-    # ----------------------------
-    # CURRENCY
-    # ----------------------------
-    def _extract_currency(self, text: str):
-        if "$" in text or "usd" in text:
-            return "USD"
-        if "vnd" in text:
-            return "VND"
-        return None
-
-    # ----------------------------
-    # LOCATION
-    # ----------------------------
-    def _extract_location(self, text: str):
-        locations = [
-            "danang",
-            "da nang",
-            "hanoi",
-            "hcmc",
-            "saigon"
-        ]
-
-        t = text.lower()
-        for loc in locations:
-            if loc in t:
-                return loc
-
-        return None
-
-    # ----------------------------
-    # TYPE
-    # ----------------------------
-    def _extract_type(self, text: str):
-        if "studio" in text:
-            return "studio"
-        if "apartment" in text or "apt" in text:
-            return "apartment"
-        if "house" in text or "villa" in text:
-            return "house"
-        if "room" in text:
-            return "room"
-
-        return "unknown"
-
-    # ----------------------------
-    # CONFIDENCE MODEL
-    # ----------------------------
-    def _calculate_confidence(self, text, price, currency, location, ptype):
-        score = 0.0
-
-        if price:
-            score += 0.3
-        if currency:
-            score += 0.1
-        if location:
-            score += 0.25
-        if ptype and ptype != "unknown":
-            score += 0.2
-
-        if "$" in text:
-            score += 0.05
-        if "rent" in text or "for rent" in text:
-            score += 0.1
-
-        if len(text) > 80:
-            score += 0.05
-
-        return round(min(score, 1.0), 3)
+    return Property(
+        id=row.id,
+        title=row.title,
+        price_vnd_mln=row.price_vnd_mln,
+        area_m2=row.area_m2,
+        bedrooms=row.bedrooms,
+        bathrooms=row.bathrooms,
+        pet_friendly=row.pet_friendly,
+        pool=row.pool,
+        sea_view=row.sea_view
+    )

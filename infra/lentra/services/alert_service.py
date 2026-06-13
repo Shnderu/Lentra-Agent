@@ -6,34 +6,23 @@ DATABASE_URL = os.getenv(
     "postgresql+psycopg2://lentra_user:lentra_pass@localhost:5432/lentra"
 )
 
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+engine = create_engine(DATABASE_URL)
 
 
-class AlertService:
+def match_alerts(property_row):
+    with engine.begin() as conn:
+        alerts = conn.execute(text("""
+            SELECT user_id, min_price, max_price
+            FROM user_profiles
+        """)).fetchall()
 
-    # ----------------------------
-    # CREATE ALERT
-    # ----------------------------
-    def create_alert(self, chat_id, location=None, max_price=None):
-        with engine.begin() as conn:
-            conn.execute(text("""
-                INSERT INTO alerts (chat_id, location, max_price)
-                VALUES (:chat_id, :location, :max_price)
-            """), {
-                "chat_id": chat_id,
-                "location": location,
-                "max_price": max_price
-            })
+    matches = []
 
-    # ----------------------------
-    # GET ALERTS
-    # ----------------------------
-    def get_active_alerts(self):
-        with engine.begin() as conn:
-            rows = conn.execute(text("""
-                SELECT id, chat_id, location, max_price, min_confidence
-                FROM alerts
-                WHERE is_active = TRUE
-            """)).fetchall()
+    for a in alerts:
+        if property_row.price_vnd_mln is None:
+            continue
 
-        return rows
+        if a.min_price <= property_row.price_vnd_mln <= a.max_price:
+            matches.append(a.user_id)
+
+    return matches

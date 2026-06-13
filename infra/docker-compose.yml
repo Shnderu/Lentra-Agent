@@ -1,64 +1,8 @@
+# LENTRA INFRA (NO POSTGRES IN DOCKER - HOST MODE ONLY)
+
 services:
-
-  lentra-api:
-    build:
-      context: /opt/lentra
-      dockerfile: api/Dockerfile
-    container_name: lentra-api
-    environment:
-      REDIS_HOST: lentra-redis
-      DB_HOST: lentra-db
-    ports:
-      - "8000:8000"
-    restart: unless-stopped
-
-  lentra-db:
-    image: postgres:15
-    container_name: lentra-db
-    environment:
-      POSTGRES_DB: lentra
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    restart: unless-stopped
-
-  lentra-redis:
-    image: redis:7-alpine
+  redis:
+    image: redis:7
     container_name: lentra-redis
-    restart: unless-stopped
-
-  lentra-worker:
-    build:
-      context: /opt/lentra
-      dockerfile: worker/Dockerfile
-    container_name: lentra-worker
-    environment:
-      REDIS_HOST: lentra-redis
-    restart: unless-stopped
-
-  lentra-worker-retry:
-    build:
-      context: /opt/lentra
-      dockerfile: worker/Dockerfile
-    container_name: lentra-worker-retry
-    environment:
-      REDIS_HOST: lentra-redis
-    restart: unless-stopped
-
-  lentra-worker-stream:
-    build:
-      context: /opt/lentra
-      dockerfile: worker/Dockerfile
-    container_name: lentra-worker-stream
-    environment:
-      REDIS_HOST: lentra-redis
-    restart: unless-stopped
-
-  lentra-stream-bridge:
-    build:
-      context: /opt/lentra
-      dockerfile: worker/Dockerfile
-    container_name: lentra-stream-bridge
-    command: ["python","-u","core/queue/stream_bridge.py"]
-    environment:
-      REDIS_HOST: lentra-redis
-    restart: unless-stopped
+    ports:
+      - "6379:6379"
