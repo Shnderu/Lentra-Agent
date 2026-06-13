@@ -1,0 +1,23 @@
+# ============================================================
+# KUBERNETES BASE V17.2
+# ============================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lentra-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: lentra-api
+  template:
+    metadata:
+      labels:
+        app: lentra-api
+    spec:
+      containers:
+        - name: api
+          image: lentra/api:latest
+          ports:
+            - containerPort: 8000

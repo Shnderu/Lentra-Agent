@@ -1,0 +1,21 @@
+# ============================================================
+# DOCKER COMPOSE V17.2
+# ============================================================
+
+version: "3.9"
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+
+  worker:
+    build: .
+    command: python -m lentra.worker.run
+
+  redis:
+    image: redis:alpine
+
+  postgres:
+    image: postgres:15
