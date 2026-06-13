@@ -1,63 +1,47 @@
 import time
 import psycopg2
-import json
-from lentra.storage.db import get_conn
 
+conn = psycopg2.connect(
+    dbname="lentra",
+    user="postgres",
+    password="postgres",
+    host="127.0.0.1",
+    port=5432
+)
 
-def fetch_tasks(conn, limit=5):
-    cur = conn.cursor()
+conn.autocommit = True
 
-    cur.execute("""
-        SELECT id, task_type, payload
-        FROM processing_queue
-        WHERE status = 'new'
-        ORDER BY id
-        LIMIT %s
-        FOR UPDATE SKIP LOCKED
-    """, (limit,))
+print("[DISPATCHER FIX FINAL] STARTED")
 
-    rows = cur.fetchall()
-    cur.close()
-    return rows
+while True:
+    try:
+        cur = conn.cursor()
 
+        cur.execute("""
+            SELECT id
+            FROM processing_queue
+            WHERE status = 'new'
+            ORDER BY id
+            LIMIT 10
+            FOR UPDATE SKIP LOCKED
+        """)
 
-def mark_processing(conn, task_id):
-    cur = conn.cursor()
+        rows = cur.fetchall()
 
-    cur.execute("""
-        UPDATE processing_queue
-        SET status = 'processing',
-            locked_at = NOW(),
-            updated_at = NOW()
-        WHERE id = %s
-    """, (task_id,))
+        if rows:
+            ids = [r[0] for r in rows]
 
-    conn.commit()
-    cur.close()
+            cur.execute("""
+                UPDATE processing_queue
+                SET status = 'processing'
+                WHERE id = ANY(%s)
+            """, (ids,))
 
+            print(f"[DISPATCHER] moved_to_processing={len(ids)}")
 
-def main():
-    print("[DISPATCHER] STARTED")
+        cur.close()
 
-    while True:
-        conn = get_conn()
-        tasks = fetch_tasks(conn)
+    except Exception as e:
+        print("[DISPATCHER ERROR]", e)
 
-        for task_id, task_type, payload in tasks:
-
-            mark_processing(conn, task_id)
-
-            job = {
-                "id": task_id,
-                "type": task_type,
-                "payload": payload
-            }
-
-            print("[DISPATCHER] SEND JOB:", json.dumps(job))
-
-        conn.close()
-        time.sleep(1)
-
-
-if __name__ == "__main__":
-    main()
+    time.sleep(0.3)

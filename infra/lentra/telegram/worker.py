@@ -1,36 +1,43 @@
 import time
 import json
-import traceback
-from lentra.storage.db import get_conn
-from lentra.domain.property.search import search_properties
-from lentra.ux.composer.engine import compose_properties
-from lentra.telegram.ui.renderer import render_message
+import psycopg2
+
+from lentra.domain.handlers.registry import HANDLERS
+from lentra.domain.handlers.fallback import handle_unknown
 
 
-def fetch_task(conn):
+conn = psycopg2.connect(
+    dbname="lentra",
+    user="postgres",
+    password="postgres",
+    host="127.0.0.1",
+    port=5432
+)
+
+print("[WORKER PRODUCT LAYER FIXED JSON] STARTED")
+
+
+def fetch_tasks():
     cur = conn.cursor()
-
     cur.execute("""
         SELECT id, task_type, payload
         FROM processing_queue
-        WHERE status = 'processing'
+        WHERE status='processing'
         ORDER BY id
-        LIMIT 1
+        LIMIT 10
     """)
-
-    row = cur.fetchone()
+    rows = cur.fetchall()
     cur.close()
-    return row
+    return rows
 
 
-def save_result(conn, task_id, result):
+def save_result(task_id, result):
     cur = conn.cursor()
 
     cur.execute("""
         UPDATE processing_queue
-        SET status = 'done',
-            result = %s,
-            processed_at = NOW()
+        SET result = %s,
+            status = 'done'
         WHERE id = %s
     """, (json.dumps(result), task_id))
 
@@ -38,47 +45,32 @@ def save_result(conn, task_id, result):
     cur.close()
 
 
-def execute(task_type, payload):
-    if task_type == "parse_property":
-        props = search_properties(payload)
-        ux = compose_properties(props)
-        return {
-            "ux": ux,
-            "telegram_text": render_message(ux)
-        }
+def execute_task(task_type, payload):
+    handler = HANDLERS.get(task_type)
 
-    return {"telegram_text": "unsupported task"}
+    if not handler:
+        return handle_unknown(task_type, payload)
+
+    return handler(payload)
 
 
 def main():
-    print("[WORKER TELEGRAM UX] STARTED")
-
     while True:
-        conn = get_conn()
+        tasks = fetch_tasks()
 
-        task = fetch_task(conn)
+        for task_id, task_type, payload in tasks:
 
-        if not task:
-            time.sleep(0.5)
-            continue
+            print(f"[EXECUTE] type={task_type} id={task_id}")
 
-        task_id, task_type, payload = task
+            result = execute_task(task_type, payload)
 
-        try:
-            print(f"[WORKER] EXEC task={task_id}")
+            print(f"[EXECUTE RESULT]={result}")
 
-            result = execute(task_type, payload)
+            save_result(task_id, result)
 
-            save_result(conn, task_id, result)
+            print(f"[DONE] task={task_id}")
 
-            print(f"[WORKER] DONE task={task_id}")
-
-        except Exception as e:
-            traceback.print_exc()
-
-        finally:
-            conn.close()
-            time.sleep(0.1)
+        time.sleep(0.2)
 
 
 if __name__ == "__main__":
