@@ -20,75 +20,64 @@ alerts = AlertService()
 
 
 def format_item(item):
-    price = f"{item['price']} {item['currency']}" if item["price"] else "no price"
+    price = f"{item['price_vnd_mln']} VND mln" if item.get("price_vnd_mln") else "no price"
+
+    features = ", ".join(item.get("features", []))
 
     return (
-        f"🏠 {item['type']}\n"
-        f"📍 {item['location']}\n"
+        f"🏠 {item['title']}\n"
+        f"📍 features: {features}\n"
         f"💰 {price}\n"
-        f"⭐ {item['confidence']}\n\n"
-        f"{item['description'][:200]}"
+        f"⭐ score: {item.get('confidence', 0)}"
     )
 
 
-# ----------------------------
-# FEED
-# ----------------------------
 @client.on(events.NewMessage(pattern="/feed"))
 async def feed(event):
     items = ranking.get_feed(limit=10)
-    await event.respond("\n\n".join(format_item(i) for i in items))
+
+    # ----------------------------
+    # CRITICAL FIX: empty guard
+    # ----------------------------
+    if not items:
+        await event.respond("⚠️ No listings found")
+        return
+
+    text = "\n\n".join(format_item(i) for i in items if i)
+
+    if not text.strip():
+        await event.respond("⚠️ Empty feed result")
+        return
+
+    await event.respond(text)
 
 
-# ----------------------------
-# SEARCH (NEW)
-# ----------------------------
 @client.on(events.NewMessage(pattern="/search"))
 async def search_handler(event):
     args = event.message.message.split()
 
-    location = None
-    max_price = None
-    min_price = None
-    ptype = None
+    location = args[1] if len(args) > 1 else None
+    ptype = args[2] if len(args) > 2 else None
 
-    # /search danang apartment 500
-    if len(args) >= 2:
-        location = args[1]
-
-    if len(args) >= 3:
-        ptype = args[2]
-
-    if len(args) >= 4:
-        try:
-            max_price = float(args[3])
-        except:
-            pass
-
-    items = search.search(
-        location=location,
-        property_type=ptype,
-        max_price=max_price
-    )
+    items = search.search(location=location, property_type=ptype)
 
     if not items:
-        await event.respond("No results.")
+        await event.respond("No results")
         return
 
-    await event.respond("\n\n".join(format_item(i) for i in items))
+    text = "\n\n".join(format_item(i) for i in items)
+
+    await event.respond(text)
 
 
-# ----------------------------
-# SUBSCRIBE (alerts)
-# ----------------------------
 @client.on(events.NewMessage(pattern="/subscribe"))
 async def subscribe(event):
     args = event.message.message.split()
 
-    location = args[1] if len(args) >= 2 else None
+    location = args[1] if len(args) > 1 else None
     max_price = None
 
-    if len(args) >= 3:
+    if len(args) > 2:
         try:
             max_price = float(args[2])
         except:
@@ -105,9 +94,7 @@ async def subscribe(event):
 
 async def main():
     print("[BOT] running feed + search + alerts")
-
     await client.start(bot_token=BOT_TOKEN)
-
     await client.run_until_disconnected()
 
 
