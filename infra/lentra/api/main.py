@@ -1,12 +1,14 @@
 # ============================================================
-# API ENTRYPOINT V17.2
+# LENTRA MVP API
 # ============================================================
 
 from fastapi import FastAPI
-from lentra.api.routes.search import search_endpoint
+from lentra.core.search_service import SearchService
 
 app = FastAPI()
+service = SearchService()
+
 
 @app.post("/search")
 async def search(request: dict):
-    return await search_endpoint(request)
+    return await service.search(request)
