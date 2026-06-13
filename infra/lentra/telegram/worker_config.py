@@ -1,0 +1,3 @@
+BATCH_SIZE = 20
+SLEEP_IF_EMPTY = 0.3
+WORKER_NAME = "worker-v3"
