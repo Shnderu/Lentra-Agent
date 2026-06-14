@@ -1,89 +1,110 @@
 import time
 import psycopg2
-import json
+import requests
 
-from lentra.telegram.ux.router.build_telegram_message import build_telegram_message
-from lentra.telegram.ux.renderers.telegram_renderer import render_telegram_message
-from lentra.telegram.delivery.sender import send_telegram
-from lentra.telegram.ux.router.executor import execute_callback
+DB_CONFIG = {
+    "dbname": "lentra",
+    "user": "postgres",
+    "password": "postgres",
+    "host": "127.0.0.1",
+    "port": 5432
+}
 
-
-conn = psycopg2.connect(
-    dbname="lentra",
-    user="postgres",
-    password="postgres",
-    host="127.0.0.1",
-    port=5432
-)
-
-print("[DELIVERY AGENT LOOP V1] STARTED")
+BOT_TOKEN = "8963242841:AAFHQn4thrOcHGGdggiWOeiYA5OSv9jWeQE"
 
 
-def fetch():
+def claim():
+    conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
+
     cur.execute("""
-        SELECT id, result, chat_id
+        SELECT id, payload
         FROM processing_queue
-        WHERE status='done'
-          AND delivered IS NULL
-        ORDER BY id
-        LIMIT 20
+        WHERE status = 'new'
+        LIMIT 50
+        FOR UPDATE SKIP LOCKED
     """)
+
     rows = cur.fetchall()
+    ids = [r[0] for r in rows]
+
+    if ids:
+        cur.execute("""
+            UPDATE processing_queue
+            SET status = 'processing'
+            WHERE id = ANY(%s)
+        """, (ids,))
+
+    conn.commit()
     cur.close()
+    conn.close()
+
     return rows
 
 
-def mark(task_id):
+def send(chat_id, text):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    return requests.post(url, json={
+        "chat_id": chat_id,
+        "text": text
+    }).json()
+
+
+def mark_done(task_id):
+    conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
+
     cur.execute("""
         UPDATE processing_queue
-        SET delivered = TRUE
+        SET status = 'delivered'
         WHERE id = %s
     """, (task_id,))
+
     conn.commit()
     cur.close()
+    conn.close()
 
 
 def main():
+    print("[CONSUMER INTENT ROUTER V1] STARTED")
 
     while True:
+        tasks = claim()
 
-        rows = fetch()
+        if not tasks:
+            time.sleep(1)
+            continue
 
-        for task_id, result, chat_id in rows:
+        for task_id, payload in tasks:
 
-            if not result:
-                mark(task_id)
+            # payload compatibility
+            if "data" in payload:
+                payload = payload["data"]
+
+            chat_id = payload.get("chat_id")
+            event = payload
+
+            # IMPORT ROUTER FROM WORKER
+            from lentra.telegram.worker import route
+
+            result = route(event)
+
+            text = result.get("text")
+
+            if not chat_id or not text:
+                print(f"[DROP] id={task_id}")
                 continue
 
-            if isinstance(result, str):
-                try:
-                    result = json.loads(result)
-                except:
-                    mark(task_id)
-                    continue
+            resp = send(chat_id, text)
 
-            # STEP 6 — callback execution layer
-            callback = result.get("ux", {}).get("callback_data")
+            if not resp.get("ok"):
+                print("[SEND FAIL]", resp)
+                continue
 
-            if callback:
-                result = execute_callback(chat_id or 0, callback)
+            mark_done(task_id)
+            print(f"[DELIVERED] id={task_id}")
 
-            ux = build_telegram_message(result)
-            tg = render_telegram_message(ux)
-
-            send_telegram(
-                chat_id=chat_id or 928857415,
-                text=tg["text"],
-                keyboard=tg["keyboard"]
-            )
-
-            mark(task_id)
-
-            print(f"[DELIVERED AGENT] id={task_id}")
-
-        time.sleep(0.5)
+        time.sleep(1)
 
 
 if __name__ == "__main__":

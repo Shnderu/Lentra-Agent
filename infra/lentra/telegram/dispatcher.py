@@ -1,60 +1,80 @@
-import time
+import json
+import requests
 import psycopg2
+import time
 import uuid
 
-conn = psycopg2.connect(
-    dbname="lentra",
-    user="postgres",
-    password="postgres",
-    host="127.0.0.1",
-    port=5432
-)
+BOT_TOKEN = "8963242841:AAFHQn4thrOcHGGdggiWOeiYA5OSv9jWeQE"
 
-print("[DISPATCHER RESILIENCE V1] STARTED")
+DB_CONFIG = {
+    "dbname": "lentra",
+    "user": "postgres",
+    "password": "postgres",
+    "host": "127.0.0.1",
+    "port": 5432
+}
 
 
-def fetch_new():
+def db_insert(event):
+    conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
-    cur.execute("""
-        SELECT id, task_type, payload
-        FROM processing_queue
-        WHERE status = 'new'
-        ORDER BY id
-        LIMIT 20
-    """)
-    rows = cur.fetchall()
-    cur.close()
-    return rows
 
-
-def mark_processing(task_id, trace_id):
-    cur = conn.cursor()
     cur.execute("""
-        UPDATE processing_queue
-        SET status = 'processing',
-            trace_id = %s,
-            started_at = NOW()
-        WHERE id = %s
-    """, (trace_id, task_id))
+        INSERT INTO processing_queue (task_type, payload, status)
+        VALUES (%s, %s, %s)
+    """, (
+        "telegram_message",
+        json.dumps(event),
+        "new"
+    ))
+
     conn.commit()
     cur.close()
+    conn.close()
+
+
+def fetch_updates(offset):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates?offset={offset}"
+    return requests.get(url).json()
+
+
+def normalize(update):
+    msg = update.get("message", {})
+
+    trace_id = str(uuid.uuid4())
+
+    return {
+        "trace_id": trace_id,
+        "chat_id": msg.get("chat", {}).get("id"),
+        "text": msg.get("text"),
+        "message_id": msg.get("message_id"),
+        "raw": msg
+    }
 
 
 def main():
+    print("[DISPATCHER OBSERVABILITY] STARTED")
+
+    offset = 0
 
     while True:
+        data = fetch_updates(offset)
 
-        tasks = fetch_new()
+        if not data.get("ok"):
+            print("[TG ERROR]", data)
+            time.sleep(2)
+            continue
 
-        for task_id, task_type, payload in tasks:
+        for upd in data.get("result", []):
+            offset = upd["update_id"] + 1
 
-            trace_id = str(uuid.uuid4())
+            event = normalize(upd)
 
-            mark_processing(task_id, trace_id)
+            if event["chat_id"] and event["text"]:
+                db_insert(event)
+                print(f"[INGEST] trace={event['trace_id']} chat={event['chat_id']}")
 
-            print(f"[DISPATCH] id={task_id} trace={trace_id}")
-
-        time.sleep(0.3)
+        time.sleep(1)
 
 
 if __name__ == "__main__":

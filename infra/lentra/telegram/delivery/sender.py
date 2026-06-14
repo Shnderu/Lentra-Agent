@@ -1,33 +1,24 @@
-import os
 import requests
-from dotenv import load_dotenv
 
-load_dotenv()
-
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
+BOT_TOKEN = "8963242841:AAFHQn4thrOcHGGdggiWOeiYA5OSv9jWeQE"
 
 
-def send_telegram(chat_id: int, text: str, keyboard=None):
-
-    if not BOT_TOKEN:
-        raise RuntimeError("BOT_TOKEN is not set")
+def send_message(chat_id, text):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
 
     payload = {
         "chat_id": chat_id,
-        "text": text,
-        "parse_mode": "HTML"
+        "text": text
     }
 
-    if keyboard:
-        payload["reply_markup"] = {
-            "inline_keyboard": keyboard
-        }
+    r = requests.post(url, json=payload)
 
-    r = requests.post(f"{API_URL}/sendMessage", json=payload)
+    try:
+        data = r.json()
+    except Exception:
+        return {"ok": False, "error": "bad_response"}
 
-    if r.status_code != 200:
-        print("[TELEGRAM ERROR]", r.text)
-        return False
+    if not data.get("ok"):
+        print("[SEND ERROR]", data)
 
-    return True
+    return data
