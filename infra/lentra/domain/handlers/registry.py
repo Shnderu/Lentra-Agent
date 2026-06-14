@@ -1,42 +1,28 @@
-from lentra.domain.vietnam.adapter import get_vietnam_properties
-
-
-def handle_parse_property(payload):
+def parse_property(payload, state):
     return {
         "ux": {
             "screen": "property_list",
-            "title": "Подобрано для тебя",
-            "cards": get_vietnam_properties(payload)
-        },
-        "telegram_text": "🏠 Список объектов сформирован"
+            "cards": payload.get("properties", [])
+        }
     }
 
-
-def handle_ranking_event(payload):
-    # временный fallback (чтобы не падало)
+def ranking_event(payload, state):
     return {
         "ux": {
             "screen": "ranking",
-            "title": "Ranking обработан",
             "data": payload
-        },
-        "telegram_text": "📊 Ranking event processed"
+        }
     }
 
-
-def handle_telegram_message(payload):
+def telegram_message(payload, state):
     return {
         "ux": {
-            "screen": "telegram_ack",
-            "title": "Сообщение получено",
-            "data": payload
-        },
-        "telegram_text": "💬 Message received"
+            "screen": "telegram_ack"
+        }
     }
 
-
 HANDLERS = {
-    "parse_property": handle_parse_property,
-    "ranking_event": handle_ranking_event,
-    "telegram_message": handle_telegram_message,
+    "parse_property": parse_property,
+    "ranking_event": ranking_event,
+    "telegram_message": telegram_message
 }

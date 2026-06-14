@@ -9,39 +9,58 @@ conn = psycopg2.connect(
     port=5432
 )
 
-conn.autocommit = True
+print("[DISPATCHER PROD] STARTED")
 
-print("[DISPATCHER FIX FINAL] STARTED")
 
-while True:
-    try:
-        cur = conn.cursor()
+def fetch_new():
+    cur = conn.cursor()
 
-        cur.execute("""
-            SELECT id
-            FROM processing_queue
-            WHERE status = 'new'
-            ORDER BY id
-            LIMIT 10
-            FOR UPDATE SKIP LOCKED
-        """)
+    cur.execute("""
+        SELECT id, task_type, payload
+        FROM processing_queue
+        WHERE status = 'new'
+        ORDER BY id
+        LIMIT 20
+    """)
 
-        rows = cur.fetchall()
+    rows = cur.fetchall()
+    cur.close()
 
-        if rows:
-            ids = [r[0] for r in rows]
+    return rows
 
-            cur.execute("""
-                UPDATE processing_queue
-                SET status = 'processing'
-                WHERE id = ANY(%s)
-            """, (ids,))
 
-            print(f"[DISPATCHER] moved_to_processing={len(ids)}")
+def mark_processing(task_id):
+    cur = conn.cursor()
 
-        cur.close()
+    cur.execute("""
+        UPDATE processing_queue
+        SET
+            status = 'processing',
+            started_at = NOW()
+        WHERE id = %s
+    """, (task_id,))
 
-    except Exception as e:
-        print("[DISPATCHER ERROR]", e)
+    conn.commit()
+    cur.close()
 
-    time.sleep(0.3)
+
+def main():
+    while True:
+
+        tasks = fetch_new()
+
+        for task_id, task_type, payload in tasks:
+
+            mark_processing(task_id)
+
+            print(
+                f"[DISPATCH] "
+                f"id={task_id} "
+                f"type={task_type}"
+            )
+
+        time.sleep(0.3)
+
+
+if __name__ == "__main__":
+    main()

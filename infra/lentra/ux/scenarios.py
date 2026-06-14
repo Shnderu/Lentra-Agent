@@ -1,4 +1,5 @@
 from lentra.domain.vietnam.adapter import get_vietnam_properties
+from lentra.ux.composer.engine import compose_properties
 
 
 def run_scenario(intent, payload, state):
@@ -6,27 +7,18 @@ def run_scenario(intent, payload, state):
     if intent == "property_search":
         props = get_vietnam_properties(payload, state)
 
-        cards = []
-        for p in props:
-            cards.append({
-                "title": p["title"],
-                "price": p["price"],
-                "location": p["location"]
-            })
-
-        return {
-            "text": "Нашёл варианты недвижимости:",
-            "type": "cards",
-            "cards": cards
-        }
+        # ❗ ВАЖНО: передаём в composer, а не строим UI тут
+        return compose_properties(props)
 
     if intent == "chat":
         return {
-            "text": "Готов помочь с арендой во Вьетнаме.",
-            "type": "text"
+            "screen": "chat",
+            "type": "text",
+            "text": "Готов помочь с арендой во Вьетнаме."
         }
 
     return {
-        "text": "Запрос обработан",
-        "type": "text"
+        "screen": "default",
+        "type": "text",
+        "text": "Запрос обработан"
     }
