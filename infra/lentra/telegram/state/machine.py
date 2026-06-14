@@ -1,27 +1,24 @@
-import psycopg2
+# ============================================================
+# LENTRA FSM STATE MACHINE V2.2 (CLEAN CHAT-ID CONTRACT)
+# ============================================================
+
 import json
-import hashlib
-from lentra.telegram.db import get_conn
 
 
-def _event_hash(event: dict) -> str:
-    raw = json.dumps(event, sort_keys=True)
-    return hashlib.md5(raw.encode()).hexdigest()
+def load_state(conn, chat_id):
+    cur = conn.cursor()
 
+    cur.execute("""
+        SELECT screen, last_event_id, state, version
+        FROM user_state
+        WHERE chat_id = %s
+    """, (chat_id,))
 
-def load_state(conn, chat_id: int):
-    with conn.cursor() as cur:
-        cur.execute("""
-            SELECT screen, last_event_id, state, version
-            FROM user_state
-            WHERE chat_id = %s
-        """, (chat_id,))
-        row = cur.fetchone()
+    row = cur.fetchone()
 
     if not row:
         return {
             "screen": "main",
-            "last_event_id": None,
             "state": {},
             "version": 1
         }
@@ -34,72 +31,54 @@ def load_state(conn, chat_id: int):
     }
 
 
-def save_state(conn, chat_id: int, new_state: dict, event_id: str, event: dict):
-    with conn.cursor() as cur:
-        cur.execute("""
-            INSERT INTO user_state (chat_id, screen, last_event_id, state, version, updated_at)
-            VALUES (%s, %s, %s, %s, 1, NOW())
-            ON CONFLICT (chat_id) DO UPDATE SET
-                screen = EXCLUDED.screen,
-                last_event_id = EXCLUDED.last_event_id,
-                state = EXCLUDED.state,
-                version = user_state.version + 1,
-                updated_at = NOW()
-        """, (
+def save_state(conn, chat_id, state, event_id, event):
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO user_state (
             chat_id,
-            new_state["screen"],
-            event_id,
-            json.dumps(new_state.get("state", {}))
-        ))
+            screen,
+            last_event_id,
+            state,
+            version
+        )
+        VALUES (%s, %s, %s, %s, %s)
+        ON CONFLICT (chat_id)
+        DO UPDATE SET
+            screen = EXCLUDED.screen,
+            last_event_id = EXCLUDED.last_event_id,
+            state = EXCLUDED.state,
+            version = EXCLUDED.version
+    """, (
+        chat_id,
+        state.get("screen", "main"),
+        event_id,
+        json.dumps(state.get("state", {})),
+        state.get("version", 1)
+    ))
 
     conn.commit()
+    cur.close()
 
 
-def next_state(chat_id: int, event: dict):
-    conn = get_conn()
+def next_state(conn, chat_id, event):
+    state = load_state(conn, chat_id)
 
-    try:
-        state = load_state(conn, chat_id)
+    new_state = dict(state)
 
-        event_id = _event_hash(event)
+    text = event.get("text", "")
 
-        # 🔥 DEDUPLICATION
-        if state["last_event_id"] == event_id:
-            print("[FSM] duplicate event ignored")
-            return state
+    if "Аренда" in text:
+        new_state["screen"] = "rent"
+    elif "Поиск" in text:
+        new_state["screen"] = "search"
+    elif "Профиль" in text:
+        new_state["screen"] = "profile"
+    else:
+        new_state["screen"] = "main"
 
-        text = event.get("text", "")
+    event_id = event.get("event_id", "0")
 
-        screen = state["screen"]
+    save_state(conn, chat_id, new_state, event_id, event)
 
-        # 🔵 SIMPLE TRANSITIONS (A+ BASE)
-        if text == "/start":
-            screen = "main"
-
-        elif "Аренда" in text:
-            screen = "rent"
-
-        elif "Поиск" in text:
-            screen = "search"
-
-        elif "Профиль" in text:
-            screen = "profile"
-
-        elif "Уведомления" in text:
-            screen = "notifications"
-
-        # fallback safety
-        if not screen:
-            screen = "main"
-
-        new_state = {
-            "screen": screen,
-            "state": state["state"]
-        }
-
-        save_state(conn, chat_id, new_state, event_id, event)
-
-        return new_state
-
-    finally:
-        conn.close()
+    return new_state

@@ -1,23 +1,24 @@
+# ============================================================
+# LENTRA CONSUMER V2.1 (STABLE PIPELINE)
+# ============================================================
+
 import time
-import psycopg2
-import requests
 import json
+import requests
 import os
 import hashlib
 
 from lentra.telegram.db import get_conn
 from lentra.telegram.intent.router import route
+from lentra.observability.service import ObservabilityService
+from lentra.telegram.delivery.queue_guard import release_stuck_tasks
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-# 🔵 UI CACHE (in-memory)
+obs = ObservabilityService()
+
 _last_render_hash = {}
 _last_screen = {}
-
-
-def _hash_ui(payload: dict) -> str:
-    raw = json.dumps(payload, sort_keys=True)
-    return hashlib.md5(raw.encode()).hexdigest()
 
 
 def send(chat_id, response):
@@ -31,7 +32,7 @@ def send(chat_id, response):
     if "reply_markup" in response:
         payload["reply_markup"] = response["reply_markup"]
 
-    return requests.post(url, json=payload).json()
+    return requests.post(url, json=payload, timeout=10).json()
 
 
 def claim(conn):
@@ -76,11 +77,18 @@ def mark_done(conn, task_id):
 
 
 def main():
-    print("[CONSUMER UI FIXED STARTED]")
+    print("[CONSUMER V2.1 STABLE STARTED]")
 
     conn = get_conn()
 
     while True:
+
+        # 🔵 GUARD: release stuck tasks
+        try:
+            release_stuck_tasks(conn)
+        except Exception as e:
+            print("[QUEUE GUARD ERROR]", e)
+
         tasks = claim(conn)
 
         if not tasks:
@@ -93,54 +101,55 @@ def main():
                 payload = json.loads(payload)
 
             chat_id = payload.get("chat_id")
+            trace_id = payload.get("trace_id") or str(task_id)
 
-            if not chat_id:
-                continue
+            trace = obs.start_trace(trace_id)
+            obs.log_stage(trace, "CONSUMER_START", {"task_id": task_id})
 
-            # 🔵 ROUTER → STATE → UI
             state = route(payload)
+            obs.log_stage(trace, "ROUTER_DONE", state)
 
             screen = state.get("screen", "main")
 
-            # 🔥 UI CACHE KEY
             ui_payload = {
                 "screen": screen,
                 "state": state.get("state", {})
             }
 
-            ui_hash = _hash_ui(ui_payload)
+            ui_hash = hashlib.md5(json.dumps(ui_payload, sort_keys=True).encode()).hexdigest()
 
-            # 🔥 1. SCREEN GUARD (no repeat render)
             if _last_screen.get(chat_id) == screen:
-                print("[UI SKIP] same screen:", screen)
+                obs.log_stage(trace, "UI_SKIP_SAME_SCREEN")
                 mark_done(conn, task_id)
                 continue
 
-            # 🔥 2. RENDER GUARD (no duplicate UI)
             if _last_render_hash.get(chat_id) == ui_hash:
-                print("[UI SKIP] duplicate render hash")
+                obs.log_stage(trace, "UI_SKIP_DUPLICATE")
                 mark_done(conn, task_id)
                 continue
 
-            # 🔵 BUILD RESPONSE
-            result = render_response(screen=screen)
+            result = render_response(screen)
 
-            resp = send(chat_id, result)
+            try:
+                send_result = send(chat_id, result)
+            except Exception as e:
+                obs.log_stage(trace, "TELEGRAM_EXCEPTION", {"error": str(e)})
+                continue
 
-            if resp.get("ok"):
+            obs.log_stage(trace, "TELEGRAM_SENT", send_result)
+
+            if send_result.get("ok"):
                 mark_done(conn, task_id)
+                obs.log_stage(trace, "CONSUMER_DONE")
 
                 _last_screen[chat_id] = screen
                 _last_render_hash[chat_id] = ui_hash
-
-                print("[DELIVERED]", task_id)
             else:
-                print("[SEND FAIL]", resp)
+                obs.log_stage(trace, "TELEGRAM_FAILED", send_result)
 
         time.sleep(1)
 
 
-# 🔵 SIMPLE UI RENDER (TEMP CONTRACT)
 def render_response(screen: str) -> dict:
     if screen == "main":
         return {
@@ -155,48 +164,15 @@ def render_response(screen: str) -> dict:
         }
 
     if screen == "rent":
-        return {
-            "text": "🏠 Раздел аренды",
-            "reply_markup": {
-                "keyboard": [
-                    ["🔎 Поиск", "⬅️ Назад"]
-                ],
-                "resize_keyboard": True
-            }
-        }
+        return {"text": "🏠 Раздел аренды"}
 
     if screen == "search":
-        return {
-            "text": "🔎 Поиск жилья",
-            "reply_markup": {
-                "keyboard": [
-                    ["🏠 Аренда", "⬅️ Назад"]
-                ],
-                "resize_keyboard": True
-            }
-        }
+        return {"text": "🔎 Поиск жилья"}
 
     if screen == "profile":
-        return {
-            "text": "👤 Профиль пользователя",
-            "reply_markup": {
-                "keyboard": [
-                    ["🏠 Главное меню"]
-                ],
-                "resize_keyboard": True
-            }
-        }
+        return {"text": "👤 Профиль"}
 
-    return {
-        "text": "🏠 Главное меню",
-        "reply_markup": {
-            "keyboard": [
-                ["🏠 Аренда", "🔎 Поиск"],
-                ["📊 Уведомления", "👤 Профиль"]
-            ],
-            "resize_keyboard": True
-        }
-    }
+    return {"text": "🏠 Главное меню"}
 
 
 if __name__ == "__main__":

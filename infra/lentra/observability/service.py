@@ -1,5 +1,5 @@
 # ============================================================
-# LENTRA OBSERVABILITY SERVICE V17.0 (RUNTIME FACADE)
+# LENTRA OBSERVABILITY SERVICE V17.1 (FIXED IMPORT CYCLE)
 # ============================================================
 
 import time
@@ -7,25 +7,12 @@ from typing import Dict, Any, Optional
 
 from lentra.observability.traces.model import RequestTrace
 from lentra.observability.metrics.collector import MetricsCollector
-from lentra.telegram.delivery.consumer import claim  # used only for optional diagnostics
 
 
 class ObservabilityService:
-    """
-    Runtime observability facade:
-    - metrics (lightweight)
-    - traces (in-memory)
-    - system snapshot (on-demand)
-    - queue snapshot (on-demand)
-    """
-
     def __init__(self):
         self.metrics = MetricsCollector()
-
-        # in-memory trace registry (lightweight, no persistence)
         self.traces: Dict[str, RequestTrace] = {}
-
-        # simple system markers (can be extended later)
         self._last_system_check = 0
 
     # ============================================================
@@ -37,7 +24,7 @@ class ObservabilityService:
         self.traces[request_id] = trace
         return trace
 
-    def log_stage(self, trace: RequestTrace, stage: str, meta: Optional[dict] = None):
+    def log_stage(self, trace: RequestTrace, stage: str, meta=None):
         trace.add(stage, meta)
 
     def get_trace(self, request_id: str) -> Optional[Dict[str, Any]]:
@@ -58,7 +45,7 @@ class ObservabilityService:
         }
 
     # ============================================================
-    # METRICS API
+    # METRICS
     # ============================================================
 
     def record_cache_hit(self):
@@ -77,14 +64,10 @@ class ObservabilityService:
         return self.metrics.snapshot()
 
     # ============================================================
-    # SYSTEM SNAPSHOT (LIGHTWEIGHT)
+    # SYSTEM SNAPSHOT
     # ============================================================
 
     def get_system_snapshot(self) -> Dict[str, Any]:
-        """
-        Lightweight system state view (NO heavy DB polling)
-        """
-
         self._last_system_check = time.time()
 
         return {
@@ -95,15 +78,10 @@ class ObservabilityService:
         }
 
     # ============================================================
-    # QUEUE SNAPSHOT (ON-DEMAND ONLY)
+    # QUEUE SNAPSHOT (NO DEPENDENCY ON CONSUMER)
     # ============================================================
 
     def get_queue_snapshot(self, conn=None) -> Dict[str, Any]:
-        """
-        Optional diagnostic function.
-        Uses DB only if connection passed explicitly.
-        """
-
         if conn is None:
             return {
                 "status": "no_connection",
@@ -140,7 +118,7 @@ class ObservabilityService:
             }
 
     # ============================================================
-    # FULL DEBUG SNAPSHOT
+    # DEBUG DUMP
     # ============================================================
 
     def debug_dump(self, request_id: Optional[str] = None) -> Dict[str, Any]:

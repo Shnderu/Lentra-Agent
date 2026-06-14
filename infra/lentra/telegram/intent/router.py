@@ -1,38 +1,23 @@
+# ============================================================
+# LENTRA ROUTER V2.1 (FSM ADAPTER FIXED)
+# ============================================================
+
 from lentra.telegram.state.machine import next_state
-from lentra.telegram.ui.router import render
+from lentra.telegram.db import get_conn
 
 
-def route(event: dict) -> dict:
-    chat_id = event.get("chat_id")
-    text = event.get("text", "")
+def route(payload: dict):
+    chat_id = payload.get("chat_id")
+    event = payload
 
-    print("[ROUTER IN]", chat_id, text)
+    if not chat_id:
+        return {
+            "screen": "main",
+            "state": {}
+        }
 
-    # 🔥 state transition
-    state = next_state(chat_id, event)
+    conn = get_conn()
 
-    if not state:
-        print("[ROUTER ERROR] empty state")
-        return render("main")
+    state = next_state(conn, chat_id, event)
 
-    screen = state.get("screen")
-
-    if not screen:
-        print("[ROUTER WARN] missing screen → fallback main")
-        screen = "main"
-
-    result = render(screen)
-
-    # 🔥 HARD GUARANTEE: UI must exist
-    if not isinstance(result, dict):
-        print("[ROUTER ERROR] invalid render output")
-        return render("main")
-
-    if "reply_markup" not in result:
-        print("[ROUTER WARN] missing reply_markup → injecting fallback menu")
-        fallback = render("main")
-        result["reply_markup"] = fallback.get("reply_markup", {})
-
-    print("[ROUTER OUT]", screen)
-
-    return result
+    return state
