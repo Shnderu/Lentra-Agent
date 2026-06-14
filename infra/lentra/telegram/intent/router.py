@@ -1,50 +1,38 @@
-from lentra.telegram.ui.router import resolve_screen
+from lentra.telegram.state.machine import next_state
 from lentra.telegram.ui.router import render
 
 
 def route(event: dict) -> dict:
-    text = (event.get("text") or "").strip()
+    chat_id = event.get("chat_id")
+    text = event.get("text", "")
 
-    # нормализация
-    lower = text.lower()
+    print("[ROUTER IN]", chat_id, text)
 
-    # базовый UX routing
-    if lower in ["/start", "start", "меню", "menu"]:
+    # 🔥 state transition
+    state = next_state(chat_id, event)
+
+    if not state:
+        print("[ROUTER ERROR] empty state")
+        return render("main")
+
+    screen = state.get("screen")
+
+    if not screen:
+        print("[ROUTER WARN] missing screen → fallback main")
         screen = "main"
-        return render(screen)
 
-    if "аренда" in lower or "rent" in lower:
-        screen = "rent"
-        return render(screen)
+    result = render(screen)
 
-    if "поиск" in lower or "search" in lower:
-        return {
-            "text": "🔎 Поиск\nВведите запрос:",
-            "reply_markup": {
-                "keyboard": [["🏠 Главное меню"]],
-                "resize_keyboard": True
-            }
-        }
+    # 🔥 HARD GUARANTEE: UI must exist
+    if not isinstance(result, dict):
+        print("[ROUTER ERROR] invalid render output")
+        return render("main")
 
-    if "профиль" in lower or "profile" in lower:
-        return {
-            "text": "👤 Профиль\n(пока пусто)",
-            "reply_markup": {
-                "keyboard": [["🏠 Главное меню"]],
-                "resize_keyboard": True
-            }
-        }
+    if "reply_markup" not in result:
+        print("[ROUTER WARN] missing reply_markup → injecting fallback menu")
+        fallback = render("main")
+        result["reply_markup"] = fallback.get("reply_markup", {})
 
-    # fallback — ВСЕГДА возвращаем UI, никогда пустоту
-    return {
-        "text": f"📩 Получено: {text}",
-        "reply_markup": {
-            "keyboard": [
-                ["🏠 Аренда"],
-                ["🔎 Поиск"],
-                ["📊 Уведомления"],
-                ["👤 Профиль"]
-            ],
-            "resize_keyboard": True
-        }
-    }
+    print("[ROUTER OUT]", screen)
+
+    return result

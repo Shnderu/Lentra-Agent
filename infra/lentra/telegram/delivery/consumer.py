@@ -3,10 +3,21 @@ import psycopg2
 import requests
 import json
 import os
+import hashlib
+
 from lentra.telegram.db import get_conn
 from lentra.telegram.intent.router import route
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+
+# 🔵 UI CACHE (in-memory)
+_last_render_hash = {}
+_last_screen = {}
+
+
+def _hash_ui(payload: dict) -> str:
+    raw = json.dumps(payload, sort_keys=True)
+    return hashlib.md5(raw.encode()).hexdigest()
 
 
 def send(chat_id, response):
@@ -17,7 +28,6 @@ def send(chat_id, response):
         "text": response.get("text", "")
     }
 
-    # 🔥 ВАЖНО: добавляем UI если есть
     if "reply_markup" in response:
         payload["reply_markup"] = response["reply_markup"]
 
@@ -84,20 +94,109 @@ def main():
 
             chat_id = payload.get("chat_id")
 
-            result = route(payload)
-
             if not chat_id:
                 continue
+
+            # 🔵 ROUTER → STATE → UI
+            state = route(payload)
+
+            screen = state.get("screen", "main")
+
+            # 🔥 UI CACHE KEY
+            ui_payload = {
+                "screen": screen,
+                "state": state.get("state", {})
+            }
+
+            ui_hash = _hash_ui(ui_payload)
+
+            # 🔥 1. SCREEN GUARD (no repeat render)
+            if _last_screen.get(chat_id) == screen:
+                print("[UI SKIP] same screen:", screen)
+                mark_done(conn, task_id)
+                continue
+
+            # 🔥 2. RENDER GUARD (no duplicate UI)
+            if _last_render_hash.get(chat_id) == ui_hash:
+                print("[UI SKIP] duplicate render hash")
+                mark_done(conn, task_id)
+                continue
+
+            # 🔵 BUILD RESPONSE
+            result = render_response(screen=screen)
 
             resp = send(chat_id, result)
 
             if resp.get("ok"):
                 mark_done(conn, task_id)
+
+                _last_screen[chat_id] = screen
+                _last_render_hash[chat_id] = ui_hash
+
                 print("[DELIVERED]", task_id)
             else:
                 print("[SEND FAIL]", resp)
 
         time.sleep(1)
+
+
+# 🔵 SIMPLE UI RENDER (TEMP CONTRACT)
+def render_response(screen: str) -> dict:
+    if screen == "main":
+        return {
+            "text": "🏠 Главное меню",
+            "reply_markup": {
+                "keyboard": [
+                    ["🏠 Аренда", "🔎 Поиск"],
+                    ["📊 Уведомления", "👤 Профиль"]
+                ],
+                "resize_keyboard": True
+            }
+        }
+
+    if screen == "rent":
+        return {
+            "text": "🏠 Раздел аренды",
+            "reply_markup": {
+                "keyboard": [
+                    ["🔎 Поиск", "⬅️ Назад"]
+                ],
+                "resize_keyboard": True
+            }
+        }
+
+    if screen == "search":
+        return {
+            "text": "🔎 Поиск жилья",
+            "reply_markup": {
+                "keyboard": [
+                    ["🏠 Аренда", "⬅️ Назад"]
+                ],
+                "resize_keyboard": True
+            }
+        }
+
+    if screen == "profile":
+        return {
+            "text": "👤 Профиль пользователя",
+            "reply_markup": {
+                "keyboard": [
+                    ["🏠 Главное меню"]
+                ],
+                "resize_keyboard": True
+            }
+        }
+
+    return {
+        "text": "🏠 Главное меню",
+        "reply_markup": {
+            "keyboard": [
+                ["🏠 Аренда", "🔎 Поиск"],
+                ["📊 Уведомления", "👤 Профиль"]
+            ],
+            "resize_keyboard": True
+        }
+    }
 
 
 if __name__ == "__main__":
