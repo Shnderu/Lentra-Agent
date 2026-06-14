@@ -1,8 +1,10 @@
 import os
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-
 API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
 
@@ -25,8 +27,7 @@ def send_telegram(chat_id: int, text: str, keyboard=None):
     r = requests.post(f"{API_URL}/sendMessage", json=payload)
 
     if r.status_code != 200:
-        print("[TELEGRAM ERROR]", r.status_code, r.text)
+        print("[TELEGRAM ERROR]", r.text)
         return False
 
-    print("[TELEGRAM OK]")
     return True

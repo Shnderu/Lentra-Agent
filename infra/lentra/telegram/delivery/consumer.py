@@ -1,9 +1,11 @@
 import time
-import json
 import psycopg2
+import json
 
+from lentra.telegram.ux.router.build_telegram_message import build_telegram_message
+from lentra.telegram.ux.renderers.telegram_renderer import render_telegram_message
 from lentra.telegram.delivery.sender import send_telegram
-from lentra.telegram.ux.router import build_telegram_message
+
 
 conn = psycopg2.connect(
     dbname="lentra",
@@ -13,36 +15,31 @@ conn = psycopg2.connect(
     port=5432
 )
 
-print("[DELIVERY BOOLEAN FIX] STARTED")
+print("[DELIVERY UI COMPILER V1] STARTED")
 
 
 def fetch():
     cur = conn.cursor()
-
     cur.execute("""
         SELECT id, result
         FROM processing_queue
         WHERE status='done'
-          AND delivered = FALSE
+          AND delivered IS NULL
         ORDER BY id
         LIMIT 20
     """)
-
     rows = cur.fetchall()
     cur.close()
-
     return rows
 
 
 def mark(task_id):
     cur = conn.cursor()
-
     cur.execute("""
         UPDATE processing_queue
         SET delivered = TRUE
         WHERE id = %s
     """, (task_id,))
-
     conn.commit()
     cur.close()
 
@@ -53,45 +50,31 @@ def main():
 
         rows = fetch()
 
-        if rows:
-            print(f"[CONSUMER] fetched={len(rows)}")
-
         for task_id, result in rows:
 
-            try:
-
-                if not result:
-                    mark(task_id)
-                    continue
-
-                if isinstance(result, str):
-                    result = json.loads(result)
-
-                if not isinstance(result, dict):
-                    mark(task_id)
-                    continue
-
-                ux = build_telegram_message(result)
-
-                send_telegram(
-                    chat_id=928857415,
-                    text=ux.get("text", ""),
-                    keyboard=ux.get("keyboard", [])
-                )
-
+            if not result:
                 mark(task_id)
+                continue
 
-                print(f"[DELIVERED] id={task_id}")
+            if isinstance(result, str):
+                try:
+                    result = json.loads(result)
+                except:
+                    mark(task_id)
+                    continue
 
-            except Exception as e:
+            ux = build_telegram_message(result)
+            tg = render_telegram_message(ux)
 
-                conn.rollback()
+            send_telegram(
+                chat_id=928857415,
+                text=tg["text"],
+                keyboard=tg["keyboard"]
+            )
 
-                print(
-                    f"[DELIVERY ERROR] "
-                    f"id={task_id} "
-                    f"err={e}"
-                )
+            mark(task_id)
+
+            print(f"[DELIVERED UX] id={task_id}")
 
         time.sleep(0.5)
 

@@ -1,50 +1,21 @@
-from lentra.telegram.ux.keyboard import build_keyboard
+from lentra.telegram.ux.screens.registry import SCREEN_MAP
 
 
-def build_telegram_message(result):
+def build_telegram_message(result: dict):
+    """
+    Converts worker result → UX screen → Telegram payload
+    """
 
     ux = result.get("ux", {})
 
-    screen = ux.get("screen")
+    screen_type = ux.get("screen", "error")
+    cards = ux.get("cards", [])
 
-    if screen == "property_list":
+    builder = SCREEN_MAP.get(screen_type)
 
-        cards = ux.get("cards", [])
+    if not builder:
+        builder = SCREEN_MAP["error"]
 
-        if not cards:
-            return {
-                "text": "No properties found",
-                "keyboard": []
-            }
+    screen = builder(cards) if screen_type == "property_list" else builder()
 
-        text = "🏠 <b>Available properties</b>\n\n"
-
-        keyboard = []
-
-        for c in cards[:10]:
-
-            text += (
-                f"• <b>{c['title']}</b>\n"
-                f"  {c['subtitle']}\n\n"
-            )
-
-            keyboard.append([
-                {
-                    "text": f"Open {c['id']}",
-                    "callback_data": f"open:{c['id']}"
-                },
-                {
-                    "text": "Save",
-                    "callback_data": f"save:{c['id']}"
-                }
-            ])
-
-        return {
-            "text": text,
-            "keyboard": keyboard
-        }
-
-    return {
-        "text": "Unknown screen",
-        "keyboard": []
-    }
+    return screen.to_dict()

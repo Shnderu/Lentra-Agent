@@ -1,5 +1,6 @@
 import time
 import psycopg2
+import uuid
 
 conn = psycopg2.connect(
     dbname="lentra",
@@ -9,12 +10,11 @@ conn = psycopg2.connect(
     port=5432
 )
 
-print("[DISPATCHER PROD] STARTED")
+print("[DISPATCHER RESILIENCE V1] STARTED")
 
 
 def fetch_new():
     cur = conn.cursor()
-
     cur.execute("""
         SELECT id, task_type, payload
         FROM processing_queue
@@ -22,42 +22,37 @@ def fetch_new():
         ORDER BY id
         LIMIT 20
     """)
-
     rows = cur.fetchall()
     cur.close()
-
     return rows
 
 
-def mark_processing(task_id):
+def mark_processing(task_id, trace_id):
     cur = conn.cursor()
-
     cur.execute("""
         UPDATE processing_queue
-        SET
-            status = 'processing',
+        SET status = 'processing',
+            trace_id = %s,
             started_at = NOW()
         WHERE id = %s
-    """, (task_id,))
-
+    """, (trace_id, task_id))
     conn.commit()
     cur.close()
 
 
 def main():
+
     while True:
 
         tasks = fetch_new()
 
         for task_id, task_type, payload in tasks:
 
-            mark_processing(task_id)
+            trace_id = str(uuid.uuid4())
 
-            print(
-                f"[DISPATCH] "
-                f"id={task_id} "
-                f"type={task_type}"
-            )
+            mark_processing(task_id, trace_id)
+
+            print(f"[DISPATCH] id={task_id} trace={trace_id}")
 
         time.sleep(0.3)
 
