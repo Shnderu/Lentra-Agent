@@ -1,22 +1,50 @@
-def detect_intent(state: dict, payload: dict, callback: str):
-    """
-    Очень простой intent router (MVP без ML)
-    """
+from lentra.telegram.ui.router import resolve_screen
+from lentra.telegram.ui.router import render
 
-    screen = state.get("screen", "start")
-    source = payload.get("source")
 
-    # 1. фильтрация UX контекста
-    if callback == "filter" or source == "state_filter":
-        return "FILTER_INTENT"
+def route(event: dict) -> dict:
+    text = (event.get("text") or "").strip()
 
-    # 2. уточнение
-    if callback == "refine" or source == "state_refine":
-        return "REFINE_INTENT"
+    # нормализация
+    lower = text.lower()
 
-    # 3. если пользователь на экране property_list
-    if screen == "property_list":
-        return "BROWSE_INTENT"
+    # базовый UX routing
+    if lower in ["/start", "start", "меню", "menu"]:
+        screen = "main"
+        return render(screen)
 
-    # 4. fallback
-    return "DEFAULT_INTENT"
+    if "аренда" in lower or "rent" in lower:
+        screen = "rent"
+        return render(screen)
+
+    if "поиск" in lower or "search" in lower:
+        return {
+            "text": "🔎 Поиск\nВведите запрос:",
+            "reply_markup": {
+                "keyboard": [["🏠 Главное меню"]],
+                "resize_keyboard": True
+            }
+        }
+
+    if "профиль" in lower or "profile" in lower:
+        return {
+            "text": "👤 Профиль\n(пока пусто)",
+            "reply_markup": {
+                "keyboard": [["🏠 Главное меню"]],
+                "resize_keyboard": True
+            }
+        }
+
+    # fallback — ВСЕГДА возвращаем UI, никогда пустоту
+    return {
+        "text": f"📩 Получено: {text}",
+        "reply_markup": {
+            "keyboard": [
+                ["🏠 Аренда"],
+                ["🔎 Поиск"],
+                ["📊 Уведомления"],
+                ["👤 Профиль"]
+            ],
+            "resize_keyboard": True
+        }
+    }

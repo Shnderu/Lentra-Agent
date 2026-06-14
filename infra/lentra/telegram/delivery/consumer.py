@@ -1,27 +1,38 @@
 import time
 import psycopg2
 import requests
+import json
+import os
+from lentra.telegram.db import get_conn
+from lentra.telegram.intent.router import route
 
-DB_CONFIG = {
-    "dbname": "lentra",
-    "user": "postgres",
-    "password": "postgres",
-    "host": "127.0.0.1",
-    "port": 5432
-}
-
-BOT_TOKEN = "8963242841:AAFHQn4thrOcHGGdggiWOeiYA5OSv9jWeQE"
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 
-def claim():
-    conn = psycopg2.connect(**DB_CONFIG)
+def send(chat_id, response):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+
+    payload = {
+        "chat_id": chat_id,
+        "text": response.get("text", "")
+    }
+
+    # 🔥 ВАЖНО: добавляем UI если есть
+    if "reply_markup" in response:
+        payload["reply_markup"] = response["reply_markup"]
+
+    return requests.post(url, json=payload).json()
+
+
+def claim(conn):
     cur = conn.cursor()
 
     cur.execute("""
         SELECT id, payload
         FROM processing_queue
-        WHERE status = 'new'
-        LIMIT 50
+        WHERE status = 'pending'
+        ORDER BY id ASC
+        LIMIT 10
         FOR UPDATE SKIP LOCKED
     """)
 
@@ -37,21 +48,11 @@ def claim():
 
     conn.commit()
     cur.close()
-    conn.close()
 
     return rows
 
 
-def send(chat_id, text):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    return requests.post(url, json={
-        "chat_id": chat_id,
-        "text": text
-    }).json()
-
-
-def mark_done(task_id):
-    conn = psycopg2.connect(**DB_CONFIG)
+def mark_done(conn, task_id):
     cur = conn.cursor()
 
     cur.execute("""
@@ -62,14 +63,15 @@ def mark_done(task_id):
 
     conn.commit()
     cur.close()
-    conn.close()
 
 
 def main():
-    print("[CONSUMER INTENT ROUTER V1] STARTED")
+    print("[CONSUMER UI FIXED STARTED]")
+
+    conn = get_conn()
 
     while True:
-        tasks = claim()
+        tasks = claim(conn)
 
         if not tasks:
             time.sleep(1)
@@ -77,32 +79,23 @@ def main():
 
         for task_id, payload in tasks:
 
-            # payload compatibility
-            if "data" in payload:
-                payload = payload["data"]
+            if isinstance(payload, str):
+                payload = json.loads(payload)
 
             chat_id = payload.get("chat_id")
-            event = payload
 
-            # IMPORT ROUTER FROM WORKER
-            from lentra.telegram.worker import route
+            result = route(payload)
 
-            result = route(event)
-
-            text = result.get("text")
-
-            if not chat_id or not text:
-                print(f"[DROP] id={task_id}")
+            if not chat_id:
                 continue
 
-            resp = send(chat_id, text)
+            resp = send(chat_id, result)
 
-            if not resp.get("ok"):
+            if resp.get("ok"):
+                mark_done(conn, task_id)
+                print("[DELIVERED]", task_id)
+            else:
                 print("[SEND FAIL]", resp)
-                continue
-
-            mark_done(task_id)
-            print(f"[DELIVERED] id={task_id}")
 
         time.sleep(1)
 
