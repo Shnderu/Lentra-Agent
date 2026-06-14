@@ -1,25 +1,6 @@
-def parse_property(payload, state):
-    return {
-        "ux": {
-            "screen": "property_list",
-            "cards": payload.get("properties", [])
-        }
-    }
-
-def ranking_event(payload, state):
-    return {
-        "ux": {
-            "screen": "ranking",
-            "data": payload
-        }
-    }
-
-def telegram_message(payload, state):
-    return {
-        "ux": {
-            "screen": "telegram_ack"
-        }
-    }
+from lentra.domain.handlers.parse_property import handle as parse_property
+from lentra.domain.handlers.ranking_event import handle as ranking_event
+from lentra.domain.handlers.telegram_message import handle as telegram_message
 
 HANDLERS = {
     "parse_property": parse_property,
