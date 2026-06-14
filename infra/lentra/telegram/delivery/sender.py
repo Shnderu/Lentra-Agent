@@ -3,40 +3,30 @@ import requests
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-if not BOT_TOKEN:
-    try:
-        with open("/opt/lentra/infra/.env") as f:
-            for line in f:
-                if line.startswith("BOT_TOKEN="):
-                    BOT_TOKEN = line.strip().split("=", 1)[1]
-                    break
-    except Exception:
-        pass
+API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
 
 def send_telegram(chat_id: int, text: str, keyboard=None):
 
     if not BOT_TOKEN:
-        print("[TELEGRAM ERROR] BOT_TOKEN not found")
-        return False
+        raise RuntimeError("BOT_TOKEN is not set")
 
     payload = {
         "chat_id": chat_id,
-        "text": text or "Сообщение без текста"
+        "text": text,
+        "parse_mode": "HTML"
     }
 
-    try:
-        r = requests.post(
-            f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-            json=payload,
-            timeout=15
-        )
+    if keyboard:
+        payload["reply_markup"] = {
+            "inline_keyboard": keyboard
+        }
 
-        print(f"[TELEGRAM] status={r.status_code}")
-        print(r.text)
+    r = requests.post(f"{API_URL}/sendMessage", json=payload)
 
-        return r.status_code == 200
-
-    except Exception as e:
-        print(f"[TELEGRAM ERROR] {e}")
+    if r.status_code != 200:
+        print("[TELEGRAM ERROR]", r.status_code, r.text)
         return False
+
+    print("[TELEGRAM OK]")
+    return True

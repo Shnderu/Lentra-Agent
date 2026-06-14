@@ -1,20 +1,50 @@
-def build_telegram_message(ux):
-    if not ux or not isinstance(ux, dict):
-        return {"text": "", "keyboard": []}
+from lentra.telegram.ux.keyboard import build_keyboard
 
-    text = ux.get("telegram_text") or ux.get("text") or ""
-    actions = ux.get("ux", {}).get("actions", [])
 
-    keyboard = []
+def build_telegram_message(result):
 
-    for a in actions:
-        if isinstance(a, dict):
-            keyboard.append({
-                "text": a.get("label", ""),
-                "callback_data": a.get("type", "")
-            })
+    ux = result.get("ux", {})
+
+    screen = ux.get("screen")
+
+    if screen == "property_list":
+
+        cards = ux.get("cards", [])
+
+        if not cards:
+            return {
+                "text": "No properties found",
+                "keyboard": []
+            }
+
+        text = "🏠 <b>Available properties</b>\n\n"
+
+        keyboard = []
+
+        for c in cards[:10]:
+
+            text += (
+                f"• <b>{c['title']}</b>\n"
+                f"  {c['subtitle']}\n\n"
+            )
+
+            keyboard.append([
+                {
+                    "text": f"Open {c['id']}",
+                    "callback_data": f"open:{c['id']}"
+                },
+                {
+                    "text": "Save",
+                    "callback_data": f"save:{c['id']}"
+                }
+            ])
+
+        return {
+            "text": text,
+            "keyboard": keyboard
+        }
 
     return {
-        "text": text,
-        "keyboard": keyboard
+        "text": "Unknown screen",
+        "keyboard": []
     }
