@@ -1,78 +1,44 @@
-from dataclasses import dataclass
-
-
-# =========================
-# SCREENS
-# =========================
-
 SCREEN_MAIN = "main"
-SCREEN_START = "start"
-SCREEN_UNKNOWN = "unknown"
+SCREEN_RENT = "rent"
 
 
-# =========================
-# UI LAYOUTS (Telegram text + buttons)
-# =========================
-
-UI = {
-    SCREEN_START: {
-        "text": "Привет 👋 Я Lentra Agent\nВыбери действие:",
-        "keyboard": [
-            ["🏠 Главное меню"]
-        ]
-    },
-
-    SCREEN_MAIN: {
-        "text": "Главное меню:",
-        "keyboard": [
-            ["🏠 Аренда"],
-            ["🔎 Поиск"],
-            ["📊 Уведомления"],
-            ["👤 Профиль"]
-        ]
-    },
-
-    SCREEN_UNKNOWN: {
-        "text": "Команда не распознана. Вернись в меню:",
-        "keyboard": [
-            ["🏠 Главное меню"]
-        ]
-    }
-}
-
-
-# =========================
-# STATE RESOLVER
-# =========================
-
-def resolve_screen(text: str, state: dict = None) -> str:
-    text = (text or "").strip().lower()
+def resolve_screen(text: str) -> str:
+    text = (text or "").lower()
 
     if text in ["/start", "start"]:
-        return SCREEN_START
-
-    if text in ["🏠 главное меню", "menu", "/menu"]:
         return SCREEN_MAIN
 
-    if state and state.get("screen"):
-        return state["screen"]
+    if "аренда" in text:
+        return SCREEN_RENT
 
-    return SCREEN_UNKNOWN
+    return SCREEN_MAIN
 
 
-# =========================
-# RENDER ENGINE
-# =========================
+def render(screen: str) -> dict:
 
-def render(screen_id: str) -> dict:
-    screen = UI.get(screen_id, UI[SCREEN_UNKNOWN])
+    if screen == SCREEN_MAIN:
+        return {
+            "text": "Главное меню",
+            "reply_markup": {
+                "keyboard": [
+                    ["🏠 Аренда"],
+                    ["🔎 Поиск"],
+                    ["📊 Уведомления"],
+                    ["👤 Профиль"]
+                ],
+                "resize_keyboard": True
+            }
+        }
+
+    if screen == SCREEN_RENT:
+        return {
+            "text": "🏠 Аренда\nВведите город:",
+            "reply_markup": {
+                "keyboard": [["🏠 Главное меню"]],
+                "resize_keyboard": True
+            }
+        }
 
     return {
-        "text": screen["text"],
-        "reply_markup": {
-            "keyboard": screen["keyboard"],
-            "resize_keyboard": True,
-            "one_time_keyboard": False
-        },
-        "screen": screen_id
+        "text": "Ошибка UI"
     }

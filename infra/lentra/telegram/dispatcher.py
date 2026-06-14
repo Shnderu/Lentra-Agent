@@ -1,81 +1,44 @@
-import json
 import requests
-import psycopg2
 import time
-import uuid
+import json
+import os
+from lentra.telegram.db import get_conn
 
-BOT_TOKEN = "8963242841:AAFHQn4thrOcHGGdggiWOeiYA5OSv9jWeQE"
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-DB_CONFIG = {
-    "dbname": "lentra",
-    "user": "postgres",
-    "password": "postgres",
-    "host": "127.0.0.1",
-    "port": 5432
-}
-
-
-def db_insert(event):
-    conn = psycopg2.connect(**DB_CONFIG)
+def insert_task(chat_id, event_type, payload):
+    conn = get_conn()
     cur = conn.cursor()
 
     cur.execute("""
-        INSERT INTO processing_queue (task_type, payload, status)
-        VALUES (%s, %s, %s)
-    """, (
-        "telegram_message",
-        json.dumps(event),
-        "new"
-    ))
+        INSERT INTO processing_queue (chat_id, event_type, payload, status)
+        VALUES (%s, %s, %s, 'pending')
+    """, (chat_id, event_type, json.dumps(payload)))
 
     conn.commit()
     cur.close()
     conn.close()
 
-
-def fetch_updates(offset):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates?offset={offset}"
-    return requests.get(url).json()
-
-
-def normalize(update):
-    msg = update.get("message", {})
-
-    trace_id = str(uuid.uuid4())
-
-    return {
-        "trace_id": trace_id,
-        "chat_id": msg.get("chat", {}).get("id"),
-        "text": msg.get("text"),
-        "message_id": msg.get("message_id"),
-        "raw": msg
-    }
-
-
 def main():
-    print("[DISPATCHER OBSERVABILITY] STARTED")
-
     offset = 0
+    print("[DISPATCHER SINGLE DB LAYER] STARTED")
 
     while True:
-        data = fetch_updates(offset)
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates?offset={offset}"
+        r = requests.get(url).json()
 
-        if not data.get("ok"):
-            print("[TG ERROR]", data)
-            time.sleep(2)
-            continue
+        if r.get("ok"):
+            for u in r["result"]:
+                offset = u["update_id"] + 1
 
-        for upd in data.get("result", []):
-            offset = upd["update_id"] + 1
+                msg = u.get("message", {})
+                chat_id = msg.get("chat", {}).get("id")
+                text = msg.get("text", "")
 
-            event = normalize(upd)
-
-            if event["chat_id"] and event["text"]:
-                db_insert(event)
-                print(f"[INGEST] trace={event['trace_id']} chat={event['chat_id']}")
+                if chat_id:
+                    insert_task(chat_id, text, {"text": text})
 
         time.sleep(1)
-
 
 if __name__ == "__main__":
     main()
