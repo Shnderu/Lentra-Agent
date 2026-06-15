@@ -2,29 +2,37 @@ from typing import List, Dict, Any
 
 
 def rank_properties(properties: List[Dict[str, Any]], query: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """
-    Временный стабилизатор ранжирования.
-    Без этого API не должен падать.
-    """
 
-    if not properties:
-        return []
+    raw = query.get("raw", "").lower()
+    features = query.get("features", {})
 
-    # минимальный скоринг-заглушка
-    def score(p):
-        s = 0
+    scored = []
 
-        features = query.get("features", {})
-        if features.get("pool") and p.get("pool"):
-            s += 2
+    for p in properties:
+        score = 0.0
+
+        # CITY MATCH
+        if "da nang" in raw and "da nang" in (p.get("city") or "").lower():
+            score += 2.0
+
+        # SEA VIEW MATCH
         if features.get("sea_view") and p.get("sea_view"):
-            s += 2
+            score += 2.0
 
-        budget_tier = query.get("budget_tier")
-        if budget_tier == "low":
-            s += 1
+        # POOL MATCH
+        if features.get("pool") and p.get("pool"):
+            score += 3.0
 
-        p["_score"] = s
-        return s
+        # PET MATCH
+        if features.get("pet_friendly") and p.get("pet_friendly"):
+            score += 1.0
 
-    return sorted(properties, key=score, reverse=True)
+        # PRICE heuristic (cheap bias)
+        if "cheap" in raw and p.get("price_vnd_mln", 999) < 20:
+            score += 1.5
+
+        p["score"] = score
+        scored.append(p)
+
+    scored.sort(key=lambda x: x["score"], reverse=True)
+    return scored

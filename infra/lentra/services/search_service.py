@@ -1,90 +1,20 @@
-from sqlalchemy import create_engine, text
-import os
-
-from lentra.services.ranking_service import RankingService
-
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+psycopg2://lentra_user:lentra_pass@localhost:5432/lentra"
-)
-
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
-
-ranking = RankingService()
+from lentra.data.repositories.properties_repo import PropertiesRepository
+from lentra.domain.scoring.ranking_engine import rank_properties
+from lentra.domain.query.query_parser import parse_query
 
 
 class SearchService:
+    def __init__(self, db):
+        self.repo = PropertiesRepository(db)
 
-    # ----------------------------
-    # MAIN SEARCH
-    # ----------------------------
-    def search(
-        self,
-        location: str = None,
-        max_price: float = None,
-        min_price: float = None,
-        property_type: str = None,
-        min_confidence: float = 0.3,
-        limit: int = 20
-    ):
+    def search(self, raw_query: str, budget_max: float | None = None):
+        query_obj = parse_query(raw_query)
 
-        query = """
-            SELECT
-                id,
-                description,
-                price,
-                currency,
-                location,
-                property_type,
-                confidence,
-                created_at
-            FROM properties
-            WHERE confidence >= :min_confidence
-        """
+        properties = self.repo.search_properties(
+            city=query_obj.city,
+            budget_max=budget_max or query_obj.budget_max,
+            pool=query_obj.pool,
+            sea_view=query_obj.sea_view,
+        )
 
-        params = {
-            "min_confidence": min_confidence
-        }
-
-        if location:
-            query += " AND location = :location"
-            params["location"] = location
-
-        if property_type:
-            query += " AND property_type = :property_type"
-            params["property_type"] = property_type
-
-        if max_price:
-            query += " AND price <= :max_price"
-            params["max_price"] = max_price
-
-        if min_price:
-            query += " AND price >= :min_price"
-            params["min_price"] = min_price
-
-        with engine.begin() as conn:
-            rows = conn.execute(text(query), params).fetchall()
-
-        # ----------------------------
-        # reuse ranking engine
-        # ----------------------------
-        scored = []
-
-        for r in rows:
-            score = ranking._calculate_score(r, None)
-            scored.append((score, r))
-
-        scored.sort(key=lambda x: x[0], reverse=True)
-
-        return [
-            {
-                "id": r.id,
-                "description": r.description,
-                "price": r.price,
-                "currency": r.currency,
-                "location": r.location,
-                "type": r.property_type,
-                "confidence": r.confidence
-            }
-            for score, r in scored[:limit]
-        ]
+        return rank_properties(properties, query_obj)

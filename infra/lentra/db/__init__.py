@@ -1,1 +1,2 @@
-from .session import get_db, SessionLocal, engine
+from .session import engine, SessionLocal
+from .deps import get_db

@@ -1,37 +1,21 @@
-from fastapi import FastAPI, Request, Depends
-from lentra.domain.query.query_parser import parse_query
-from lentra.data.providers.properties_provider import fetch_properties
-from lentra.db import get_db
+from fastapi import FastAPI, Depends
+from lentra.db.deps import get_db
+from lentra.services.search_service import SearchService
+from lentra.domain.models.search import SearchRequest, SearchResponse, PropertyDTO
 
 app = FastAPI()
 
 
-def db_dep():
-    conn = next(get_db())
-    try:
-        yield conn
-    finally:
-        conn.close()
+@app.post("/v1/search", response_model=SearchResponse)
+def search(payload: SearchRequest, db=Depends(get_db)):
+    service = SearchService(db)
 
+    results = service.search(
+        raw_query=payload.query,
+        budget_max=payload.budget_max,
+    )
 
-@app.post("/v1/search")
-async def search(request: Request, conn=Depends(db_dep)):
-    body = await request.json()
-
-    query = body.get("query", "")
-    budget_max = body.get("budget_max")
-
-    parsed = parse_query(query)
-
-    query_obj = {
-        "query": query,
-        "budget_max": budget_max,
-        **parsed
-    }
-
-    props = fetch_properties(conn, query_obj)
-
-    return {
-        "results": props,
-        "meta": {"count": len(props)}
-    }
+    return SearchResponse(
+        query=payload.query,
+        results=[PropertyDTO(**r) for r in results]
+    )
