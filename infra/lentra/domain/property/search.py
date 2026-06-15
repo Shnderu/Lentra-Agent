@@ -5,10 +5,9 @@ from lentra.domain.search.query_parser import parse_query
 
 def search_properties(payload, state=None):
     """
-    SEARCH ENGINE v1 entrypoint
+    SEARCH ENGINE v2
     """
 
-    # 1. parse user query → filters
     query_text = None
 
     if payload:
@@ -16,10 +15,8 @@ def search_properties(payload, state=None):
 
     filters = parse_query(query_text)
 
-    # 2. fetch data
     props = get_properties(filters)
 
-    # 3. ranking
-    ranked = rank(props, state)
+    ranked = rank(props, state, query_text)
 
     return ranked
