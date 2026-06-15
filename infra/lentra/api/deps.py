@@ -1,9 +1,16 @@
+from typing import Generator
+
+from sqlalchemy.orm import Session
+
 from lentra.db.session import SessionLocal
-from lentra.db.repositories.apartment_repository import ApartmentRepository
+from lentra.db.repositories.apartment_repo import ApartmentRepository
 from lentra.db.services.search_service import SearchService
 
 
-def get_db():
+# ------------------------
+# DB SESSION (OK)
+# ------------------------
+def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()
     try:
         yield db
@@ -11,6 +18,13 @@ def get_db():
         db.close()
 
 
-def get_search_service(db=next(get_db())):
+# ------------------------
+# SERVICE (FIXED PROPER FASTAPI WAY)
+# ------------------------
+def get_search_service(db: Session = None) -> SearchService:
+    """
+    ❗ ВАЖНО:
+    db должен приходить через Depends, а не через next()
+    """
     repo = ApartmentRepository(db)
     return SearchService(repo)
