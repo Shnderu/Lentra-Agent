@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from typing import Any, Dict, List
-import os
 
 from lentra.bot.client import APIClient
 
@@ -17,21 +16,16 @@ class SearchResult:
 
 
 class SearchService:
-    def __init__(self):
-        base_url = os.getenv("API_URL")
-
-        if not base_url:
-            raise RuntimeError("API_URL is not set")
-
-        self.client = APIClient(base_url=base_url)
+    def __init__(self, client: APIClient):
+        self.client = client
 
     async def search(self, query: str, budget_max: float = 10) -> List[SearchResult]:
+
         payload = {
             "query": query,
             "budget_max": budget_max
         }
 
-        # ВАЖНО: путь без дублирования
         data: Dict[str, Any] = await self.client.post("/v1/search", payload)
 
         results = data.get("results", [])
@@ -48,6 +42,3 @@ class SearchService:
             )
             for r in results
         ]
-
-
-search_service = SearchService()

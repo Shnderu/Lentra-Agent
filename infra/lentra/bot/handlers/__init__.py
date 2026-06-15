@@ -1,1 +1,1 @@
-from .handlers import router
+# EMPTY PACKAGE INIT - NO IMPORT SIDE EFFECTS

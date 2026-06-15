@@ -1,4 +1,9 @@
 import os
+from dotenv import load_dotenv
+
+load_dotenv("/opt/lentra/infra/.env")
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
-API_URL = os.getenv("API_URL", "http://localhost:8000/v1/search")
+
+if not BOT_TOKEN:
+    raise RuntimeError("BOT_TOKEN is not set")

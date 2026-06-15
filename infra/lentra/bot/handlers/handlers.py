@@ -1,26 +1,23 @@
-from aiogram import Router
-from aiogram.types import Message
-
-from lentra.bot.services.registry import search_service
-
-router = Router()
+from aiogram import Router, types
+from lentra.bot.core.container import Container
 
 
-@router.message()
-async def handle_search(message: Message):
-    query = message.text
+def build_main_router(container: Container) -> Router:
 
-    results = await search_service.search(query=query)
+    router = Router()
 
-    if not results:
-        await message.answer("Ничего не найдено")
-        return
+    @router.message()
+    async def handle_search(message: types.Message):
 
-    top = results[:5]
+        query = message.text
 
-    text = "\n".join(
-        f"{r.title} — {r.price_vnd_mln} млн VND"
-        for r in top
-    )
+        results = await container.search_service.search(query=query)
 
-    await message.answer(text)
+        text = "\n".join(
+            f"🏠 {r.title} — {r.price_vnd_mln} млн VND"
+            for r in results
+        )
+
+        await message.answer(text or "Ничего не найдено")
+
+    return router
