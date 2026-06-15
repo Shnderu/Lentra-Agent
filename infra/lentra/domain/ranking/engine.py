@@ -4,7 +4,23 @@ from lentra.domain.search.geo_scoring import geo_score
 from lentra.domain.search.intent import detect_intent
 
 
-def score_property(prop, profile=None, query=None, intent=None, user_location=None):
+def feedback_boost(prop_id, feedback_cache):
+    """
+    Simple implicit learning signal
+    """
+    if not feedback_cache:
+        return 0.0
+
+    stats = feedback_cache.get(prop_id, {})
+
+    clicks = stats.get("click", 0)
+    likes = stats.get("like", 0)
+    views = stats.get("view", 0)
+
+    return (clicks * 0.3) + (likes * 0.6) + (views * 0.1)
+
+
+def score_property(prop, profile=None, query=None, intent=None, user_location=None, feedback_cache=None):
     score = prop.get("score", 0.5)
 
     price = prop.get("price", 0) or 0
@@ -21,11 +37,11 @@ def score_property(prop, profile=None, query=None, intent=None, user_location=No
     if prop.get("city") in ["Nha Trang", "Da Nang"]:
         score += 0.2
 
-    # TEXT RELEVANCE
+    # TEXT
     if query:
         score += text_score(query, prop.get("title", ""))
 
-    # INTENT BOOST
+    # INTENT
     if intent:
         if intent.get("cheap") and price < 400:
             score += 0.5
@@ -36,7 +52,7 @@ def score_property(prop, profile=None, query=None, intent=None, user_location=No
         if intent.get("beach") and prop.get("sea_view"):
             score += 0.5
 
-    # GEO BOOST
+    # GEO
     score += geo_score(prop, user_location)
 
     # PERSONALIZATION
@@ -47,10 +63,13 @@ def score_property(prop, profile=None, query=None, intent=None, user_location=No
         if prop.get("city") in profile.get("preferred_cities", []):
             score += 0.5
 
+    # LEARNING LAYER (NEW)
+    score += feedback_boost(prop.get("id"), feedback_cache)
+
     return score
 
 
-def rank(properties, state=None, query=None, user_location=None):
+def rank(properties, state=None, query=None, user_location=None, feedback_cache=None):
     profile = None
 
     if state and state.get("user_id"):
@@ -66,10 +85,9 @@ def rank(properties, state=None, query=None, user_location=None):
             profile,
             query,
             intent,
-            user_location
+            user_location,
+            feedback_cache
         )
         enriched.append(p)
 
-    enriched.sort(key=lambda x: x["rank_score"], reverse=True)
-
-    return enriched
+    return sorted(enriched, key=lambda x: x["rank_score"], reverse=True)
