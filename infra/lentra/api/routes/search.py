@@ -1,16 +1,19 @@
-# ============================================================
-# SEARCH API ROUTE V16.4
-# ============================================================
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 
-from lentra.api.services.search_service import SearchService
+from lentra.api.deps import get_db
+from lentra.db.repositories.apartment_repository import ApartmentRepository
+from lentra.db.services.search_service import SearchService
+
+router = APIRouter()
 
 
-search_service = SearchService()
+@router.post("/v1/search")
+def search(payload: dict, db: Session = Depends(get_db)):
+    query = payload.get("query")
+    budget_max = payload.get("budget_max")
 
+    repo = ApartmentRepository(db)
+    service = SearchService(repo)
 
-async def search_endpoint(request: dict):
-    """
-    Entry point for UI / Telegram / external API
-    """
-
-    return await search_service.search(request)
+    return service.search(query=query, budget_max=budget_max)

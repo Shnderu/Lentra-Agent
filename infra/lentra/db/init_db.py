@@ -1,8 +1,11 @@
 from lentra.db.session import engine
-from lentra.db.models import Base
+from lentra.db.session import Base
 
-def init_db():
+# важно: импорт модели обязателен
+from lentra.db.models.apartment import Apartment  # noqa
+
+def init():
     Base.metadata.create_all(bind=engine)
 
 if __name__ == "__main__":
-    init_db()
+    init()

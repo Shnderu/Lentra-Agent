@@ -1,8 +1,18 @@
-# LENTRA INFRA (NO POSTGRES IN DOCKER - HOST MODE ONLY)
+version: "3.9"
 
 services:
-  redis:
-    image: redis:7
-    container_name: lentra-redis
+  postgres:
+    image: postgres:15
+    container_name: lentra-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: lentra
+      POSTGRES_PASSWORD: lentra
+      POSTGRES_DB: lentra
     ports:
-      - "6379:6379"
+      - "5432:5432"
+    volumes:
+      - lentra_pgdata:/var/lib/postgresql/data
+
+volumes:
+  lentra_pgdata:
