@@ -1,27 +1,31 @@
 from lentra.bot.cards.builder import Card
+from lentra.bot.ux.keyboard import UXKeyboard
 
 
 class CardRenderer:
 
-    def render_list_card(self, card: Card) -> str:
-        features = "\n".join(card.features)
+    def __init__(self):
+        self.kb = UXKeyboard()
 
-        return (
+    def render_list_card(self, card: Card):
+        text = (
             f"🏠 {card.title}\n\n"
             f"📍 {card.location}\n\n"
             f"💰 {card.price}\n"
             f"⭐ {card.score}\n\n"
-            f"{features}\n\n"
-            f"[Подробнее] [❤️ Сохранить] [Похожие]"
+            f"{' '.join(card.features)}"
         )
 
-    def render_detail(self, card: Card) -> str:
-        return (
+        return text, self.kb.list_card(card.id)
+
+    def render_detail(self, card: Card):
+        text = (
             f"🏠 {card.title}\n\n"
             f"📍 {card.location}\n"
             f"💰 {card.price}\n"
             f"⭐ {card.score}\n\n"
             f"Фичи:\n" +
-            "\n".join(card.features) +
-            "\n\n[⬅ Назад]"
+            "\n".join(card.features)
         )
+
+        return text, self.kb.detail_card(card.id)

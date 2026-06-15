@@ -1,79 +1,33 @@
 from lentra.bot.state.session import SessionState
 
-from lentra.bot.fsm.engine import FSMEngine
-
-from lentra.bot.fsm.states import (
-    LIST,
-    DETAIL
-)
-
 
 class StateMachine:
 
-    def __init__(self):
-        self.fsm = FSMEngine()
+    def set_list(self, state: SessionState, results: list, query: str, search_id: str):
 
-    def set_list(
-        self,
-        state: SessionState,
-        results: list,
-        query: str,
-        search_id: str
-    ):
-
-        if state.current_state != "IDLE":
-            state = self.fsm.transition(
-                state,
-                LIST
-            )
-        else:
-            state.current_state = LIST
-
+        state.mode = "LIST"
         state.query = query
-
         state.search_id = search_id
-
         state.page = 0
 
         state.results = [
             {
-                "id": r.id,
-                "title": r.title,
-                "city": r.city,
-                "district": r.district,
-                "price_vnd_mln": r.price_vnd_mln,
-                "score": r.score
+                "id": r.id if hasattr(r, "id") else r.get("id"),
+                "title": r.title if hasattr(r, "title") else r.get("title"),
+                "city": r.city if hasattr(r, "city") else r.get("city"),
+                "district": r.district if hasattr(r, "district") else r.get("district"),
+                "price_vnd_mln": r.price_vnd_mln if hasattr(r, "price_vnd_mln") else r.get("price_vnd_mln"),
+                "score": r.score if hasattr(r, "score") else r.get("score"),
+                "pool": getattr(r, "pool", r.get("pool", False)),
+                "sea_view": getattr(r, "sea_view", r.get("sea_view", False)),
             }
             for r in results
         ]
 
         state.selected_id = None
-
-        state.mode = LIST
-
         return state
 
-    def set_detail(
-        self,
-        state: SessionState,
-        item_id: str
-    ):
-
-        state = self.fsm.transition(
-            state,
-            DETAIL
-        )
-
+    def set_detail(self, state: SessionState, item_id: str):
+        state.mode = "DETAIL"
         state.selected_id = item_id
-
-        state.mode = DETAIL
-
-        return state
-
-    def back(self, state: SessionState):
-
-        state = self.fsm.back(state)
-
-        state.mode = state.current_state
-
         return state
