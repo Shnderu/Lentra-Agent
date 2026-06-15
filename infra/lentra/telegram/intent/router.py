@@ -1,23 +1,12 @@
-# ============================================================
-# LENTRA ROUTER V2.1 (FSM ADAPTER FIXED)
-# ============================================================
-
-from lentra.telegram.state.machine import next_state
-from lentra.telegram.db import get_conn
+from lentra.api.search.router import search_endpoint
 
 
-def route(payload: dict):
-    chat_id = payload.get("chat_id")
-    event = payload
+def route(chat_id, event):
+    """
+    v5.1: unified API routing layer
+    """
 
-    if not chat_id:
-        return {
-            "screen": "main",
-            "state": {}
-        }
+    if event.get("type") == "search":
+        return search_endpoint(event.get("payload", {}))
 
-    conn = get_conn()
-
-    state = next_state(conn, chat_id, event)
-
-    return state
+    return {"ok": True, "message": "no-op"}
