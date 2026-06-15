@@ -1,15 +1,23 @@
-from lentra.application.search.search_service import SearchService
+from lentra.application.search.pipeline import execute_search
 from lentra.api.schemas.search_request import SearchRequest
 from lentra.api.schemas.search_response import SearchResponse, PropertyResponse
-
-
-service = SearchService()
 
 
 def search_endpoint(payload: dict, state=None):
     req = SearchRequest(**payload)
 
-    results = service.search(req, state)
+    result = execute_search({
+        "payload": {
+            "text": req.query,
+            "city": req.city,
+            "budget_min": req.budget_min,
+            "budget_max": req.budget_max,
+            "location": {
+                "lat": req.lat,
+                "lng": req.lng
+            } if req.lat and req.lng else None
+        }
+    }, state=state)
 
     mapped = [
         PropertyResponse(
@@ -19,9 +27,10 @@ def search_endpoint(payload: dict, state=None):
             city=r["city"],
             rank_score=r.get("rank_score", 0.0)
         )
-        for r in results
+        for r in result["results"]
     ]
 
-    return SearchResponse(results=mapped, meta={
-        "count": len(mapped)
-    }).dict()
+    return SearchResponse(
+        results=mapped,
+        meta=result.get("meta", {})
+    ).dict()

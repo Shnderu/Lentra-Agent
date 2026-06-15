@@ -1,84 +1,37 @@
-import psycopg2
-from typing import Any, Dict, List, Optional
-
-
-def fetch_vietnam_listings(query: Optional[dict] = None) -> List[Dict[str, Any]]:
+def fetch_vietnam_listings(query=None):
     """
-    REAL DATA LAYER v1 (PostgreSQL-backed + filters)
-    """
+    DATA LAYER v1 (STABLE MOCK MODE)
 
-    conn = psycopg2.connect(
-        dbname="lentra",
-        user="lentra",
-        password="lentra",
-        host="localhost",
-        port=5432
-    )
-
-    cur = conn.cursor()
-
-    sql = """
-        SELECT
-            id,
-            title,
-            price_vnd_mln,
-            city,
-            bedrooms,
-            bathrooms,
-            pet_friendly,
-            pool,
-            sea_view,
-            area_m2
-        FROM properties
-        WHERE 1=1
+    NO SQL.
+    NO FILTERING.
+    RAW DATA ONLY.
     """
 
-    params = []
-
-    if query:
-
-        if query.get("city"):
-            sql += " AND LOWER(city) = LOWER(%s)"
-            params.append(query["city"])
-
-        if query.get("max_price"):
-            sql += " AND price_vnd_mln <= %s"
-            params.append(query["max_price"])
-
-        if query.get("min_bedrooms"):
-            sql += " AND bedrooms >= %s"
-            params.append(query["min_bedrooms"])
-
-        if query.get("pool") is True:
-            sql += " AND pool = true"
-
-        if query.get("sea_view") is True:
-            sql += " AND sea_view = true"
-
-        if query.get("pet_friendly") is True:
-            sql += " AND pet_friendly = true"
-
-    sql += " LIMIT 50"
-
-    cur.execute(sql, params)
-    rows = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return [
+    data = [
         {
-            "id": r[0],
-            "title": r[1],
-            "price": r[2],
-            "city": r[3],
-            "bedrooms": r[4],
-            "bathrooms": r[5],
-            "pet_friendly": r[6],
-            "pool": r[7],
-            "sea_view": r[8],
-            "area": r[9],
-            "source": "postgres_properties"
+            "id": 1,
+            "title": "Apartment near beach Nha Trang",
+            "price": 500,
+            "city": "Nha Trang",
+            "source": "internal_seed",
+            "geo": {"lat": 12.2388, "lng": 109.1967}
+        },
+        {
+            "id": 2,
+            "title": "Modern studio center HCMC",
+            "price": 650,
+            "city": "Ho Chi Minh",
+            "source": "internal_seed",
+            "geo": {"lat": 10.7769, "lng": 106.7009}
+        },
+        {
+            "id": 3,
+            "title": "Cheap room expat area",
+            "price": 300,
+            "city": "Da Nang",
+            "source": "internal_seed",
+            "geo": {"lat": 16.0544, "lng": 108.2022}
         }
-        for r in rows
     ]
+
+    return data
