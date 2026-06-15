@@ -4,8 +4,7 @@ from typing import Any, Dict, List, Optional
 
 def fetch_vietnam_listings(query: Optional[dict] = None) -> List[Dict[str, Any]]:
     """
-    REAL DATA LAYER v1 (PostgreSQL-backed)
-    Замена mock → реальные properties из БД
+    REAL DATA LAYER v1 (PostgreSQL-backed + filters)
     """
 
     conn = psycopg2.connect(
@@ -18,7 +17,6 @@ def fetch_vietnam_listings(query: Optional[dict] = None) -> List[Dict[str, Any]]
 
     cur = conn.cursor()
 
-    # Базовый SQL
     sql = """
         SELECT
             id,
@@ -37,10 +35,10 @@ def fetch_vietnam_listings(query: Optional[dict] = None) -> List[Dict[str, Any]]
 
     params = []
 
-    # Простейшие фильтры (MVP)
     if query:
+
         if query.get("city"):
-            sql += " AND city = %s"
+            sql += " AND LOWER(city) = LOWER(%s)"
             params.append(query["city"])
 
         if query.get("max_price"):
@@ -51,6 +49,15 @@ def fetch_vietnam_listings(query: Optional[dict] = None) -> List[Dict[str, Any]]
             sql += " AND bedrooms >= %s"
             params.append(query["min_bedrooms"])
 
+        if query.get("pool") is True:
+            sql += " AND pool = true"
+
+        if query.get("sea_view") is True:
+            sql += " AND sea_view = true"
+
+        if query.get("pet_friendly") is True:
+            sql += " AND pet_friendly = true"
+
     sql += " LIMIT 50"
 
     cur.execute(sql, params)
@@ -59,11 +66,8 @@ def fetch_vietnam_listings(query: Optional[dict] = None) -> List[Dict[str, Any]]
     cur.close()
     conn.close()
 
-    # адаптация под текущий ranking (dict-based)
-    results = []
-
-    for r in rows:
-        results.append({
+    return [
+        {
             "id": r[0],
             "title": r[1],
             "price": r[2],
@@ -75,6 +79,6 @@ def fetch_vietnam_listings(query: Optional[dict] = None) -> List[Dict[str, Any]]
             "sea_view": r[8],
             "area": r[9],
             "source": "postgres_properties"
-        })
-
-    return results
+        }
+        for r in rows
+    ]
