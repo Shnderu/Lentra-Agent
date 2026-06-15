@@ -1,0 +1,11 @@
+{
+  "base_score_weight": 1.0,
+  "budget_match_bonus": 0.2,
+  "budget_penalty": -0.5,
+  "city_match_bonus": 0.3,
+  "city_mismatch_penalty": -0.1,
+  "sea_view_bonus": 0.05,
+  "pool_bonus": 0.03,
+  "pet_friendly_bonus": 0.02,
+  "min_score": 0.0
+}

@@ -1,78 +1,31 @@
-from sqlalchemy import create_engine, text
-import os
-
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+psycopg2://lentra_user:lentra_pass@localhost:5432/lentra"
-)
-
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+from lentra.ml.similarity import cosine_similarity
 
 
-def compute_score(p, user=None):
-    score = 0.0
+class RankingService:
+    def rank(self, query, properties):
+        query_embedding = query.get("query_embedding", [])
 
-    if p.area_m2:
-        score += min(p.area_m2 / 10, 10)
+        ranked = []
 
-    if p.bedrooms:
-        score += p.bedrooms * 2
+        for p in properties:
+            emb = p.get("embedding")
 
-    if p.bathrooms:
-        score += p.bathrooms * 1.5
+            semantic = cosine_similarity(query_embedding, emb) if emb else 0.0
 
-    if p.sea_view:
-        score += 5 if not user or user.get("prefers_sea_view") else 8
+            tags_score = p.get("score", 0.0)
+            rank_score = p.get("rank_score", 0.0)
 
-    if p.pool:
-        score += 3
+            final_score = (
+                0.5 * semantic +
+                0.3 * tags_score +
+                0.2 * rank_score
+            )
 
-    if p.pet_friendly:
-        score += 2
+            p["semantic_score"] = semantic
+            p["final_score"] = final_score
 
-    if p.price_vnd_mln:
-        score -= p.price_vnd_mln * 0.5
+            ranked.append(p)
 
-        if user:
-            if p.price_vnd_mln < user.get("min_price", 0):
-                score -= 5
-            if p.price_vnd_mln > user.get("max_price", 999999):
-                score -= 10
+        ranked.sort(key=lambda x: x["final_score"], reverse=True)
 
-    return round(score, 2)
-
-
-def get_feed(limit=20, user=None):
-    with engine.begin() as conn:
-        rows = conn.execute(text("""
-            SELECT *
-            FROM properties
-        """)).fetchall()
-
-    results = []
-
-    for r in rows:
-        class P: pass
-
-        p = P()
-        p.area_m2 = r.area_m2
-        p.bedrooms = r.bedrooms
-        p.bathrooms = r.bathrooms
-        p.price_vnd_mln = r.price_vnd_mln
-        p.pet_friendly = r.pet_friendly
-        p.pool = r.pool
-        p.sea_view = r.sea_view
-
-        results.append({
-            "id": r.id,
-            "title": r.title,
-            "score": compute_score(p, user),
-            "price_vnd_mln": r.price_vnd_mln,
-            "area_m2": r.area_m2,
-            "bedrooms": r.bedrooms,
-            "bathrooms": r.bathrooms
-        })
-
-    results.sort(key=lambda x: x["score"], reverse=True)
-
-    return results[:limit]
+        return ranked

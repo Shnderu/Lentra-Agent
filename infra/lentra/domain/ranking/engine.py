@@ -1,58 +1,30 @@
-from lentra.ux.personalization import load_profile
+from typing import List, Dict, Any
 
 
-def score_property(prop, profile=None, features=None):
+def rank_properties(properties: List[Dict[str, Any]], query: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    Временный стабилизатор ранжирования.
+    Без этого API не должен падать.
+    """
 
-    score = prop.get("score", 0.5)
-    price = prop.get("price", 0)
+    if not properties:
+        return []
 
-    # price heuristic
-    if price < 400:
-        score += 0.3
-    elif price < 700:
-        score += 0.1
-    else:
-        score -= 0.2
+    # минимальный скоринг-заглушка
+    def score(p):
+        s = 0
 
-    # geo boost
-    if prop.get("city") in ["Nha Trang", "Da Nang"]:
-        score += 0.2
+        features = query.get("features", {})
+        if features.get("pool") and p.get("pool"):
+            s += 2
+        if features.get("sea_view") and p.get("sea_view"):
+            s += 2
 
-    # personalization layer
-    if profile:
-        if profile["budget_min"] <= price <= profile["budget_max"]:
-            score += 0.4
+        budget_tier = query.get("budget_tier")
+        if budget_tier == "low":
+            s += 1
 
-        if prop.get("city") in profile["preferred_cities"]:
-            score += 0.5
+        p["_score"] = s
+        return s
 
-    # feature store signals (NO DB ACCESS HERE)
-    if features:
-        f = features.get(prop.get("id"))
-
-        if f:
-            score += f.get("clicks", 0) * 0.05
-            score += f.get("likes", 0) * 0.1
-            score += f.get("views", 0) * 0.01
-
-    return score
-
-
-def rank(properties, state=None):
-
-    profile = None
-    features = None
-
-    if state and state.get("user_id"):
-        profile = load_profile(state["user_id"])
-
-    if state and state.get("feature_store"):
-        features = state["feature_store"].load_feedback_agg()
-
-    enriched = []
-
-    for p in properties:
-        p["rank_score"] = score_property(p, profile, features)
-        enriched.append(p)
-
-    return sorted(enriched, key=lambda x: x["rank_score"], reverse=True)
+    return sorted(properties, key=score, reverse=True)
