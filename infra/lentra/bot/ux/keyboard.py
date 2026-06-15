@@ -7,7 +7,15 @@ class UXKeyboard:
         return InlineKeyboardMarkup(inline_keyboard=[
             [
                 InlineKeyboardButton(text="Подробнее", callback_data=f"detail:{item_id}"),
-                InlineKeyboardButton(text="♡ Сохранить", callback_data=f"save:{item_id}")
+                InlineKeyboardButton(text="♡", callback_data=f"save:{item_id}")
+            ]
+        ])
+
+    def pagination(self):
+        return InlineKeyboardMarkup(inline_keyboard=[
+            [
+                InlineKeyboardButton(text="⬅", callback_data="page:prev"),
+                InlineKeyboardButton(text="➡", callback_data="page:next")
             ]
         ])
 

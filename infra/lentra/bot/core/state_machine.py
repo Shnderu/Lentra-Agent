@@ -31,3 +31,11 @@ class StateMachine:
         state.mode = "DETAIL"
         state.selected_id = item_id
         return state
+
+    def next_page(self, state: SessionState):
+        state.page += 1
+        return state
+
+    def prev_page(self, state: SessionState):
+        state.page = max(0, state.page - 1)
+        return state

@@ -1,5 +1,6 @@
 import json
 import redis
+from typing import Dict, Any
 
 from lentra.bot.state.session import SessionState
 
@@ -24,5 +25,5 @@ class StateStore:
         if not raw:
             return SessionState(user_id=user_id)
 
-        data = json.loads(raw)
+        data: Dict[str, Any] = json.loads(raw)
         return SessionState(**data)
