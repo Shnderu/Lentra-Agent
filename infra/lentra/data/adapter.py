@@ -1,12 +1,15 @@
 from lentra.data.providers.properties_provider import fetch_properties
+from lentra.data.providers.feature_loader import load_features_from_properties
 
 
-def get_properties(query=None, conn=None):
+def get_properties(query: dict, conn=None):
     """
-    DATA LAYER ENTRYPOINT (v6.6)
+    Вход: уже нормализованный query (parse_query result)
     """
 
-    if conn is None:
-        raise ValueError("DB connection required in v6.6")
+    props = fetch_properties(conn, query)
 
-    return fetch_properties(conn, query or {})
+    # обновляем feature store
+    load_features_from_properties(props)
+
+    return props
