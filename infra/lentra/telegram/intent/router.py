@@ -1,12 +1,17 @@
-from lentra.api.search.router import search_endpoint
+from lentra.application.search.pipeline import execute_search
 
 
 def route(chat_id, event):
     """
-    v5.1: unified API routing layer
+    TRANSPORT LAYER ONLY
     """
 
-    if event.get("type") == "search":
-        return search_endpoint(event.get("payload", {}))
+    event_type = event.get("type")
 
-    return {"ok": True, "message": "no-op"}
+    if event_type == "search":
+        return execute_search(event.get("payload", {}), state=event.get("state"))
+
+    return {
+        "ok": True,
+        "type": "noop"
+    }
