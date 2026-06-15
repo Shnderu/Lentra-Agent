@@ -4,11 +4,13 @@ from typing import List, Optional, Dict
 
 @dataclass
 class SessionState:
+
     user_id: int
 
     search_id: str = ""
 
     query: str = ""
+
     page: int = 0
 
     results: List[dict] = field(default_factory=list)
@@ -17,6 +19,12 @@ class SessionState:
 
     mode: str = "LIST"
 
-    # LEVEL 7
+    current_state: str = "IDLE"
+
+    previous_state: str = ""
+
+    history: List[str] = field(default_factory=list)
+
     filters: Dict = field(default_factory=dict)
+
     saved_searches: List[str] = field(default_factory=list)
