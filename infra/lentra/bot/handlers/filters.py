@@ -1,6 +1,5 @@
 from aiogram import Router
 
-def build_filters_router() -> Router:
-    router = Router()
+router = Router()
 
-    return router
+# filters handlers will be registered here

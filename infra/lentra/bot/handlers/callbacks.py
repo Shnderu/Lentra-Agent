@@ -1,6 +1,5 @@
 from aiogram import Router
 
-def build_callbacks_router() -> Router:
-    router = Router()
+router = Router()
 
-    return router
+# callbacks handlers will be registered here

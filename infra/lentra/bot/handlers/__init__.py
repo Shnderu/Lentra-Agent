@@ -1,1 +1,2 @@
-# EMPTY PACKAGE INIT - NO IMPORT SIDE EFFECTS
+# HANDLERS PACKAGE
+# no side-effects allowed

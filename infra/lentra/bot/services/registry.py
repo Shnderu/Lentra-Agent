@@ -1,44 +1,19 @@
-from dataclasses import dataclass
-from typing import Any, Dict, List
+import os
 
-from lentra.bot.client import APIClient
-
-
-@dataclass
-class SearchResult:
-    title: str
-    price_vnd_mln: float
-    city: str
-    district: str
-    score: float
-    pool: bool = False
-    sea_view: bool = False
+from lentra.bot.state.state_store import StateStore
+from lentra.bot.services.search_pipeline import SearchService
 
 
-class SearchService:
-    def __init__(self, client: APIClient):
-        self.client = client
+class SearchServiceFactory:
 
-    async def search(self, query: str, budget_max: float = 10) -> List[SearchResult]:
+    @staticmethod
+    def create():
+        api_url = os.getenv("SEARCH_API_URL", "http://localhost:8000")
+        return SearchService(api_url=api_url)
 
-        payload = {
-            "query": query,
-            "budget_max": budget_max
-        }
 
-        data: Dict[str, Any] = await self.client.post("/v1/search", payload)
+class Registry:
 
-        results = data.get("results", [])
-
-        return [
-            SearchResult(
-                title=r.get("title"),
-                price_vnd_mln=r.get("price_vnd_mln"),
-                city=r.get("city"),
-                district=r.get("district"),
-                score=r.get("score"),
-                pool=r.get("pool", False),
-                sea_view=r.get("sea_view", False),
-            )
-            for r in results
-        ]
+    def __init__(self):
+        self.search_service = SearchServiceFactory.create()
+        self.state_store = StateStore()

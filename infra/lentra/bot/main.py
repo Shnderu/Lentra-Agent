@@ -1,26 +1,25 @@
 import asyncio
+import logging
+
 from aiogram import Bot, Dispatcher
 
 from lentra.bot.config import BOT_TOKEN
-from lentra.bot.core.container import build_container
+from lentra.bot.handlers.router_builder import build_main_router
 
-from lentra.bot.handlers.handlers import build_main_router
-from lentra.bot.handlers.filters import build_filters_router
-from lentra.bot.handlers.callbacks import build_callbacks_router
-from lentra.bot.handlers.tracking import build_tracking_router
+
+logging.basicConfig(level=logging.INFO)
 
 
 async def main():
+    if not BOT_TOKEN:
+        raise RuntimeError("BOT_TOKEN is empty")
 
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher()
 
-    container = build_container()
-
-    dp.include_router(build_main_router(container))
-    dp.include_router(build_filters_router())
-    dp.include_router(build_callbacks_router())
-    dp.include_router(build_tracking_router())
+    # IMPORTANT: single router build point
+    router = build_main_router()
+    dp.include_router(router)
 
     await dp.start_polling(bot)
 
