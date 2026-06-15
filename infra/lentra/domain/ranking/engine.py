@@ -2,30 +2,15 @@ from lentra.ux.personalization import load_profile
 from lentra.domain.search.text_similarity import text_score
 from lentra.domain.search.geo_scoring import geo_score
 from lentra.domain.search.intent import detect_intent
+from lentra.domain.search.freshness import freshness_score
 
 
-def feedback_boost(prop_id, feedback_cache):
-    """
-    Simple implicit learning signal
-    """
-    if not feedback_cache:
-        return 0.0
-
-    stats = feedback_cache.get(prop_id, {})
-
-    clicks = stats.get("click", 0)
-    likes = stats.get("like", 0)
-    views = stats.get("view", 0)
-
-    return (clicks * 0.3) + (likes * 0.6) + (views * 0.1)
-
-
-def score_property(prop, profile=None, query=None, intent=None, user_location=None, feedback_cache=None):
+def score_property(prop, profile=None, query=None, intent=None, user_location=None, feedback=None):
     score = prop.get("score", 0.5)
 
     price = prop.get("price", 0) or 0
 
-    # PRICE MODEL
+    # PRICE
     if price < 400:
         score += 0.3
     elif price < 700:
@@ -33,7 +18,7 @@ def score_property(prop, profile=None, query=None, intent=None, user_location=No
     else:
         score -= 0.2
 
-    # CITY BOOST
+    # CITY
     if prop.get("city") in ["Nha Trang", "Da Nang"]:
         score += 0.2
 
@@ -63,13 +48,20 @@ def score_property(prop, profile=None, query=None, intent=None, user_location=No
         if prop.get("city") in profile.get("preferred_cities", []):
             score += 0.5
 
-    # LEARNING LAYER (NEW)
-    score += feedback_boost(prop.get("id"), feedback_cache)
+    # FEEDBACK (persistent)
+    if feedback:
+        stats = feedback.get(prop.get("id"), {})
+        score += (stats.get("click", 0) * 0.3)
+        score += (stats.get("like", 0) * 0.6)
+        score += (stats.get("view", 0) * 0.1)
+
+    # FRESHNESS (NEW)
+    score += freshness_score(prop)
 
     return score
 
 
-def rank(properties, state=None, query=None, user_location=None, feedback_cache=None):
+def rank(properties, state=None, query=None, user_location=None, feedback=None):
     profile = None
 
     if state and state.get("user_id"):
@@ -86,7 +78,7 @@ def rank(properties, state=None, query=None, user_location=None, feedback_cache=
             query,
             intent,
             user_location,
-            feedback_cache
+            feedback
         )
         enriched.append(p)
 

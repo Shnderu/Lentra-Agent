@@ -2,9 +2,10 @@ from lentra.data.adapter import get_properties
 from lentra.domain.ranking.engine import rank
 from lentra.domain.search.query_parser import parse_query
 from lentra.domain.search.diversify import diversify
-from lentra.domain.search.feedback_cache import FeedbackCache
+from lentra.domain.search.feedback_repo import FeedbackRepo
 
-_feedback_cache = FeedbackCache()
+
+_repo = FeedbackRepo()
 
 
 def search_properties(payload, state=None):
@@ -19,12 +20,14 @@ def search_properties(payload, state=None):
 
     props = get_properties(filters)
 
+    feedback = _repo.load()
+
     ranked = rank(
         props,
         state,
         query_text,
         user_location,
-        _feedback_cache.get()
+        feedback
     )
 
     return diversify(ranked)
