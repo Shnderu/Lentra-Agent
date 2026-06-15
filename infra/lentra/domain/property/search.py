@@ -3,17 +3,11 @@ from lentra.domain.ranking.engine import rank
 
 
 def search_properties(payload, state=None):
-    props = get_properties(payload)
+
+    conn = state.get("db_conn")
+
+    props = get_properties(payload, conn=conn)
+
     ranked = rank(props, state)
 
-    # normalize output contract (API-safe)
-    return [
-        {
-            "id": p["id"],
-            "title": p["title"],
-            "price": p["price"],
-            "city": p["city"],
-            "rank_score": p.get("rank_score", 0)
-        }
-        for p in ranked
-    ]
+    return ranked

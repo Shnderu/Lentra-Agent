@@ -1,51 +1,47 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import Optional
 import psycopg2
+import os
 
-from lentra.domain.property.search import search_properties
-from lentra.domain.feature_store import FeatureStore
+from lentra.data.providers.properties_provider import fetch_properties
+from lentra.domain.search.ranking import rank_properties
 
 app = FastAPI()
 
 
 class SearchRequest(BaseModel):
     query: str
-    city: str
-    budget_max: Optional[float] = None
+    city: str | None = None
+    budget_max: float | None = None
 
 
 def get_db():
     return psycopg2.connect(
-        dbname="lentra",
-        user="postgres",
-        password="postgres",
-        host="localhost",
+        dbname=os.getenv("DB_NAME", "lentra"),
+        user=os.getenv("DB_USER", "postgres"),
+        password=os.getenv("DB_PASSWORD", "postgres"),
+        host=os.getenv("DB_HOST", "127.0.0.1"),
         port=5432
     )
 
 
 @app.post("/v1/search")
 def search(req: SearchRequest):
-
     conn = get_db()
 
     try:
-        feature_store = FeatureStore(conn)
+        props = fetch_properties(conn, req.model_dump() or {})
 
-        state = {
-            "city": req.city,
-            "budget_max": req.budget_max,
-            "feature_store": feature_store
-        }
+        if not props:
+            return {"results": [], "meta": {"count": 0, "version": "v6.7-fixed"}}
 
-        results = search_properties(req.model_dump(), state)
+        ranked = rank_properties(props, req.model_dump() or {})
 
         return {
-            "results": results,
+            "results": ranked,
             "meta": {
-                "count": len(results),
-                "version": "v6.5"
+                "count": len(ranked),
+                "version": "v6.7-fixed"
             }
         }
 

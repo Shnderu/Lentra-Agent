@@ -1,11 +1,12 @@
-from lentra.data.providers.vietnam_provider import fetch_vietnam_listings
+from lentra.data.providers.properties_provider import fetch_properties
 
 
-def get_properties(query=None):
+def get_properties(query=None, conn=None):
     """
-    DATA LAYER ENTRYPOINT
+    DATA LAYER ENTRYPOINT (v6.6)
     """
 
-    raw = fetch_vietnam_listings(query)
+    if conn is None:
+        raise ValueError("DB connection required in v6.6")
 
-    return raw
+    return fetch_properties(conn, query or {})
