@@ -1,9 +1,5 @@
-from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy import Column, Integer, Float, String, Boolean
-
-class Base(DeclarativeBase):
-    pass
-
+from sqlalchemy import Column, Integer, String, Float, Boolean
+from lentra.db.base import Base
 
 class Apartment(Base):
     __tablename__ = "apartments"
@@ -11,16 +7,15 @@ class Apartment(Base):
     id = Column(Integer, primary_key=True, index=True)
 
     title = Column(String)
-    price_vnd_mln = Column(Float)
+    price_vnd_mln = Column(Float, index=True)
     area_m2 = Column(Float)
+
+    city = Column(String, index=True)
+    district = Column(String, index=True)
 
     bedrooms = Column(Integer)
     bathrooms = Column(Integer)
 
-    city = Column(String)
-    district = Column(String)
-
     pool = Column(Boolean, default=False)
     sea_view = Column(Boolean, default=False)
-
-    score = Column(Float, default=0.0)
+    pet_friendly = Column(Boolean, default=False)

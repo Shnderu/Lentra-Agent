@@ -1,19 +1,13 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-import os
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+psycopg2://lentra:lentra@localhost:5432/lentra"
-)
+DATABASE_URL = "postgresql://postgres:postgres@127.0.0.1:5432/postgres"
 
 engine = create_engine(
     DATABASE_URL,
     pool_size=10,
     max_overflow=20,
     pool_pre_ping=True,
-    pool_recycle=300,
-    echo=False,
 )
 
 SessionLocal = sessionmaker(
@@ -21,11 +15,3 @@ SessionLocal = sessionmaker(
     autoflush=False,
     bind=engine
 )
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()

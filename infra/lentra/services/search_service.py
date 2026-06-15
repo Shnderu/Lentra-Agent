@@ -1,20 +1,31 @@
-from lentra.data.repositories.properties_repo import PropertiesRepository
-from lentra.domain.scoring.ranking_engine import rank_properties
-from lentra.domain.query.query_parser import parse_query
-
+from lentra.repositories.apartment_repo import ApartmentRepository
 
 class SearchService:
+
     def __init__(self, db):
-        self.repo = PropertiesRepository(db)
+        self.repo = ApartmentRepository(db)
 
-    def search(self, raw_query: str, budget_max: float | None = None):
-        query_obj = parse_query(raw_query)
+    def search(self, query: str, budget_max: float):
+        city = "Da Nang" if "da nang" in query.lower() else None
 
-        properties = self.repo.search_properties(
-            city=query_obj.city,
-            budget_max=budget_max or query_obj.budget_max,
-            pool=query_obj.pool,
-            sea_view=query_obj.sea_view,
+        results = self.repo.search(
+            city=city,
+            max_price=budget_max
         )
 
-        return rank_properties(properties, query_obj)
+        return {
+            "query": query,
+            "results": [
+                {
+                    "id": r.id,
+                    "title": r.title,
+                    "price_vnd_mln": r.price_vnd_mln,
+                    "area_m2": r.area_m2,
+                    "city": r.city,
+                    "district": r.district,
+                    "pool": r.pool,
+                    "sea_view": r.sea_view,
+                }
+                for r in results
+            ]
+        }

@@ -1,3 +1,8 @@
-from lentra.db.session import get_db
+from lentra.db.session import SessionLocal
 
-__all__ = ["get_db"]
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
