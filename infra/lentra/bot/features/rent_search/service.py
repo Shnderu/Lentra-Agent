@@ -1,30 +1,20 @@
-from lentra.bot.features.rent_search.repository import RentRepository
 from lentra.bot.features.rent_search.mapper import map_to_cards
-from lentra.bot.features.rent_search.application.use_cases.query_parser import RentQueryParser
-from lentra.bot.features.rent_search.application.services.ranking_service import RentRankingService
-from lentra.bot.features.rent_search.application.services.response_builder import RentResponseBuilder
-from lentra.bot.features.rent_search.models import RentalSearchResult
+from lentra.bot.features.rent_search.contract.request import RentalSearchRequest
+from lentra.bot.features.rent_search.contract.response import RentalSearchResult
 
 
 class RentSearchService:
-    def __init__(self):
-        self.repo = RentRepository()
-        self.parser = RentQueryParser()
-        self.ranker = RentRankingService()
-        self.builder = RentResponseBuilder()
+    def __init__(self, repository):
+        self.repository = repository
 
-    def search(self, req):
-
-        parsed = self.parser.parse(req.query)
-
-        raw = self.repo.fetch_listings(
-            query=parsed.raw_text,
-            city=parsed.city,
+    async def search(self, request: RentalSearchRequest) -> RentalSearchResult:
+        raw_results = await self.repository.search(
+            query=request.query,
+            city=request.city,
+            min_price=request.min_price,
+            max_price=request.max_price,
         )
 
-        cards = map_to_cards(raw)
-        ranked = self.ranker.rank(cards)
+        cards = map_to_cards(raw_results)
 
-        message = self.builder.build(ranked)
-
-        return RentalSearchResult(cards=ranked, message=message)
+        return RentalSearchResult(cards=cards)
