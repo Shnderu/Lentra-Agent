@@ -1,41 +1,42 @@
-from lentra.bot.features.rent_search.application.dto.search_query import NormalizedRentQuery
+import re
+from lentra.bot.features.rent_search.application.dto.search_context import SearchContext
 
 
-class RentQueryParser:
+class QueryParser:
     """
-    MVP parser: rule-based extraction layer.
-    Later can be replaced with LLM / NLP model.
+    Преобразует сырой текст в структурированный SearchContext
     """
 
-    def parse(self, text: str) -> NormalizedRentQuery:
-        t = (text or "").lower()
+    def parse(self, raw_query: str) -> SearchContext:
+        query = raw_query.lower().strip()
 
-        city = None
-        if "vietnam" in t or "вьетнам" in t:
-            city = "Vietnam"
+        city = self._extract_city(query)
+        min_price, max_price = self._extract_price(query)
 
-        property_type = None
-        if "room" in t:
-            property_type = "room"
-        elif "house" in t:
-            property_type = "house"
-        elif "apartment" in t or "flat" in t or "квартира" in t:
-            property_type = "apartment"
+        cleaned_query = self._clean(query)
 
-        min_price = None
-        max_price = None
-
-        # very simple heuristic
-        if "cheap" in t or "дешев" in t:
-            max_price = 500
-
-        if "lux" in t or "luxury" in t:
-            min_price = 1000
-
-        return NormalizedRentQuery(
-            raw_text=text,
+        return SearchContext(
+            raw_query=raw_query,
+            query=cleaned_query,
             city=city,
             min_price=min_price,
-            max_price=max_price,
-            property_type=property_type,
+            max_price=max_price
         )
+
+    def _extract_city(self, text: str):
+        # минимальная заготовка (расширим позже)
+        cities = ["hanoi", "saigon", "bangkok", "phuket"]
+        for c in cities:
+            if c in text:
+                return c
+        return None
+
+    def _extract_price(self, text: str):
+        match = re.search(r"(\d+)\s*-\s*(\d+)", text)
+        if match:
+            return int(match.group(1)), int(match.group(2))
+        return None, None
+
+    def _clean(self, text: str) -> str:
+        text = re.sub(r"\d+\s*-\s*\d+", "", text)
+        return text.strip()

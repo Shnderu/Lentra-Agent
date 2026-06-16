@@ -1,13 +1,12 @@
+from lentra.bot.features.rent_search.data.mock_provider import MockRentDataProvider
 from lentra.bot.features.rent_search.repository import RentRepository
-from lentra.bot.features.rent_search.service import RentSearchService
 
 
 class Container:
-    def __init__(self):
-        # repositories
-        self.rent_repository = RentRepository()
+    """
+    DI root (минимальный стабильный вариант)
+    """
 
-        # services
-        self.rent_search_service = RentSearchService(
-            repository=self.rent_repository
-        )
+    def __init__(self):
+        provider = MockRentDataProvider()
+        self.rent_repository = RentRepository(provider=provider)

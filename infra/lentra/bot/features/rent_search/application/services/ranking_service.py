@@ -1,27 +1,38 @@
 from typing import List
-from lentra.bot.features.rent_search.models import RentalCard
+from lentra.bot.features.rent_search.contracts import RentSearchItem
+from lentra.bot.features.rent_search.application.dto.search_context import SearchContext
 
 
-class RentRankingService:
+class RankingService:
     """
-    Simple deterministic ranking layer (MVP).
-
-    Goal:
-    - make results look "intelligent"
-    - no ML yet, just heuristics
+    Простая scoring-модель (пока rule-based)
     """
 
-    def rank(self, cards: List[RentalCard]) -> List[RentalCard]:
-        def score(card: RentalCard):
-            # higher score + lower price = better
-            price_penalty = 0
+    def rank(
+        self,
+        items: List[RentSearchItem],
+        context: SearchContext
+    ) -> List[RentSearchItem]:
 
+        def score(item: RentSearchItem) -> float:
+            s = 0.0
+
+            # город совпадает
+            if context.city and item.city.lower() == context.city:
+                s += 50
+
+            # цена (очень грубо)
             try:
-                price_value = int("".join([c for c in card.price if c.isdigit()]))
-                price_penalty = price_value / 1000
-            except Exception:
-                price_penalty = 0
+                price_val = int(''.join(filter(str.isdigit, item.price)))
+                if context.min_price and price_val >= context.min_price:
+                    s += 10
+                if context.max_price and price_val <= context.max_price:
+                    s += 10
+            except:
+                pass
 
-            return card.score - price_penalty
+            # базовый вес
+            s += 1
+            return s
 
-        return sorted(cards, key=score, reverse=True)
+        return sorted(items, key=score, reverse=True)

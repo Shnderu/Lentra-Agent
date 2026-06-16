@@ -1,18 +1,23 @@
 from typing import List, Dict, Any
-from lentra.bot.features.rent_search.contract.response import RentalCard
+from lentra.bot.features.rent_search.contracts import RentSearchItem
 
 
-def map_to_cards(raw_items: List[Dict[str, Any]]) -> List[RentalCard]:
-    cards: List[RentalCard] = []
+def map_to_cards(raw: List[Dict[str, Any]]) -> List[RentSearchItem]:
+    """
+    Чистый трансформер:
+    dict → domain model
+    """
 
-    for item in raw_items:
-        cards.append(
-            RentalCard(
-                title=item.get("title", "Object"),
-                price=item.get("price", "—"),
-                city=item.get("city", "—"),
-                meta=item.get("meta", {}),
+    result: List[RentSearchItem] = []
+
+    for item in raw:
+        result.append(
+            RentSearchItem(
+                title=item.get("title", ""),
+                price=item.get("price", ""),
+                city=item.get("city", ""),
+                meta=item.get("meta", {})
             )
         )
 
-    return cards
+    return result

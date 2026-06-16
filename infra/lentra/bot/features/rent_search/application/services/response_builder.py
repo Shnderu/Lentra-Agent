@@ -1,29 +1,25 @@
-from typing import List
-from lentra.bot.features.rent_search.models import RentalCard
+from lentra.bot.features.rent_search.application.dto.search_context import SearchContext
 
 
-class RentResponseBuilder:
+class ResponseBuilder:
     """
-    Converts ranked rental cards into assistant-friendly message.
+    Формирует финальный текст ответа пользователю
     """
 
-    def build(self, cards: List[RentalCard]) -> str:
-        if not cards:
-            return "Я не нашёл подходящих вариантов."
+    def build(self, context: SearchContext, items) -> str:
 
-        top = cards[:3]
+        header = (
+            f"🏠 Rent search result\n"
+            f"Query: {context.raw_query}\n"
+            f"City: {context.city or 'any'}\n\n"
+        )
 
-        header = "🏠 Вот что удалось найти:\n"
+        if not items:
+            return header + "No results found"
 
-        blocks = []
-        for i, c in enumerate(top, 1):
-            blocks.append(
-                f"{i}. {c.title}\n"
-                f"📍 {c.city}\n"
-                f"💰 {c.price}\n"
-                f"⭐ релевантность: {round(c.score, 2)}"
-            )
+        body = "\n".join(
+            f"• {i.title} | {i.price} | {i.city}"
+            for i in items
+        )
 
-        footer = "\n\nЕсли нужно — уточни бюджет или район, сузим поиск."
-
-        return header + "\n\n".join(blocks) + footer
+        return header + body

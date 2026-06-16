@@ -3,12 +3,13 @@ from lentra.bot.features.rent_search.service import RentSearchService
 
 router = Router()
 
-def build_rent_handler(container):
-    service = container.rent_search_service
+
+def setup_rent_handler(container) -> Router:
+    service = RentSearchService(repository=container.rent_repository)
 
     @router.message()
     async def handle_rent(message):
-        result = await service.search(message.text)
-        return result
+        response = service.search(query=message.text)
+        await message.answer(response)
 
     return router
