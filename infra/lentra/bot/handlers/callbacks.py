@@ -10,15 +10,17 @@ if TYPE_CHECKING:
 def build_callback_router(container: "Container") -> Router:
     router = Router()
 
-    # SAFE ACCESS: prevent crash on partial init / wrong container state
     renderer = getattr(container, "renderer", None)
 
     if renderer is None:
-        # fallback to no-op renderer instead of crash
         from lentra.bot.core.container import NullRenderer
         renderer = NullRenderer()
 
-    # дальше весь код работает через renderer безопасно
-    router["renderer"] = renderer  # если используется DI через router state
+    # HANDLER CONTEXT INJECTION VIA CLOSURE (COMPATIBLE MODE)
+
+    @router.callback_query()
+    async def handle_any_callback(callback, *args, **kwargs):
+        # renderer доступен через closure
+        await renderer.render(callback)
 
     return router
