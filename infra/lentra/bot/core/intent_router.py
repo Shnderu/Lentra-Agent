@@ -1,20 +1,22 @@
-from typing import Callable, Dict, Any
+from typing import Dict, Any
+from lentra.bot.core.feature_registry import FeatureRegistry
 
 
 class IntentRouter:
     """
-    Простейший intent-router (без AI).
-    Позже можно расширить до LLM routing.
+    Routes intent → feature via registry.
     """
 
-    def __init__(self):
-        self._routes: Dict[str, Callable] = {}
-
-    def register(self, intent: str, handler: Callable):
-        self._routes[intent] = handler
+    def __init__(self, registry: FeatureRegistry):
+        self.registry = registry
 
     async def route(self, intent: str, ctx: Dict[str, Any]):
-        handler = self._routes.get(intent)
-        if not handler:
-            return None
-        return await handler(ctx)
+        feature = self.registry.get(intent)
+
+        if not feature:
+            feature = self.registry.get("fallback")
+
+        if not feature:
+            return "No feature available"
+
+        return await feature(ctx)

@@ -1,12 +1,10 @@
 from lentra.telegram.ui.renderer import renderer
 
 
-async def search_handler(ctx: dict):
+async def search_feature(ctx: dict) -> str:
     """
-    Заглушка feature: search
+    Production feature: search
     """
-
-    message = ctx.get("message")
 
     data = {
         "screen": "property_list",

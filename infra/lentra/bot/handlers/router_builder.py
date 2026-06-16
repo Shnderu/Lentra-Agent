@@ -1,14 +1,22 @@
 from aiogram import Router
+
+from lentra.bot.core.feature_registry import FeatureRegistry
 from lentra.bot.core.intent_router import IntentRouter
-from lentra.bot.features.search.handler import search_handler
+
+from lentra.bot.features.search.handler import search_feature
+from lentra.bot.features.fallback.handler import fallback_feature
 
 
 def build_main_router():
     router = Router()
-    intent_router = IntentRouter()
 
-    # регистрация intents
-    intent_router.register("search", search_handler)
+    registry = FeatureRegistry()
+
+    # register features
+    registry.register("search", search_feature)
+    registry.register("fallback", fallback_feature)
+
+    intent_router = IntentRouter(registry)
 
     @router.message()
     async def default_handler(message):
@@ -17,6 +25,6 @@ def build_main_router():
             {"message": message}
         )
 
-        await message.answer(text or "No intent matched")
+        await message.answer(text)
 
     return router
