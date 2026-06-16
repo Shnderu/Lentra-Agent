@@ -9,5 +9,9 @@ class IntentClassifier:
         if not text:
             return "fallback"
 
-        # very simple routing logic (MVP)
+        route_keywords = ["flight", "route", "from", "to", "ticket"]
+
+        if any(k in text for k in route_keywords):
+            return "route_search"
+
         return "search"

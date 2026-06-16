@@ -8,6 +8,7 @@ from lentra.bot.features.base.context import FeatureContext
 
 from lentra.bot.features.search.handler import search_feature
 from lentra.bot.features.fallback.handler import fallback_feature
+from lentra.bot.features.route_search.handler import route_search_feature
 
 
 def build_main_router():
@@ -16,6 +17,7 @@ def build_main_router():
     registry = FeatureRegistry()
 
     registry.register("search", search_feature)
+    registry.register("route_search", route_search_feature)
     registry.register("fallback", fallback_feature)
 
     manager = FeatureManager(registry)
@@ -26,6 +28,10 @@ def build_main_router():
         text = message.text or ""
 
         intent = classifier.classify(text)
+
+        # простая маршрутизация MVP
+        if "flight" in text or "route" in text or "from" in text:
+            intent = "route_search"
 
         ctx = FeatureContext(
             message=message,
