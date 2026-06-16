@@ -1,30 +1,32 @@
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from lentra.bot.ux.cards import CardFactory
+from lentra.bot.ux.renderer import UIRenderer
+from lentra.bot.ux.actions import UXActions
 
 
-@dataclass
-class SearchState:
-    query: str
-    offset: int = 0
-    limit: int = 5
-    budget_max: float = 10
-    pool: Optional[bool] = None
-    sea_view: Optional[bool] = None
+class UXStateAdapter:
 
-
-class UXStateManager:
     def __init__(self):
-        self._state: Dict[int, SearchState] = {}
+        self.renderer = UIRenderer()
 
-    def get(self, user_id: int) -> Optional[SearchState]:
-        return self._state.get(user_id)
+    def build_list_view(self, state):
 
-    def set(self, user_id: int, state: SearchState):
-        self._state[user_id] = state
+        cards = CardFactory.from_state_results(state.results)
 
-    def reset(self, user_id: int):
-        if user_id in self._state:
-            del self._state[user_id]
+        text = self.renderer.render_list(cards, state.page)
 
+        keyboard = UXActions.list_keyboard(cards)
 
-ux_state = UXStateManager()
+        return text, keyboard
+
+    def build_detail_view(self, state):
+
+        cards = CardFactory.from_state_results(state.results)
+
+        card = next((c for c in cards if c.id == state.selected_id), None)
+
+        if not card:
+            return "Not found", None
+
+        text = self.renderer.render_detail(card)
+
+        return text, None

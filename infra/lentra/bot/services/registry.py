@@ -1,19 +1,11 @@
-import os
-
-from lentra.bot.state.state_store import StateStore
-from lentra.bot.services.search_pipeline import SearchService
-
-
-class SearchServiceFactory:
-
-    @staticmethod
-    def create():
-        api_url = os.getenv("SEARCH_API_URL", "http://localhost:8000")
-        return SearchService(api_url=api_url)
-
+"""
+LEGACY REGISTRY REMOVED FROM DI GRAPH
+KEPT ONLY FOR COMPATIBILITY STUB
+"""
 
 class Registry:
-
+    """
+    DO NOT USE FOR DEPENDENCY INJECTION
+    """
     def __init__(self):
-        self.search_service = SearchServiceFactory.create()
-        self.state_store = StateStore()
+        pass

@@ -1,17 +1,24 @@
-from lentra.bot.services.registry import SearchResult
-from lentra.bot.domain.dto import PropertyDTO
+from lentra.bot.domain.item import Item
 
 
-class PropertyMapper:
+class ItemMapper:
 
-    def to_dto(self, r: SearchResult, idx: int) -> PropertyDTO:
-        return PropertyDTO(
-            id=idx,
-            title=r.title,
-            city=r.city,
-            district=r.district,
-            price_vnd_mln=r.price_vnd_mln,
-            score=r.score,
-            pool=r.pool,
-            sea_view=r.sea_view
-        )
+    @staticmethod
+    def from_api(data: list[dict]) -> list[Item]:
+
+        return [
+            Item(
+                id=r["id"],
+                title=r["title"],
+                city=r["city"],
+                district=r["district"],
+                price_vnd_mln=r["price_vnd_mln"],
+                score=r["score"]
+            )
+            for r in data
+        ]
+
+    @staticmethod
+    def to_dict(items: list[Item]) -> list[dict]:
+
+        return [item.__dict__ for item in items]

@@ -1,28 +1,37 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 
-class UXKeyboard:
+class KeyboardFactory:
 
-    def list_card(self, item_id: str):
-        return InlineKeyboardMarkup(inline_keyboard=[
-            [
-                InlineKeyboardButton(text="Подробнее", callback_data=f"detail:{item_id}"),
-                InlineKeyboardButton(text="♡", callback_data=f"save:{item_id}")
-            ]
-        ])
+    @staticmethod
+    def list(results, search_id, page: int):
 
-    def pagination(self):
-        return InlineKeyboardMarkup(inline_keyboard=[
-            [
-                InlineKeyboardButton(text="⬅", callback_data="page:prev"),
-                InlineKeyboardButton(text="➡", callback_data="page:next")
-            ]
-        ])
+        buttons = []
 
-    def detail_card(self, item_id: str):
-        return InlineKeyboardMarkup(inline_keyboard=[
-            [
-                InlineKeyboardButton(text="⬅ Назад", callback_data="back:list"),
-                InlineKeyboardButton(text="♡ Сохранить", callback_data=f"save:{item_id}")
-            ]
-        ])
+        for r in results:
+            buttons.append([
+                InlineKeyboardButton(
+                    text=r["title"],
+                    callback_data=f"item:{r['id']}"
+                )
+            ])
+
+        nav = []
+
+        nav.append(
+            InlineKeyboardButton(
+                text="◀",
+                callback_data=f"search:{search_id}:page:{page-1}"
+            )
+        )
+
+        nav.append(
+            InlineKeyboardButton(
+                text="▶",
+                callback_data=f"search:{search_id}:page:{page+1}"
+            )
+        )
+
+        buttons.append(nav)
+
+        return InlineKeyboardMarkup(inline_keyboard=buttons)
