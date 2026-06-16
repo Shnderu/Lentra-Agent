@@ -1,12 +1,10 @@
-from typing import Dict
-
 from lentra.bot.features.base.context import FeatureContext
 from lentra.bot.core.feature_registry import FeatureRegistry
 
 
 class FeatureManager:
     """
-    Orchestrates feature execution.
+    Executes registered features.
     """
 
     def __init__(self, registry: FeatureRegistry):
@@ -21,4 +19,9 @@ class FeatureManager:
         if not feature:
             return "No feature available"
 
-        return await feature(ctx)
+        result = feature(ctx)
+
+        if hasattr(result, "__await__"):
+            return await result
+
+        return result

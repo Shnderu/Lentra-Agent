@@ -4,10 +4,10 @@ from lentra.bot.core.feature_registry import FeatureRegistry
 from lentra.bot.core.intent_classifier import IntentClassifier
 
 from lentra.bot.features.manager import FeatureManager
+from lentra.bot.features.base.context import FeatureContext
 
 from lentra.bot.features.search.handler import search_feature
 from lentra.bot.features.fallback.handler import fallback_feature
-from lentra.bot.features.base.context import FeatureContext
 
 
 def build_main_router():
@@ -15,7 +15,6 @@ def build_main_router():
 
     registry = FeatureRegistry()
 
-    # register features
     registry.register("search", search_feature)
     registry.register("fallback", fallback_feature)
 

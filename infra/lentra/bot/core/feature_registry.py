@@ -1,19 +1,17 @@
-from typing import Callable, Dict, Any
+from typing import Callable, Dict
+from lentra.bot.features.base.context import FeatureContext
 
 
 class FeatureRegistry:
     """
-    Production registry for features.
+    Simple in-memory feature registry (production baseline).
     """
 
     def __init__(self):
-        self._features: Dict[str, Callable[[Dict[str, Any]], Any]] = {}
+        self._features: Dict[str, Callable[[FeatureContext], str]] = {}
 
     def register(self, name: str, handler: Callable):
         self._features[name] = handler
 
     def get(self, name: str):
         return self._features.get(name)
-
-    def has(self, name: str) -> bool:
-        return name in self._features

@@ -1,26 +1,13 @@
-import re
-from typing import Optional
-
-
 class IntentClassifier:
     """
-    Rule-based intent classifier.
-    Без AI. Только deterministic routing.
+    Minimal production classifier (rule-based baseline).
     """
 
     def classify(self, text: str) -> str:
+        text = (text or "").lower().strip()
+
         if not text:
             return "fallback"
 
-        text = text.lower()
-
-        # SEARCH INTENT
-        if re.search(r"(rent|buy|property|flat|house|apartment|аренда|жилье)", text):
-            return "search"
-
-        # PROFILE INTENT (заготовка под будущее)
-        if re.search(r"(profile|account|me|профиль|аккаунт)", text):
-            return "profile"
-
-        # DEFAULT
+        # very simple routing logic (MVP)
         return "search"

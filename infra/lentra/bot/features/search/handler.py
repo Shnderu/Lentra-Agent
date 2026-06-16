@@ -1,21 +1,15 @@
-from lentra.telegram.ui.renderer import renderer
+from lentra.bot.features.base.context import FeatureContext
 
 
-async def search_feature(ctx: dict) -> str:
+async def search_feature(ctx: FeatureContext) -> str:
     """
-    Production feature: search
+    Minimal production-grade search feature.
     """
 
-    data = {
-        "screen": "property_list",
-        "cards": [
-            {
-                "title": "Demo Property",
-                "price": "$1000",
-                "city": "Hanoi",
-                "meta": {"score": 0.91}
-            }
-        ]
-    }
+    query = ctx.text.strip()
 
-    return renderer.render_message(data)
+    if not query:
+        return "Empty search query"
+
+    # stub logic (future: route-search / embeddings / DB)
+    return f"🔎 Search result for: {query}"
