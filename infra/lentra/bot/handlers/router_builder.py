@@ -1,47 +1,12 @@
 from aiogram import Router
 
-from lentra.bot.core.feature_registry import FeatureRegistry
-from lentra.bot.core.intent_classifier import IntentClassifier
-
-from lentra.bot.features.manager import FeatureManager
-from lentra.bot.features.base.context import FeatureContext
-
-from lentra.bot.features.search.handler import search_feature
-from lentra.bot.features.fallback.handler import fallback_feature
-from lentra.bot.features.route_search.handler import route_search_feature
+from lentra.bot.handlers.rent_handler import router as rent_router
 
 
-def build_main_router():
+def build_main_router(container) -> Router:
     router = Router()
 
-    registry = FeatureRegistry()
-
-    registry.register("search", search_feature)
-    registry.register("route_search", route_search_feature)
-    registry.register("fallback", fallback_feature)
-
-    manager = FeatureManager(registry)
-    classifier = IntentClassifier()
-
-    @router.message()
-    async def handler(message):
-        text = message.text or ""
-
-        intent = classifier.classify(text)
-
-        # простая маршрутизация MVP
-        if "flight" in text or "route" in text or "from" in text:
-            intent = "route_search"
-
-        ctx = FeatureContext(
-            message=message,
-            text=text,
-            intent=intent,
-            meta={}
-        )
-
-        result = await manager.execute(intent, ctx)
-
-        await message.answer(result)
+    # RENT FEATURE (primary path)
+    router.include_router(rent_router)
 
     return router

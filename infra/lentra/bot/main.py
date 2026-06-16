@@ -1,15 +1,17 @@
 import os
 import asyncio
-import logging
 
 from aiogram import Bot, Dispatcher
-from lentra.bot.handlers.router_builder import build_main_router
 
-logging.basicConfig(level=logging.INFO)
+from lentra.bot.core.container import Container
+from lentra.bot.handlers.router_builder import build_main_router
 
 
 async def main():
-    logging.info("BOT STARTING")
+
+    print("[BOOT] ENTER MAIN")
+
+    container = Container()
 
     token = os.getenv("BOT_TOKEN")
     if not token:
@@ -18,10 +20,15 @@ async def main():
     bot = Bot(token=token)
     dp = Dispatcher()
 
-    router = build_main_router()
+    print("[BOOT] BOT + DP CREATED")
+
+    router = build_main_router(container)
+
+    print("[BOOT] ROUTER BUILT")
+
     dp.include_router(router)
 
-    logging.info("START POLLING")
+    print("[BOOT] ROUTER INCLUDED")
 
     await dp.start_polling(bot)
 

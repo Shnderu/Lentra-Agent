@@ -1,18 +1,14 @@
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 @dataclass
 class FeatureContext:
     """
-    Unified runtime context for all features.
+    Shared context passed to all features.
     """
 
     message: Any
-    text: str = ""
-    intent: Optional[str] = None
-    meta: Dict[str, Any] = None
-
-    def __post_init__(self):
-        if self.meta is None:
-            self.meta = {}
+    text: str
+    intent: str
+    meta: dict
