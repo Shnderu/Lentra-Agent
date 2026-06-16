@@ -1,33 +1,20 @@
-from collections import defaultdict
-
-
-class Cache:
-    def __init__(self):
-        self._store = {}
-
-
 class ResultCache:
-    """
-    Совместимый кэш результатов поиска.
-
-    Поддерживает:
-    - set_results (используется SearchPipeline)
-    - get_results (на будущее)
-    """
-
     def __init__(self, redis=None):
         self.redis = redis
-        self._local = defaultdict(dict)
+        self._mem = {}
 
-    def set_results(self, search_id: str, items):
+    def set(self, key, value):
+        self._mem[key] = value
+
+    def get(self, key):
+        return self._mem.get(key)
+
+    # === FIX COMPAT LAYER ===
+    def set_results(self, search_id, items):
         """
-        FIX: метод отсутствовал, из-за этого падал pipeline
+        Legacy compatibility for search_pipeline
         """
-        self._local[search_id] = {
-            "items": items
-        }
+        self._mem[search_id] = items
 
-        return True
-
-    def get_results(self, search_id: str):
-        return self._local.get(search_id)
+    def get_results(self, search_id):
+        return self._mem.get(search_id, [])
