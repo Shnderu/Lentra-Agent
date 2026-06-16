@@ -1,18 +1,11 @@
-from lentra.bot.features.registry.feature_registry import FeatureRegistry
-from lentra.bot.features.registry.feature_keys import FeatureKeys
-
 from lentra.bot.features.rent_search.service import RentSearchService
 
 
-def build_feature_registry(container) -> FeatureRegistry:
-    registry = FeatureRegistry()
+class FeatureRegistry:
+    def __init__(self, container):
+        self.container = container
+        self.rent_search = container.rent_search_service
 
-    # RENT SEARCH feature
-    registry.register(
-        FeatureKeys.RENT_SEARCH,
-        RentSearchService(
-            repository=container.rent_repository
-        )
-    )
 
-    return registry
+def build_feature_registry(container):
+    return FeatureRegistry(container)

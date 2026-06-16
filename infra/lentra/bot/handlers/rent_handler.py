@@ -1,19 +1,14 @@
-from aiogram import Router, types
-
+from aiogram import Router
 from lentra.bot.features.rent_search.service import RentSearchService
-from lentra.bot.features.rent_search.models import RentalSearchRequest
 
 router = Router()
-service = RentSearchService()
 
+def build_rent_handler(container):
+    service = container.rent_search_service
 
-@router.message()
-async def rent_search_handler(message: types.Message):
-    text = message.text or ""
+    @router.message()
+    async def handle_rent(message):
+        result = await service.search(message.text)
+        return result
 
-    req = RentalSearchRequest(query=text)
-
-    result = service.search(req)
-
-    # главное: теперь используем assistant message, а не renderer
-    await message.answer(result.message)
+    return router
