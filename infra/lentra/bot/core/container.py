@@ -4,9 +4,10 @@ from lentra.bot.core.cache import ResultCache
 from lentra.bot.services.search_pipeline import SearchPipeline
 
 
-# -------------------------
-# SAFE STUBS
-# -------------------------
+class NullRenderer:
+    async def render(self, *args, **kwargs):
+        return None
+
 
 class NullFSM:
     def handle(self, state, event):
@@ -26,49 +27,26 @@ class NullSearchService:
         return []
 
 
-class NullRenderer:
-    async def render(self, *args, **kwargs):
-        return None
-
-
-# -------------------------
-# CONTAINER (FULL CONTRACT RESTORED)
-# -------------------------
-
 class Container:
-    """
-    FULL LEGACY COMPATIBILITY CONTAINER
-
-    This must satisfy ALL consumers:
-    - handlers.py -> fsm
-    - callbacks.py -> renderer
-    - pipeline -> search_service/state_store/cache
-    """
+    def __new__(cls, *args, **kwargs):
+        obj = super().__new__(cls)
+        return obj
 
     def __init__(self):
-        # core cache
-        self.cache = self._init_cache()
+        # HARD GUARANTEE: prevent uninitialized usage
+        self._initialized = True
 
-        # REQUIRED BY CALLBACKS
+        self.cache = ResultCache()
+
         self.renderer = self._init_renderer()
-
-        # REQUIRED BY HANDLERS
         self.fsm = self._init_fsm()
         self.state_store = self._init_state_store()
         self.search_service = self._init_search_service()
-
-        # pipeline
         self.search_pipeline = self._init_search_pipeline()
 
-    # ---------------- CACHE ----------------
-
-    def _init_cache(self):
-        try:
-            return ResultCache()
-        except Exception:
-            return ResultCache()
-
-    # ---------------- SERVICES ----------------
+    def _assert_init(self):
+        if not getattr(self, "_initialized", False):
+            raise RuntimeError("Container not initialized properly")
 
     def _init_renderer(self):
         try:
@@ -97,8 +75,6 @@ class Container:
             return SearchService()
         except Exception:
             return NullSearchService()
-
-    # ---------------- PIPELINE ----------------
 
     def _init_search_pipeline(self):
         return SearchPipeline(
