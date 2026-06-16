@@ -1,19 +1,11 @@
 class Container:
     """
-    Core DI container.
+    DI container без зависимости на UI слой.
 
-    ВАЖНО:
-    - НЕ импортируем UI на уровне модуля
-    - исключаем circular dependency bot-core ↔ telegram-ui
+    Принцип:
+    - bot-core НЕ импортирует telegram/ui вообще
+    - UI подключается на уровне handlers
     """
 
     def __init__(self):
-        self._renderer = None
-
-    @property
-    def renderer(self):
-        # lazy import, чтобы не ловить import cycle при старте
-        if self._renderer is None:
-            from lentra.telegram.ui.renderer import Renderer
-            self._renderer = Renderer()
-        return self._renderer
+        pass
