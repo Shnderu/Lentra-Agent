@@ -1,13 +1,21 @@
 from aiogram import Router
-
-from lentra.bot.handlers.handlers import build_message_router
-from lentra.bot.handlers.callbacks import build_callback_router
+from lentra.telegram.ui.renderer import renderer
 
 
-def build_main_router(container) -> Router:
+def build_main_router():
     router = Router()
 
-    router.include_router(build_message_router(container))
-    router.include_router(build_callback_router(container))
+    # пример базового handler'а (если уже есть — адаптируй сюда)
+    # важно: UI не через container, а напрямую
+
+    @router.message()
+    async def default_handler(message):
+        text = renderer.render_message(
+            {
+                "screen": "property_list",
+                "cards": []
+            }
+        )
+        await message.answer(text)
 
     return router
