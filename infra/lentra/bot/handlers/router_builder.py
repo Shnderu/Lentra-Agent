@@ -5,7 +5,6 @@ from lentra.bot.handlers.callbacks import build_callback_router
 
 
 def build_main_router(container) -> Router:
-
     router = Router()
 
     router.include_router(build_message_router(container))

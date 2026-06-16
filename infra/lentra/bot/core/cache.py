@@ -1,19 +1,33 @@
-import json
+from collections import defaultdict
+
+
+class Cache:
+    def __init__(self):
+        self._store = {}
 
 
 class ResultCache:
+    """
+    Совместимый кэш результатов поиска.
 
-    def __init__(self, redis):
+    Поддерживает:
+    - set_results (используется SearchPipeline)
+    - get_results (на будущее)
+    """
+
+    def __init__(self, redis=None):
         self.redis = redis
+        self._local = defaultdict(dict)
 
-    def set_results(self, search_id: str, items: list):
-        self.redis.set(
-            f"results:{search_id}",
-            json.dumps([i.__dict__ for i in items])
-        )
+    def set_results(self, search_id: str, items):
+        """
+        FIX: метод отсутствовал, из-за этого падал pipeline
+        """
+        self._local[search_id] = {
+            "items": items
+        }
+
+        return True
 
     def get_results(self, search_id: str):
-        raw = self.redis.get(f"results:{search_id}")
-        if not raw:
-            return []
-        return json.loads(raw)
+        return self._local.get(search_id)

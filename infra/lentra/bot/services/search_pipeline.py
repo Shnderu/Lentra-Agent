@@ -4,12 +4,12 @@ from lentra.bot.core.cache import ResultCache
 
 class SearchPipeline:
 
-    def __init__(self, search_service, state_store, fsm, cache, renderer):
+    def __init__(self, search_service, state_store, fsm, cache=None, renderer=None):
 
         self.search = search_service
         self.state_store = state_store
         self.fsm = fsm
-        self.cache = cache
+        self.cache = cache or ResultCache(redis=None)
         self.renderer = renderer
 
     async def execute(self, user_id: int, query: str, message):
@@ -22,13 +22,21 @@ class SearchPipeline:
 
         search_id = f"search:{user_id}:{query[:10]}"
 
-        # CACHE RESULTS
-        self.cache.set_results(search_id, items)
+        if self.cache:
+            self.cache.set_results(search_id, items)
 
-        state = self.fsm.set_list(state, items, query, search_id)
+        state = self.fsm.handle(state, {
+            "type": "search_completed",
+            "payload": {
+                "results": items,
+                "query": query,
+                "search_id": search_id
+            }
+        })
 
         self.state_store.save(state)
 
-        await self.renderer.render(state, message)
+        if self.renderer:
+            await self.renderer.render(state, message)
 
         return state

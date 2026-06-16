@@ -1,11 +1,17 @@
-"""
-LEGACY REGISTRY REMOVED FROM DI GRAPH
-KEPT ONLY FOR COMPATIBILITY STUB
-"""
+import os
+from lentra.bot.state.state_store import StateStore
+from lentra.bot.services.search_service import SearchService
+
 
 class Registry:
     """
-    DO NOT USE FOR DEPENDENCY INJECTION
+    PURE RUNTIME REGISTRY (NO FACTORIES, NO DI GRAPH)
     """
+
     def __init__(self):
-        pass
+        self.state_store = StateStore()
+
+        # TEMP: real search service stub binding
+        self.search_service = SearchService(
+            api_url=os.getenv("SEARCH_API_URL", "http://localhost:8000")
+        )
