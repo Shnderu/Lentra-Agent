@@ -1,21 +1,22 @@
 from aiogram import Router
-from lentra.telegram.ui.renderer import renderer
+from lentra.bot.core.intent_router import IntentRouter
+from lentra.bot.features.search.handler import search_handler
 
 
 def build_main_router():
     router = Router()
+    intent_router = IntentRouter()
 
-    # пример базового handler'а (если уже есть — адаптируй сюда)
-    # важно: UI не через container, а напрямую
+    # регистрация intents
+    intent_router.register("search", search_handler)
 
     @router.message()
     async def default_handler(message):
-        text = renderer.render_message(
-            {
-                "screen": "property_list",
-                "cards": []
-            }
+        text = await intent_router.route(
+            "search",
+            {"message": message}
         )
-        await message.answer(text)
+
+        await message.answer(text or "No intent matched")
 
     return router
