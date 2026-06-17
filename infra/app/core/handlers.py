@@ -4,6 +4,7 @@ from app.core.adapters.fake_real_estate_api import FakeRealEstateAPI
 from app.core.aggregation.rent_aggregator import RentAggregator
 from app.core.source_health import SourceHealth
 from app.core.context.context_injector import ContextInjector
+from app.core.contracts.query_options import QueryOptions
 import time
 
 
@@ -27,9 +28,8 @@ def safe_call(source_name, fn, query):
         health.record_success(source_name, latency)
         return result
 
-    except Exception as e:
+    except Exception:
         health.record_fail(source_name)
-        print(f"[SOURCE FAIL] {source_name} -> {e}")
         return []
 
 
@@ -41,7 +41,6 @@ def rent_intelligence_handler(event, span, graph):
 
     intent = engine.parse(text)
 
-    # 🔥 update persistent memory
     context.update(user_id, {
         **intent,
         "raw": text
@@ -86,7 +85,14 @@ def rent_fetch_handler(event, span, graph):
         "payload": {
             "query": query,
             "sources": sources,
-            "session": intent.get("session")
+            "session": intent.get("session"),
+            "options": QueryOptions(
+                city=intent.get("city"),
+                budget=intent.get("budget"),
+                limit=10,
+                sort_by="score",
+                offset=0
+            )
         },
         "trace_id": event.trace_id
     }
@@ -95,10 +101,13 @@ def rent_fetch_handler(event, span, graph):
 def rent_aggregate_handler(event, span, graph):
     span.start("aggregate")
 
+    payload = event.payload
+
     result = aggregator.aggregate(
-        event.payload["query"],
-        event.payload["sources"],
-        event.payload.get("session")
+        payload["query"],
+        payload["sources"],
+        payload.get("session"),
+        payload.get("options")
     )
 
     span.end("aggregate")
