@@ -20,12 +20,17 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(data, ensure_ascii=False, default=str).encode())
 
     def do_GET(self):
+
         if self.path == "/health":
             self._send(200, {"status": "ok"})
             return
 
         if self.path == "/metrics":
             self._send(200, bus.tracer.get_metrics())
+            return
+
+        if self.path == "/alerts":
+            self._send(200, bus.tracer.detector.alerts.get_alerts())
             return
 
         self._send(404, {"error": "not found"})
@@ -61,7 +66,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def run():
     server = HTTPServer(("0.0.0.0", 8080), Handler)
-    print("[API] v10.6 observability layer started")
+    print("[API] v10.7 anomaly detection layer started")
     server.serve_forever()
 
 
