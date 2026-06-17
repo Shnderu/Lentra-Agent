@@ -1,78 +1,10 @@
-from http.server import BaseHTTPRequestHandler, HTTPServer
-import json
+"""
+LEGACY ADAPTER LAYER
+Forwarding requests to lentra primary system.
+"""
 
-from app.core.event_bus import EventBus
-from app.core.events import Event
-from app.core.trace import Span
-from app.core.dlq import DeadLetterQueue
-from app.core.retry_policy import RetryPolicy
+from lentra.services.intelligence import handle_request
 
 
-bus = EventBus(None, DeadLetterQueue(), RetryPolicy())
-
-
-class Handler(BaseHTTPRequestHandler):
-
-    def _send(self, code, data):
-        self.send_response(code)
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
-        self.wfile.write(json.dumps(data, ensure_ascii=False, default=str).encode())
-
-    def do_GET(self):
-
-        if self.path == "/health":
-            self._send(200, {"status": "ok"})
-            return
-
-        if self.path == "/metrics":
-            self._send(200, bus.tracer.get_metrics())
-            return
-
-        if self.path == "/alerts":
-            self._send(200, bus.tracer.get_alerts())
-            return
-
-        if self.path == "/tuning":
-            self._send(200, bus.tracer.get_tuning())
-            return
-
-        self._send(404, {"error": "not found"})
-
-    def do_POST(self):
-        if self.path != "/message":
-            self._send(404, {"error": "not found"})
-            return
-
-        length = int(self.headers.get("Content-Length"))
-        body = json.loads(self.rfile.read(length))
-
-        text = body.get("text", "")
-        user_id = body.get("user_id", "default")
-
-        span = Span(trace_id="api_trace")
-
-        event = Event(
-            type="USER_MESSAGE",
-            payload={
-                "text": text,
-                "user_id": user_id
-            }
-        )
-
-        result = bus.publish(event, span, None)
-
-        self._send(200, {
-            "trace_id": "api_trace",
-            "result": result.to_dict() if hasattr(result, "to_dict") else str(result)
-        })
-
-
-def run():
-    server = HTTPServer(("0.0.0.0", 8080), Handler)
-    print("[API] v10.8 adaptive tuning layer started")
-    server.serve_forever()
-
-
-if __name__ == "__main__":
-    run()
+def legacy_search(payload):
+    return handle_request(payload)
