@@ -41,7 +41,12 @@ def rent_intelligence_handler(event, span, graph):
 
     intent = engine.parse(text)
 
-    context.update(user_id, intent)
+    # 🔥 update persistent memory
+    context.update(user_id, {
+        **intent,
+        "raw": text
+    })
+
     enriched = context.enrich(user_id, intent)
 
     span.end("rent_intel")
@@ -66,8 +71,6 @@ def rent_fetch_handler(event, span, graph):
     intent = event.payload
     query = intent.get("city") or "default"
 
-    session = intent.get("session")
-
     sources = []
 
     if health.is_healthy("mock"):
@@ -83,7 +86,7 @@ def rent_fetch_handler(event, span, graph):
         "payload": {
             "query": query,
             "sources": sources,
-            "session": session
+            "session": intent.get("session")
         },
         "trace_id": event.trace_id
     }
@@ -92,12 +95,10 @@ def rent_fetch_handler(event, span, graph):
 def rent_aggregate_handler(event, span, graph):
     span.start("aggregate")
 
-    payload = event.payload
-
     result = aggregator.aggregate(
-        payload["query"],
-        payload["sources"],
-        payload.get("session")
+        event.payload["query"],
+        event.payload["sources"],
+        event.payload.get("session")
     )
 
     span.end("aggregate")

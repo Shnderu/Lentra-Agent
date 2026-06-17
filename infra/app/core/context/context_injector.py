@@ -1,27 +1,35 @@
-from app.core.session.session_store import SessionStore
+from app.core.memory.db import MemoryDB
 
 
 class ContextInjector:
 
     def __init__(self):
-        self.store = SessionStore()
+        self.db = MemoryDB()
 
     def enrich(self, user_id: str, intent: dict):
-        session = self.store.get(user_id)
+
+        profile = self.db.get_profile(user_id)
+        history = self.db.get_history(user_id)
 
         enriched = dict(intent)
 
-        # если нет city — берём из памяти
-        if not enriched.get("city"):
-            enriched["city"] = session.get("city")
+        # 🔥 persistent memory override
+        enriched["city"] = enriched.get("city") or profile.get("city")
+        enriched["budget"] = enriched.get("budget") or profile.get("budget")
 
-        # если нет budget — берём из памяти
-        if not enriched.get("budget"):
-            enriched["budget"] = session.get("budget")
-
-        enriched["session"] = session
+        enriched["session"] = {
+            "profile": profile,
+            "history": history
+        }
 
         return enriched
 
     def update(self, user_id: str, intent: dict):
-        self.store.update(user_id, intent)
+
+        city = intent.get("city")
+        budget = intent.get("budget")
+
+        if city or budget:
+            self.db.update_profile(user_id, city=city, budget=budget)
+
+        self.db.add_query(user_id, intent.get("raw", ""))
