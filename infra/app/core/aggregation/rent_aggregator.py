@@ -1,11 +1,15 @@
 from typing import List
 from app.core.contracts.listing_dto import ListingDTO
 from app.core.contracts.response_dto import RentResponseDTO
+from app.core.ranking.personal_ranker import PersonalRanker
 
 
 class RentAggregator:
 
-    def aggregate(self, query: str, sources: List[List[ListingDTO]]) -> RentResponseDTO:
+    def __init__(self):
+        self.ranker = PersonalRanker()
+
+    def aggregate(self, query: str, sources: List[List[ListingDTO]], session=None):
 
         flat = []
         for source in sources:
@@ -22,8 +26,12 @@ class RentAggregator:
             seen.add(key)
             unique.append(item)
 
-        # ranking (cheap first)
-        unique.sort(key=lambda x: x.price or 10**9)
+        # 🔥 PERSONAL RANKING
+        if session:
+            unique = self.ranker.rank(unique, session)
+
+        else:
+            unique.sort(key=lambda x: x.price or 10**9)
 
         return RentResponseDTO(
             query=query,

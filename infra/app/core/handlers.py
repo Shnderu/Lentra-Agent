@@ -33,18 +33,6 @@ def safe_call(source_name, fn, query):
         return []
 
 
-def intent_router(event, span, graph):
-    span.start("router")
-    text = event.payload.get("text", "")
-    span.end("router")
-
-    return {
-        "type": "INTENT",
-        "payload": {"text": text},
-        "trace_id": event.trace_id
-    }
-
-
 def rent_intelligence_handler(event, span, graph):
     span.start("rent_intel")
 
@@ -53,12 +41,8 @@ def rent_intelligence_handler(event, span, graph):
 
     intent = engine.parse(text)
 
-    # 🔥 SESSION UPDATE (early)
     context.update(user_id, intent)
-
     enriched = context.enrich(user_id, intent)
-
-    print(f"[INTEL] {enriched}")
 
     span.end("rent_intel")
 
@@ -80,8 +64,9 @@ def rent_fetch_handler(event, span, graph):
     span.start("rent_fetch")
 
     intent = event.payload
-
     query = intent.get("city") or "default"
+
+    session = intent.get("session")
 
     sources = []
 
@@ -97,7 +82,8 @@ def rent_fetch_handler(event, span, graph):
         "type": "RENT_AGGREGATE",
         "payload": {
             "query": query,
-            "sources": sources
+            "sources": sources,
+            "session": session
         },
         "trace_id": event.trace_id
     }
@@ -106,9 +92,12 @@ def rent_fetch_handler(event, span, graph):
 def rent_aggregate_handler(event, span, graph):
     span.start("aggregate")
 
+    payload = event.payload
+
     result = aggregator.aggregate(
-        event.payload["query"],
-        event.payload["sources"]
+        payload["query"],
+        payload["sources"],
+        payload.get("session")
     )
 
     span.end("aggregate")
