@@ -5,15 +5,18 @@ from lentra.rent.providers import MockRentProvider
 
 class DefaultConnector:
     """
-    Основной connector для rent_search.
-    Теперь поддерживает fallback provider без внешних API.
+    Connector слой для rent_search.
+    Контракт строго: fetch(query) -> dict
     """
 
     def __init__(self):
         self.provider = MockRentProvider()
 
-    def search(self, query: Dict[str, Any]) -> Dict[str, Any]:
-        items = self.provider.search(query)
+    def fetch(self, query: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        ЕДИНЫЙ контракт для service layer
+        """
+        items: List[Dict[str, Any]] = self.provider.search(query)
 
         return {
             "source": "default_connector",
