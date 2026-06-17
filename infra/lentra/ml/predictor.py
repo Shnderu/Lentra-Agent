@@ -27,7 +27,6 @@ def predict(property_obj):
     ]])
 
     return float(model.predict(x)[0])
-EOFcat << 'EOF' > /opt/lentra/infra/lentra/ml/predictor.py
 import joblib
 import numpy as np
 

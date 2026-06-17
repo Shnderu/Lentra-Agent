@@ -8,7 +8,6 @@ def safe_call(name, fn):
         print(f"[INIT ERROR] {name}: {e}")
         traceback.print_exc()
         return None
-EOFcat << 'EOF' > /opt/lentra/infra/lentra/bot/core/container_debug.py
 import traceback
 
 def safe_call(name, fn):

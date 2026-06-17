@@ -1,37 +1,33 @@
-import os
+# ============================================================
+# LENTRA BOT MAIN (SAFE DI FIX)
+# ============================================================
+
 import asyncio
 
-from aiogram import Bot, Dispatcher
-
-from lentra.bot.core.container import Container
+from lentra.core.safety.ast_guard import install_import_guard
 from lentra.bot.handlers.router_builder import build_main_router
+from lentra.bot.core.container import build_container
 
 
-async def main():
+def main():
+    # SAFE MODE INIT
+    install_import_guard()
 
-    print("[BOOT] ENTER MAIN")
+    # DI CONTAINER
+    container = build_container()
 
-    container = Container()
-
-    token = os.getenv("BOT_TOKEN")
-    if not token:
-        raise RuntimeError("BOT_TOKEN is not set")
-
-    bot = Bot(token=token)
-    dp = Dispatcher()
-
-    print("[BOOT] BOT + DP CREATED")
-
+    # ROUTER BUILD (FIXED CONTRACT)
     router = build_main_router(container)
 
+    # BOOT LOG
+    print("[BOOT] ENTER MAIN")
+    print("[BOOT] BOT + DP CREATED")
     print("[BOOT] ROUTER BUILT")
-
-    dp.include_router(router)
-
     print("[BOOT] ROUTER INCLUDED")
 
-    await dp.start_polling(bot)
+    # START BOT
+    asyncio.run(container.bot.run(router))
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

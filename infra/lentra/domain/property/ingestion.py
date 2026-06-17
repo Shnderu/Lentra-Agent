@@ -20,7 +20,6 @@ class PropertyIngestionService:
     def ingest(self, raw: dict, source_type: str):
         # no-op: ingestion disabled
         return None
-EOFcat << 'EOF' > /opt/lentra/infra/lentra/domain/property/ingestion.py
 # ============================================================
 # DEPRECATED LAYER (DISABLED)
 # ============================================================
