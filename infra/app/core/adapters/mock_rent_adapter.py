@@ -5,12 +5,8 @@ from app.core.contracts.listing_dto import ListingDTO
 
 
 class MockRentAdapter(BaseRentSource):
-    """
-    Заглушка внешнего источника (имитация API)
-    """
-
     def search(self, query: str) -> List[ListingDTO]:
-        time.sleep(0.1)
+        time.sleep(0.08)
 
         return [
             ListingDTO(
@@ -20,6 +16,12 @@ class MockRentAdapter(BaseRentSource):
                 source="mock_api"
             ),
             ListingDTO(
+                title="Studio Flat",
+                price=450,
+                city="Bangkok",
+                source="mock_api"
+            ),
+            ListingDTO(  # дубль для проверки dedup
                 title="Studio Flat",
                 price=450,
                 city="Bangkok",

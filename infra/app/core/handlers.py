@@ -1,9 +1,12 @@
-from app.services.rent_search import rent_search
 from app.core.rent_intelligence import RentIntelligenceEngine
+from app.core.adapters.mock_rent_adapter import MockRentAdapter
+from app.core.aggregation.rent_aggregator import RentAggregator
 import time
 
 
 engine = RentIntelligenceEngine()
+adapter = MockRentAdapter()
+aggregator = RentAggregator()
 
 
 def intent_router(event, span, graph):
@@ -39,26 +42,46 @@ def rent_intelligence_handler(event, span, graph):
         }
 
     return {
-        "type": "RENT_SEARCH",
+        "type": "RENT_FETCH",
         "payload": intent,
         "trace_id": event.trace_id
     }
 
 
-def rent_search_handler(event, span, graph):
-    span.start("rent_handler")
+def rent_fetch_handler(event, span, graph):
+    span.start("rent_fetch")
 
     intent = event.payload
 
     query = intent.get("city") or "default"
 
-    t0 = time.time()
-    result = rent_search(query)
-    latency = time.time() - t0
+    data = adapter.search(query)
 
-    print(f"[RENT] latency={latency:.3f}s")
+    span.end("rent_fetch")
 
-    span.end("rent_handler")
+    return {
+        "type": "RENT_AGGREGATE",
+        "payload": {
+            "query": query,
+            "sources": [data]
+        },
+        "trace_id": event.trace_id
+    }
+
+
+def rent_aggregate_handler(event, span, graph):
+    span.start("aggregate")
+
+    payload = event.payload
+
+    result = aggregator.aggregate(
+        payload["query"],
+        payload["sources"]
+    )
+
+    print(f"[AGGREGATED] total={result.total}")
+
+    span.end("aggregate")
 
     return {
         "type": "RESPONSE",
