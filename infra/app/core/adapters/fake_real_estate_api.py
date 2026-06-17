@@ -6,45 +6,30 @@ from app.core.contracts.listing_dto import ListingDTO
 
 
 class FakeRealEstateAPI(BaseRentSource):
-    """
-    Имитация реального внешнего API:
-    - latency
-    - нестабильность
-    - вариативный формат
-    """
 
     def search(self, query: str) -> List[ListingDTO]:
-        # simulate network latency
-        time.sleep(random.uniform(0.15, 0.35))
+        latency = random.uniform(0.15, 0.5)
+        time.sleep(latency)
 
-        # simulate partial failures
-        if random.random() < 0.05:
-            raise Exception("External API timeout")
+        # simulate degradation
+        if random.random() < 0.15:
+            raise TimeoutError("API timeout")
 
         city = "Bangkok" if "bangkok" in query.lower() else "Unknown"
 
-        raw_results = [
-            {
-                "title": "Luxury Condo Central",
-                "price": 900,
-                "city": city,
-                "url": "https://fake.api/listing/1"
-            },
-            {
-                "title": "Budget Studio Near BTS",
-                "price": 400,
-                "city": city,
-                "url": "https://fake.api/listing/2"
-            }
-        ]
-
         return [
             ListingDTO(
-                title=i["title"],
-                price=i["price"],
-                city=i["city"],
+                title="Luxury Condo Central",
+                price=900,
+                city=city,
                 source="real_estate_api",
-                url=i["url"]
+                url="https://fake.api/listing/1"
+            ),
+            ListingDTO(
+                title="Budget Studio Near BTS",
+                price=400,
+                city=city,
+                source="real_estate_api",
+                url="https://fake.api/listing/2"
             )
-            for i in raw_results
         ]

@@ -2,6 +2,7 @@ from app.core.rent_intelligence import RentIntelligenceEngine
 from app.core.adapters.mock_rent_adapter import MockRentAdapter
 from app.core.adapters.fake_real_estate_api import FakeRealEstateAPI
 from app.core.aggregation.rent_aggregator import RentAggregator
+from app.core.source_health import SourceHealth
 import time
 
 
@@ -11,6 +12,28 @@ mock = MockRentAdapter()
 real_api = FakeRealEstateAPI()
 
 aggregator = RentAggregator()
+health = SourceHealth()
+
+
+SOURCE_TIMEOUT = {
+    "mock": 0.3,
+    "real_api": 0.4
+}
+
+
+def safe_call(source_name, fn, query):
+    start = time.time()
+
+    try:
+        result = fn(query)
+        latency = time.time() - start
+        health.record_success(source_name, latency)
+        return result
+
+    except Exception as e:
+        health.record_fail(source_name)
+        print(f"[SOURCE FAIL] {source_name} -> {e}")
+        return []
 
 
 def intent_router(event, span, graph):
@@ -55,18 +78,15 @@ def rent_fetch_handler(event, span, graph):
     intent = event.payload
     query = intent.get("city") or "default"
 
-    # 🔥 MULTI SOURCE CALL
     sources = []
 
-    try:
-        sources.append(mock.search(query))
-    except Exception as e:
-        print("[MOCK FAIL]", e)
+    # 🔥 health-aware execution
 
-    try:
-        sources.append(real_api.search(query))
-    except Exception as e:
-        print("[REAL API FAIL]", e)
+    if health.is_healthy("mock"):
+        sources.append(safe_call("mock", mock.search, query))
+
+    if health.is_healthy("real_api"):
+        sources.append(safe_call("real_api", real_api.search, query))
 
     span.end("rent_fetch")
 
@@ -83,11 +103,9 @@ def rent_fetch_handler(event, span, graph):
 def rent_aggregate_handler(event, span, graph):
     span.start("aggregate")
 
-    payload = event.payload
-
     result = aggregator.aggregate(
-        payload["query"],
-        payload["sources"]
+        event.payload["query"],
+        event.payload["sources"]
     )
 
     print(f"[AGGREGATED] total={result.total}")

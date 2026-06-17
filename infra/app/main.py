@@ -6,21 +6,21 @@ from app.core.handlers import (
     rent_fetch_handler,
     rent_aggregate_handler,
     response_handler,
-    unknown_handler
+    unknown_handler,
+    health
 )
 from app.core.trace import Span
-from app.core.dlq import DeadLetterQueue
-from app.core.retry_policy import RetryPolicy
 
 
 def main():
-    bus = EventBus(None, DeadLetterQueue(), RetryPolicy())
+    bus = EventBus(None, None, None)
 
-    print("[BOOT] v7 real source integration")
+    print("[BOOT] v7.1 source health + SLA layer")
 
     inputs = [
         "rent apartment Bangkok",
-        "rent studio Bangkok 500",
+        "rent studio Bangkok",
+        "rent villa Bangkok",
         "hello world"
     ]
 
@@ -29,6 +29,8 @@ def main():
     for t in inputs:
         event = Event(type="USER_MESSAGE", payload={"text": t})
         bus.publish(event, span, None)
+
+    health.dump()
 
 
 if __name__ == "__main__":
