@@ -12,7 +12,6 @@ class Container:
 def build_container():
     container = Container()
 
-    # CORE SERVICES REGISTRY
-    container.register("execution_mode", "lentra-core")
+    container.register("execution_mode", "strict-enforcement-v10-15")
 
     return container
