@@ -1,11 +1,12 @@
 from collections import defaultdict
 from typing import Callable, Dict, List
-import time
 
 
 class EventBus:
-    def __init__(self):
+    def __init__(self, executor, dlq):
         self.handlers: Dict[str, List[Callable]] = defaultdict(list)
+        self.executor = executor
+        self.dlq = dlq
 
     def subscribe(self, event_type: str, handler):
         self.handlers[event_type].append(handler)
@@ -18,23 +19,18 @@ class EventBus:
 
         if event.type not in self.handlers:
             print("[LEAK] no handler")
+            self.dlq.push(event, "no_handler")
             return
 
         for h in self.handlers[event.type]:
-            retries = 1
+            future = self.executor.submit(h, event, span, graph)
 
-            for attempt in range(retries + 1):
-                try:
-                    start = time.time()
+            if future is None:
+                self.dlq.push(event, "backpressure_drop")
+                return
 
-                    result = h(event, span, graph)
-
-                    dt = time.time() - start
-                    print(f"[BUS] handler_latency={dt:.3f}s")
-
-                    return result
-
-                except Exception as e:
-                    print(f"[BUS ERROR] attempt={attempt} err={e}")
-
-                    time.sleep(0.05)
+            try:
+                return future.result(timeout=2)
+            except Exception as e:
+                print(f"[EXEC ERROR] {e}")
+                self.dlq.push(event, str(e))

@@ -1,4 +1,3 @@
-import time
 from collections import defaultdict
 
 
@@ -26,15 +25,7 @@ class LatencyHistogram:
             "max": max(values),
         }
 
-
-class EventGraph:
-    def __init__(self):
-        self.edges = []
-
-    def link(self, parent, child):
-        self.edges.append((parent, child))
-
-    def dump(self):
-        print("\n[EVENT GRAPH]")
-        for p, c in self.edges:
-            print(f"{p} -> {c}")
+    def dump_all(self):
+        print("\n[METRICS SUMMARY]")
+        for k in self.data:
+            print(k, self.summary(k))

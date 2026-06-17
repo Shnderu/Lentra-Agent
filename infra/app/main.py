@@ -8,10 +8,15 @@ from app.core.handlers import (
 )
 from app.core.trace import Span
 from app.core.metrics import LatencyHistogram, EventGraph
+from app.core.executor import TaskExecutor
+from app.core.dlq import DeadLetterQueue
 
 
 def main():
-    bus = EventBus()
+    executor = TaskExecutor(max_workers=4, max_queue=5)
+    dlq = DeadLetterQueue()
+
+    bus = EventBus(executor, dlq)
 
     hist = LatencyHistogram()
     graph = EventGraph()
@@ -21,15 +26,17 @@ def main():
     bus.subscribe("RESPONSE", lambda e, s, g: response_handler(e, s, g))
     bus.subscribe("UNKNOWN", lambda e, s, g: unknown_handler(e, s, g))
 
-    print("[BOOT] v4 resilient pipeline")
+    print("[BOOT] v5 production-grade diagnostic pipeline")
 
-    tests = [
-        "rent apartment in Ho Chi Minh",
+    inputs = [
+        "rent apartment Ho Chi Minh",
         "hello world",
-        "rent studio Bangkok"
+        "rent studio Bangkok",
+        "rent villa Bali",
+        "rent cheap flat Saigon"
     ]
 
-    for t in tests:
+    for t in inputs:
         span = Span(trace_id="trace-" + t[:6])
         span.hist = hist
 
@@ -39,7 +46,13 @@ def main():
 
         span.report()
 
-    print("\n[FINAL GRAPH]")
+    print("\n--- METRICS ---")
+    hist.dump_all()
+
+    print("\n--- DLQ ---")
+    dlq.dump()
+
+    print("\n--- GRAPH ---")
     graph.dump()
 
 
