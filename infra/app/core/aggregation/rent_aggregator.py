@@ -1,15 +1,14 @@
 from typing import List
-from app.core.contracts.listing_dto import ListingDTO
 from app.core.contracts.response_dto import RentResponseDTO
-from app.core.ranking.personal_ranker import PersonalRanker
+from app.core.ranking.advanced_ranker import AdvancedRanker
 
 
 class RentAggregator:
 
     def __init__(self):
-        self.ranker = PersonalRanker()
+        self.ranker = AdvancedRanker()
 
-    def aggregate(self, query: str, sources: List[List[ListingDTO]], session=None):
+    def aggregate(self, query: str, sources: List[List], session=None):
 
         flat = []
         for source in sources:
@@ -26,7 +25,7 @@ class RentAggregator:
             seen.add(key)
             unique.append(item)
 
-        # 🔥 PERSONAL RANKING
+        # 🔥 ADVANCED RANKING
         if session:
             unique = self.ranker.rank(unique, session)
 
