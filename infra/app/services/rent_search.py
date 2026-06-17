@@ -1,16 +1,13 @@
-from app.core.events import Event
+import time
 
 
 def rent_search(query: str) -> dict:
-    """
-    MOCK SERVICE — пока без API / БД
-    Это критическая точка будущих фейлов (latency + external dependency)
-    """
-
     if not query:
         raise ValueError("empty query")
 
-    # имитация внешнего ответа
+    # имитация latency внешнего API
+    time.sleep(0.15)
+
     return {
         "results": [
             {"title": "Apartment A", "price": 500},

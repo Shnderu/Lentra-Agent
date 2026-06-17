@@ -6,29 +6,34 @@ from app.core.handlers import (
     response_handler,
     unknown_handler
 )
+from app.core.trace import Span
 
 
 def main():
     bus = EventBus()
 
-    # регистрация pipeline
-    bus.subscribe("USER_MESSAGE", lambda e: bus.publish(intent_router(e)))
-    bus.subscribe("RENT_SEARCH", lambda e: bus.publish(rent_search_handler(e)))
-    bus.subscribe("RESPONSE", response_handler)
-    bus.subscribe("UNKNOWN", unknown_handler)
+    bus.subscribe("USER_MESSAGE", lambda e, s: bus.publish(intent_router(e, s), s))
+    bus.subscribe("RENT_SEARCH", lambda e, s: bus.publish(rent_search_handler(e, s), s))
+    bus.subscribe("RESPONSE", lambda e, s: response_handler(e, s))
+    bus.subscribe("UNKNOWN", lambda e, s: unknown_handler(e, s))
 
-    print("[BOOT] minimal event pipeline started")
+    print("[BOOT] pipeline v2 latency tracing enabled")
 
-    # test input
-    bus.publish(Event(
-        type="USER_MESSAGE",
-        payload={"text": "I want rent apartment in Ho Chi Minh"}
-    ))
+    test_events = [
+        "I want rent apartment in Ho Chi Minh",
+        "hello world"
+    ]
 
-    bus.publish(Event(
-        type="USER_MESSAGE",
-        payload={"text": "hello"}
-    ))
+    for text in test_events:
+        span = Span(trace_id="trace-" + text[:5])
+
+        event = Event(
+            type="USER_MESSAGE",
+            payload={"text": text}
+        )
+
+        bus.publish(event, span)
+        span.report()
 
 
 if __name__ == "__main__":
