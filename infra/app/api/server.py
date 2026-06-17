@@ -30,7 +30,11 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         if self.path == "/alerts":
-            self._send(200, bus.tracer.detector.alerts.get_alerts())
+            self._send(200, bus.tracer.get_alerts())
+            return
+
+        if self.path == "/tuning":
+            self._send(200, bus.tracer.get_tuning())
             return
 
         self._send(404, {"error": "not found"})
@@ -66,7 +70,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def run():
     server = HTTPServer(("0.0.0.0", 8080), Handler)
-    print("[API] v10.7 anomaly detection layer started")
+    print("[API] v10.8 adaptive tuning layer started")
     server.serve_forever()
 
 
