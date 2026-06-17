@@ -2,6 +2,7 @@ from app.core.event_bus import EventBus
 from app.core.events import Event
 from app.core.handlers import (
     intent_router,
+    rent_intelligence_handler,
     rent_search_handler,
     response_handler,
     unknown_handler
@@ -24,34 +25,34 @@ def main():
     hist = LatencyHistogram()
     graph = EventGraph()
 
+    # 🔥 новый слой
     bus.subscribe("USER_MESSAGE", lambda e, s, g: bus.publish(intent_router(e, s, g), s, g, e))
+    bus.subscribe("INTENT", lambda e, s, g: bus.publish(rent_intelligence_handler(e, s, g), s, g, e))
     bus.subscribe("RENT_SEARCH", lambda e, s, g: bus.publish(rent_search_handler(e, s, g), s, g, e))
+
     bus.subscribe("RESPONSE", lambda e, s, g: response_handler(e, s, g))
     bus.subscribe("UNKNOWN", lambda e, s, g: unknown_handler(e, s, g))
 
-    print("[BOOT] v6 production control pipeline")
+    print("[BOOT] v6 + RENT INTELLIGENCE REINTEGRATED")
 
     inputs = [
-        "rent apartment Ho Chi Minh",
+        "rent apartment in Bangkok 800",
+        "rent studio Saigon",
         "hello world",
-        "rent studio Bangkok",
-        "rent villa Bali"
+        "rent villa Bali 2000"
     ]
 
-    span = Span(trace_id="GLOBAL_TRACE")
+    span = Span(trace_id="GLOBAL")
     span.hist = hist
 
     for t in inputs:
         event = Event(type="USER_MESSAGE", payload={"text": t})
         bus.publish(event, span, graph)
 
-    print("\n--- DLQ BEFORE REPLAY ---")
+    print("\n--- DLQ ---")
     dlq.dump()
 
-    replay = ReplayEngine(bus, dlq)
-    replay.replay_all(span, graph)
-
-    print("\n--- FINAL GRAPH ---")
+    print("\n--- GRAPH ---")
     graph.dump()
 
 

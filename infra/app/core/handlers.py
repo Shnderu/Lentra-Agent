@@ -1,5 +1,9 @@
 from app.services.rent_search import rent_search
+from app.core.rent_intelligence import RentIntelligenceEngine
 import time
+
+
+engine = RentIntelligenceEngine()
 
 
 def intent_router(event, span, graph):
@@ -7,27 +11,46 @@ def intent_router(event, span, graph):
 
     text = event.payload.get("text", "")
 
-    if "rent" in text.lower():
-        out = {
-            "type": "RENT_SEARCH",
-            "payload": {"query": text},
-            "trace_id": event.trace_id
-        }
-    else:
-        out = {
+    span.end("router")
+
+    return {
+        "type": "INTENT",
+        "payload": {"text": text},
+        "trace_id": event.trace_id
+    }
+
+
+def rent_intelligence_handler(event, span, graph):
+    span.start("rent_intel")
+
+    text = event.payload.get("text")
+
+    intent = engine.parse(text)
+
+    print(f"[INTEL] {intent}")
+
+    span.end("rent_intel")
+
+    if intent["intent"] != "RENT":
+        return {
             "type": "UNKNOWN",
             "payload": {"raw": text},
             "trace_id": event.trace_id
         }
 
-    span.end("router")
-    return out
+    return {
+        "type": "RENT_SEARCH",
+        "payload": intent,
+        "trace_id": event.trace_id
+    }
 
 
 def rent_search_handler(event, span, graph):
     span.start("rent_handler")
 
-    query = event.payload.get("query")
+    intent = event.payload
+
+    query = intent.get("city") or "default"
 
     t0 = time.time()
     result = rent_search(query)
