@@ -1,10 +1,11 @@
-from lentra.domain.search.engine import search_engine
-from lentra.domain.ranking.engine import rank_engine
-from lentra.domain.aggregation.engine import aggregate_engine
 from lentra.core.contracts.dto import RequestDTO, ResponseDTO
+from lentra.core.context.runtime_context import create_context
+from lentra.services.pipeline_definition import build_pipeline
 
 
 def handle_request(payload: dict):
+
+    ctx = create_context(user_id=payload.get("user_id"))
 
     req = RequestDTO(
         query=payload.get("query"),
@@ -12,12 +13,18 @@ def handle_request(payload: dict):
         context=payload
     )
 
-    raw = search_engine.search(req.query)
-    ranked = rank_engine.rank(raw)
-    result = aggregate_engine.aggregate(ranked)
+    pipeline = build_pipeline()
+
+    result = pipeline.execute(
+        context=ctx,
+        input_data={"query": req.query}
+    )
 
     return ResponseDTO(
         query=req.query,
         results=result,
-        meta={"user_id": req.user_id}
+        meta={
+            "request_id": ctx.request_id,
+            "sealed": True
+        }
     ).__dict__
