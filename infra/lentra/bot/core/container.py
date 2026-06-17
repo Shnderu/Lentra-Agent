@@ -1,14 +1,15 @@
 from lentra.rent.repository import RentRepository
-from lentra.rent.connectors import *
-from lentra.rent.quality.scoring import *
-from lentra.rent.quality.filters import *
+from lentra.telegram.bot_factory import build_bot
 
 class Container:
     def __init__(self):
-        # ✔ возвращаем контракт, который ожидает handler
+        # rent layer
         self.rent_repository = RentRepository()
 
-        # остальное временно упрощаем
+        # telegram bot (ВАЖНО: возвращаем как DI объект)
+        self.bot = build_bot()
+
+        # временные заглушки
         self.scoring = None
         self.filters = None
         self.connectors = None
