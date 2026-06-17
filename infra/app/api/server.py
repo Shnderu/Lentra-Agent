@@ -16,7 +16,6 @@ from app.core.dlq import DeadLetterQueue
 from app.core.retry_policy import RetryPolicy
 
 
-# ⚠️ минимальная инстанция (изоляция от main)
 bus = EventBus(None, DeadLetterQueue(), RetryPolicy())
 
 
@@ -26,7 +25,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(code)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
-        self.wfile.write(json.dumps(data, default=str).encode())
+        self.wfile.write(json.dumps(data, ensure_ascii=False, default=str).encode())
 
     def do_GET(self):
         if self.path == "/health":
@@ -49,18 +48,23 @@ class Handler(BaseHTTPRequestHandler):
 
         event = Event(type="USER_MESSAGE", payload={"text": text})
 
-        # pipeline entry
         result = bus.publish(event, span, None)
 
+        # 🔥 FIX: structured response
+        if hasattr(result, "to_dict"):
+            response = result.to_dict()
+        else:
+            response = {"raw": str(result)}
+
         self._send(200, {
-            "result": str(result),
-            "trace_id": "api_trace"
+            "trace_id": "api_trace",
+            "result": response
         })
 
 
 def run():
     server = HTTPServer(("0.0.0.0", 8080), Handler)
-    print("[API] v8 server started on :8080")
+    print("[API] v8.1 structured response layer started")
     server.serve_forever()
 
 

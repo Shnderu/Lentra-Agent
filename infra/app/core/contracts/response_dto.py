@@ -1,14 +1,26 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 from app.core.contracts.listing_dto import ListingDTO
 
 
 @dataclass
 class RentResponseDTO:
-    """
-    Финальный формат ответа системы (для UI/API)
-    """
-
     query: str
     listings: List[ListingDTO]
     total: int
+
+    def to_dict(self):
+        return {
+            "query": self.query,
+            "total": self.total,
+            "listings": [
+                {
+                    "title": l.title,
+                    "price": l.price,
+                    "city": l.city,
+                    "source": l.source,
+                    "url": l.url
+                }
+                for l in self.listings
+            ]
+        }

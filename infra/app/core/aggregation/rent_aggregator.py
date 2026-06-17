@@ -4,21 +4,14 @@ from app.core.contracts.response_dto import RentResponseDTO
 
 
 class RentAggregator:
-    """
-    Собирает результаты из разных источников:
-    - merge
-    - deduplicate
-    - rank (простая эвристика)
-    """
 
     def aggregate(self, query: str, sources: List[List[ListingDTO]]) -> RentResponseDTO:
-        flat = []
 
-        # merge
+        flat = []
         for source in sources:
             flat.extend(source)
 
-        # deduplicate (по title + price)
+        # dedup
         seen = set()
         unique = []
 
@@ -29,8 +22,8 @@ class RentAggregator:
             seen.add(key)
             unique.append(item)
 
-        # ranking (простая эвристика: дешевле выше)
-        unique.sort(key=lambda x: (x.price or 10**9))
+        # ranking (cheap first)
+        unique.sort(key=lambda x: x.price or 10**9)
 
         return RentResponseDTO(
             query=query,
