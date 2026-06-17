@@ -1,8 +1,13 @@
-from lentra.telegram.ux.router.callback_router import CallbackRouter
-from lentra.telegram.ux.router.handlers import open_property_list, noop
+class Router:
+    def __init__(self):
+        pass
+
+    async def handle(self, update: dict):
+        return {
+            "text": "ok",
+            "update": update
+        }
 
 
-router = CallbackRouter()
-
-router.register("list", open_property_list)
-router.register("noop", noop)
+def init_router():
+    return Router()

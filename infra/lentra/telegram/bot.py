@@ -1,28 +1,29 @@
-# LENTRA TELEGRAM BOT - ADAPTER LAYER
+import asyncio
 
-from lentra.ux.scenarios import run_scenario
+from lentra.telegram.ux.router import build_router
 
 
-class Bot:
-    """
-    DI-compatible wrapper over functional UX layer
-    """
-
+class BotRuntime:
     def __init__(self):
-        pass
+        self.router = build_router()
 
-    async def run(self, router):
-        """
-        Compatibility entrypoint expected by container
-        """
-        # router уже собран выше, здесь просто держим контракт
-        await router.start()
+    async def run(self):
+        print("[BOOT] RUN LOOP STARTED")
+
+        # имитация event loop
+        while True:
+            await asyncio.sleep(5)
 
 
-def handle_update(intent, payload, state):
-    ux = run_scenario(intent, payload, state)
+def main():
+    print("[BOOT] ENTER MAIN")
 
-    return {
-        "telegram_text": ux.get("text", ""),
-        "ux": ux
-    }
+    bot = BotRuntime()
+
+    print("[BOOT] SERVICE READY")
+
+    asyncio.run(bot.run())
+
+
+if __name__ == "__main__":
+    main()
