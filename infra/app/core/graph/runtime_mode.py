@@ -1,8 +1,12 @@
 """
-Graph engine is now TRACE ONLY LAYER.
+GraphEngine is now OBSERVABILITY ONLY.
 """
 
-RUNTIME_MODE = "tracing"
+RUNTIME_MODE = "observability"
 
-def is_active():
+def is_execution_enabled():
     return False
+
+
+def is_tracing_enabled():
+    return True
