@@ -1,12 +1,21 @@
 import asyncio
 import asyncpg
-from lentra.db.engine import engine
+import os
+import traceback
+
 from lentra.db.queue import PostgresQueue
 
 
-async def main():
-    pool = engine
+DB_DSN = os.getenv(
+    "DATABASE_URL",
+    os.getenv("DB_DSN", "postgresql://lentra_user:lentra_password@localhost:5432/lentra")
+)
 
+
+async def main():
+    print("[WORKER] STARTED")
+
+    pool = await asyncpg.create_pool(dsn=DB_DSN)
     queue = PostgresQueue(pool)
 
     while True:
@@ -17,19 +26,21 @@ async def main():
                 await asyncio.sleep(1)
                 continue
 
-            # ВАЖНО: единый контракт
-            task_type = task["task_type"]
-            payload = task["payload"]
+            print(f"[WORKER] {task['task_type']}")
 
-            print(f"[WORKER] processing {task_type}")
-
-            # TODO: router execution layer
             await queue.mark_done(task["id"])
 
         except Exception as e:
-            print(f"[WORKER LOOP ERROR] {str(e)}")
+            print(f"[WORKER LOOP ERROR] {e}")
+            traceback.print_exc()
             await asyncio.sleep(1)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except Exception as e:
+        print("[WORKER FATAL]", e)
+        traceback.print_exc()
+    finally:
+        print("[WORKER EXIT]")

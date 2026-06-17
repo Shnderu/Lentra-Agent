@@ -1,0 +1,19 @@
+# /etc/systemd/system/lentra-worker.service
+[Unit]
+Description=Lentra Worker Engine
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/lentra/infra
+
+ExecStart=/opt/lentra/infra/venv-bot/bin/python -m lentra.worker.engine
+
+Restart=always
+RestartSec=3
+
+Environment=PYTHONUNBUFFERED=1
+Environment=DB_DSN=postgresql://lentra_user:lentra_pass_2026@localhost:5432/lentra
+
+[Install]
+WantedBy=multi-user.target
