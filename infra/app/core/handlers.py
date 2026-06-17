@@ -3,6 +3,8 @@ from app.core.adapters.mock_rent_adapter import MockRentAdapter
 from app.core.adapters.fake_real_estate_api import FakeRealEstateAPI
 from app.core.aggregation.rent_aggregator import RentAggregator
 from app.core.source_health import SourceHealth
+from app.core.session.session_manager import SessionManager
+
 import time
 
 
@@ -14,11 +16,7 @@ real_api = FakeRealEstateAPI()
 aggregator = RentAggregator()
 health = SourceHealth()
 
-
-SOURCE_TIMEOUT = {
-    "mock": 0.3,
-    "real_api": 0.4
-}
+session = SessionManager()
 
 
 def safe_call(source_name, fn, query):
@@ -26,8 +24,7 @@ def safe_call(source_name, fn, query):
 
     try:
         result = fn(query)
-        latency = time.time() - start
-        health.record_success(source_name, latency)
+        health.record_success(source_name, time.time() - start)
         return result
 
     except Exception as e:
@@ -36,25 +33,24 @@ def safe_call(source_name, fn, query):
         return []
 
 
-def intent_router(event, span, graph):
-    span.start("router")
-    text = event.payload.get("text", "")
-    span.end("router")
-
-    return {
-        "type": "INTENT",
-        "payload": {"text": text},
-        "trace_id": event.trace_id
-    }
-
-
 def rent_intelligence_handler(event, span, graph):
     span.start("rent_intel")
 
     text = event.payload.get("text")
+    user_id = event.payload.get("user_id", "default")
+
+    context = session.extract_context(user_id)
+
     intent = engine.parse(text)
 
-    print(f"[INTEL] {intent}")
+    # 🔥 CONTEXT INJECTION
+    if context.get("city") and not intent.get("city"):
+        intent["city"] = context["city"]
+
+    if context.get("budget") and not intent.get("budget"):
+        intent["budget"] = context["budget"]
+
+    print(f"[INTEL] {intent} | context={context}")
 
     span.end("rent_intel")
 
@@ -68,6 +64,7 @@ def rent_intelligence_handler(event, span, graph):
     return {
         "type": "RENT_FETCH",
         "payload": intent,
+        "user_id": user_id,
         "trace_id": event.trace_id
     }
 
@@ -76,17 +73,14 @@ def rent_fetch_handler(event, span, graph):
     span.start("rent_fetch")
 
     intent = event.payload
+    user_id = event.get("user_id", "default")
+
     query = intent.get("city") or "default"
 
-    sources = []
-
-    # 🔥 health-aware execution
-
-    if health.is_healthy("mock"):
-        sources.append(safe_call("mock", mock.search, query))
-
-    if health.is_healthy("real_api"):
-        sources.append(safe_call("real_api", real_api.search, query))
+    sources = [
+        safe_call("mock", mock.search, query),
+        safe_call("real_api", real_api.search, query)
+    ]
 
     span.end("rent_fetch")
 
@@ -96,6 +90,8 @@ def rent_fetch_handler(event, span, graph):
             "query": query,
             "sources": sources
         },
+        "intent": intent,
+        "user_id": user_id,
         "trace_id": event.trace_id
     }
 
@@ -108,20 +104,28 @@ def rent_aggregate_handler(event, span, graph):
         event.payload["sources"]
     )
 
-    print(f"[AGGREGATED] total={result.total}")
-
     span.end("aggregate")
 
     return {
         "type": "RESPONSE",
         "payload": result,
+        "intent": event.get("intent"),
+        "user_id": event.get("user_id", "default"),
         "trace_id": event.trace_id
     }
 
 
 def response_handler(event, span, graph):
     span.start("response")
+
+    user_id = event.get("user_id", "default")
+    intent = event.get("intent", {})
+
+    # 🔥 UPDATE MEMORY
+    session.update_context(user_id, intent)
+
     print("[RESPONSE]", event.payload)
+
     span.end("response")
 
 

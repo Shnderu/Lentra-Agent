@@ -3,14 +3,6 @@ import json
 
 from app.core.event_bus import EventBus
 from app.core.events import Event
-from app.core.handlers import (
-    intent_router,
-    rent_intelligence_handler,
-    rent_fetch_handler,
-    rent_aggregate_handler,
-    response_handler,
-    unknown_handler
-)
 from app.core.trace import Span
 from app.core.dlq import DeadLetterQueue
 from app.core.retry_policy import RetryPolicy
@@ -43,14 +35,20 @@ class Handler(BaseHTTPRequestHandler):
         body = json.loads(self.rfile.read(length))
 
         text = body.get("text", "")
+        user_id = body.get("user_id", "default")
 
         span = Span(trace_id="api_trace")
 
-        event = Event(type="USER_MESSAGE", payload={"text": text})
+        event = Event(
+            type="USER_MESSAGE",
+            payload={
+                "text": text,
+                "user_id": user_id
+            }
+        )
 
         result = bus.publish(event, span, None)
 
-        # 🔥 FIX: structured response
         if hasattr(result, "to_dict"):
             response = result.to_dict()
         else:
@@ -64,7 +62,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def run():
     server = HTTPServer(("0.0.0.0", 8080), Handler)
-    print("[API] v8.1 structured response layer started")
+    print("[API] v10 memory layer enabled")
     server.serve_forever()
 
 
