@@ -1,9 +1,11 @@
 from app.core.contracts.api_response import APIResponse
 
 
-class ResponseBuilder:
+class ResponseSerializer:
 
-    def build(self, trace_id, query, listings, total):
+    def serialize(self, trace_id, payload):
+
+        listings = payload["listings"]
 
         items = [
             {
@@ -17,8 +19,8 @@ class ResponseBuilder:
 
         return APIResponse(
             trace_id=trace_id,
-            query=query,
-            total=total,
+            query=payload["query"],
+            total=payload["total"],
             returned=len(items),
             items=items
         )

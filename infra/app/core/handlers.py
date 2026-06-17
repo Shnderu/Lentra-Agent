@@ -4,6 +4,7 @@ from app.core.adapters.fake_real_estate_api import FakeRealEstateAPI
 from app.core.aggregation.rent_aggregator import RentAggregator
 from app.core.source_health import SourceHealth
 from app.core.context.context_injector import ContextInjector
+from app.core.ux.response_serializer import ResponseSerializer
 from app.core.contracts.query_options import QueryOptions
 from app.core.contracts.query_validator import QueryValidator
 import time
@@ -15,8 +16,9 @@ mock = MockRentAdapter()
 real_api = FakeRealEstateAPI()
 
 aggregator = RentAggregator()
-health = SourceHealth()
+serializer = ResponseSerializer()
 
+health = SourceHealth()
 context = ContextInjector()
 validator = QueryValidator()
 
@@ -98,8 +100,7 @@ def rent_fetch_handler(event, span, graph):
             "trace_id": event.trace_id,
             "query": query,
             "sources": sources,
-            "session": intent.get("session"),
-            "options": options
+            "session": intent.get("session")
         },
         "trace_id": event.trace_id
     }
@@ -110,12 +111,15 @@ def rent_aggregate_handler(event, span, graph):
 
     payload = event.payload
 
-    result = aggregator.aggregate(
-        payload["trace_id"],
+    raw = aggregator.aggregate(
         payload["query"],
         payload["sources"],
-        payload.get("session"),
-        payload.get("options")
+        payload.get("session")
+    )
+
+    result = serializer.serialize(
+        payload["trace_id"],
+        raw
     )
 
     span.end("aggregate")
