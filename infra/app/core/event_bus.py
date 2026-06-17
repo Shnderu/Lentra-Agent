@@ -1,39 +1,46 @@
-from collections import defaultdict
-from typing import Callable, Dict, List
+from app.core.handlers import (
+    intent_router,
+    rent_intelligence_handler,
+    rent_fetch_handler,
+    rent_aggregate_handler,
+    response_handler,
+    unknown_handler
+)
+
+from app.core.observability.tracer import Tracer
 
 
 class EventBus:
-    def __init__(self, executor, dlq, retry_policy):
-        self.handlers: Dict[str, List[Callable]] = defaultdict(list)
-        self.executor = executor
+
+    def __init__(self, graph, dlq, retry_policy):
+        self.graph = graph
         self.dlq = dlq
         self.retry_policy = retry_policy
+        self.tracer = Tracer()
 
-    def subscribe(self, event_type: str, handler):
-        self.handlers[event_type].append(handler)
+        self.handlers = {
+            "USER_MESSAGE": rent_intelligence_handler,
+            "RENT_FETCH": rent_fetch_handler,
+            "RENT_AGGREGATE": rent_aggregate_handler,
+            "RESPONSE": response_handler
+        }
 
-    def publish(self, event, span=None, graph=None, parent=None):
-        print(f"[BUS] {event.type} trace={event.trace_id}")
+    def publish(self, event, span, graph=None):
 
-        if parent and graph:
-            graph.link(parent.type, event.type)
+        current = event
 
-        if event.type not in self.handlers:
-            print("[LEAK] no handler")
-            self.dlq.push(event, "no_handler")
-            return
+        while current:
 
-        for h in self.handlers[event.type]:
-            future = self.executor.submit(self._safe_execute, h, event, span, graph)
+            handler = self.handlers.get(current.type, unknown_handler)
 
-            if future is None:
-                self.dlq.push(event, "backpressure_drop")
-                return
+            trace_id = current.trace_id
+
+            self.tracer.start(trace_id, current.type)
 
             try:
-                return future.result(timeout=3)
-            except Exception as e:
-                self.dlq.push(event, str(e))
+                current = handler(current, span, graph)
 
-    def _safe_execute(self, handler, event, span, graph):
-        return self.retry_policy.execute(handler, event, span, graph)
+            finally:
+                self.tracer.end(trace_id, current.type if current else "UNKNOWN")
+
+        return current

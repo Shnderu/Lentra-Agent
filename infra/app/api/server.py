@@ -24,6 +24,10 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, {"status": "ok"})
             return
 
+        if self.path == "/metrics":
+            self._send(200, bus.tracer.get_metrics())
+            return
+
         self._send(404, {"error": "not found"})
 
     def do_POST(self):
@@ -49,20 +53,15 @@ class Handler(BaseHTTPRequestHandler):
 
         result = bus.publish(event, span, None)
 
-        if hasattr(result, "to_dict"):
-            response = result.to_dict()
-        else:
-            response = {"raw": str(result)}
-
         self._send(200, {
             "trace_id": "api_trace",
-            "result": response
+            "result": result.to_dict() if hasattr(result, "to_dict") else str(result)
         })
 
 
 def run():
     server = HTTPServer(("0.0.0.0", 8080), Handler)
-    print("[API] v10.1 session layer started")
+    print("[API] v10.6 observability layer started")
     server.serve_forever()
 
 
