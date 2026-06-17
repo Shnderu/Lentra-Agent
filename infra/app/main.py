@@ -21,27 +21,25 @@ def main():
     bus.subscribe("RESPONSE", lambda e, s, g: response_handler(e, s, g))
     bus.subscribe("UNKNOWN", lambda e, s, g: unknown_handler(e, s, g))
 
-    print("[BOOT] v3 diagnostics pipeline")
+    print("[BOOT] v4 resilient pipeline")
 
-    test_inputs = [
-        "I want rent apartment in Ho Chi Minh",
+    tests = [
+        "rent apartment in Ho Chi Minh",
         "hello world",
-        "rent studio in Bangkok"
+        "rent studio Bangkok"
     ]
 
-    for text in test_inputs:
-        span = Span(trace_id="trace-" + text[:6])
+    for t in tests:
+        span = Span(trace_id="trace-" + t[:6])
         span.hist = hist
 
-        event = Event(type="USER_MESSAGE", payload={"text": text})
+        event = Event(type="USER_MESSAGE", payload={"text": t})
 
         bus.publish(event, span, graph)
 
         span.report()
 
-    print("\n--- METRICS ---")
-    print(hist.summary("rent_search"))
-
+    print("\n[FINAL GRAPH]")
     graph.dump()
 
 

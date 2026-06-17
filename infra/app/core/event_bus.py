@@ -1,6 +1,6 @@
 from collections import defaultdict
 from typing import Callable, Dict, List
-from app.core.events import Event
+import time
 
 
 class EventBus:
@@ -10,18 +10,31 @@ class EventBus:
     def subscribe(self, event_type: str, handler):
         self.handlers[event_type].append(handler)
 
-    def publish(self, event: Event, span=None, graph=None, parent=None):
+    def publish(self, event, span=None, graph=None, parent=None):
         print(f"[BUS] {event.type} trace={event.trace_id}")
 
         if parent and graph:
             graph.link(parent.type, event.type)
 
         if event.type not in self.handlers:
-            print(f"[LEAK] no handler for {event.type}")
+            print("[LEAK] no handler")
             return
 
         for h in self.handlers[event.type]:
-            try:
-                return h(event, span, graph)
-            except Exception as e:
-                print(f"[ERROR] {e}")
+            retries = 1
+
+            for attempt in range(retries + 1):
+                try:
+                    start = time.time()
+
+                    result = h(event, span, graph)
+
+                    dt = time.time() - start
+                    print(f"[BUS] handler_latency={dt:.3f}s")
+
+                    return result
+
+                except Exception as e:
+                    print(f"[BUS ERROR] attempt={attempt} err={e}")
+
+                    time.sleep(0.05)
