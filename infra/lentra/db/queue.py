@@ -1,6 +1,5 @@
 # ============================================================
-# LENTRA POSTGRES QUEUE (FIXED STABLE V10.22)
-# SINGLE SOURCE OF TRUTH: processing_queue
+# LENTRA POSTGRES QUEUE (FIXED V10.24 - ALIGN WITH DB SCHEMA)
 # ============================================================
 
 from typing import Dict, Any, Optional
@@ -8,7 +7,7 @@ from typing import Dict, Any, Optional
 
 class PostgresQueue:
     """
-    Очередь задач на базе таблицы processing_queue.
+    Единая очередь задач (aligned with processing_queue table)
     """
 
     def __init__(self, pool):
@@ -29,7 +28,7 @@ class PostgresQueue:
 
     async def claim_task(self) -> Optional[Dict[str, Any]]:
         query = """
-        SELECT id, task_type, payload, status
+        SELECT id, task_type, payload
         FROM processing_queue
         WHERE status = 'new'
         ORDER BY id ASC
@@ -44,40 +43,22 @@ class PostgresQueue:
                 return None
 
             await conn.execute(
-                """
-                UPDATE processing_queue
-                SET status='processing',
-                    ingested_at=now()
-                WHERE id=$1
-                """,
+                "UPDATE processing_queue SET status='processing' WHERE id=$1",
                 row["id"]
             )
 
             return dict(row)
 
     async def mark_done(self, task_id: int) -> None:
-        query = """
-        UPDATE processing_queue
-        SET status='done',
-            processed_at=now()
-        WHERE id=$1;
-        """
-
         async with self.pool.acquire() as conn:
-            await conn.execute(query, task_id)
+            await conn.execute(
+                "UPDATE processing_queue SET status='done' WHERE id=$1",
+                task_id
+            )
 
-    async def mark_failed(
-        self,
-        task_id: int,
-        error: str,
-        attempts: int = 0
-    ) -> None:
-        query = """
-        UPDATE processing_queue
-        SET status='failed'
-        WHERE id=$1;
-        """
-
+    async def mark_failed(self, task_id: int, error: str = "") -> None:
         async with self.pool.acquire() as conn:
-            await conn.execute(query, task_id)
-
+            await conn.execute(
+                "UPDATE processing_queue SET status='failed' WHERE id=$1",
+                task_id
+            )
