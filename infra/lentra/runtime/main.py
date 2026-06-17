@@ -3,10 +3,15 @@ from lentra.runtime.bootstrap.import_hook import install_import_hook
 from lentra.api.main import create_app
 from lentra.bot.main import create_bot
 from lentra.core.contracts.pipeline_lock import PipelineLock
+from lentra.core.graph.compiler.compiler import ArchitectureCompiler
 
 
 def main():
+
     install_import_hook()
+
+    # 🔍 FULL ARCHITECTURE COMPILATION STEP
+    graph = ArchitectureCompiler.compile()
 
     container = build_container()
 
@@ -16,11 +21,10 @@ def main():
     container.register("api", app)
     container.register("bot", bot)
 
-    # 🔒 FINAL SEAL
     PipelineLock.lock()
 
-    print("[LENTRA] runtime started (SEALED MODE)")
-    print("[LENTRA] system is now immutable")
+    print("[LENTRA] SYSTEM STARTED")
+    print("[LENTRA] architecture compiled + validated")
 
     return container
 

@@ -1,10 +1,12 @@
 # ============================================================
-# LENTRA WORKER ENGINE V15.6 (RETRY AWARE)
+# LENTRA WORKER ENGINE V15.7 (POOL FIX)
 # ============================================================
 
 import asyncio
 import logging
 from typing import Dict, Any
+
+import asyncpg
 
 from lentra.rent.domain_v1 import create_rent_router
 from lentra.db.queue import PostgresQueue
@@ -52,3 +54,28 @@ class WorkerEngine:
 
 def create_worker(queue: PostgresQueue) -> WorkerEngine:
     return WorkerEngine(queue)
+
+
+# ============================================================
+# ENTRYPOINT FIXED (POOL INITIALIZATION)
+# ============================================================
+
+async def main():
+    pool = await asyncpg.create_pool(
+        user="postgres",
+        password="postgres",
+        database="lentra",
+        host="localhost",
+        port=5432,
+        min_size=1,
+        max_size=5,
+    )
+
+    queue = PostgresQueue(pool)
+
+    worker = WorkerEngine(queue)
+    await worker.run()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
