@@ -1,6 +1,6 @@
 # ============================================================
-# LENTRA POSTGRES QUEUE (FIXED STABLE LAYER V10.21)
-# SINGLE SOURCE OF TRUTH FOR TASK EXECUTION
+# LENTRA POSTGRES QUEUE (FIXED STABLE V10.22)
+# SINGLE SOURCE OF TRUTH: processing_queue
 # ============================================================
 
 from typing import Dict, Any, Optional
@@ -8,8 +8,7 @@ from typing import Dict, Any, Optional
 
 class PostgresQueue:
     """
-    Единая очередь задач.
-    Используется worker_engine + api + rent pipeline.
+    Очередь задач на базе таблицы processing_queue.
     """
 
     def __init__(self, pool):
@@ -17,8 +16,8 @@ class PostgresQueue:
 
     async def create_task(self, task: Dict[str, Any]) -> None:
         query = """
-        INSERT INTO tasks (type, payload, status, attempts)
-        VALUES ($1, $2, 'pending', 0);
+        INSERT INTO processing_queue (task_type, payload, status)
+        VALUES ($1, $2, 'new');
         """
 
         async with self.pool.acquire() as conn:
@@ -30,9 +29,9 @@ class PostgresQueue:
 
     async def claim_task(self) -> Optional[Dict[str, Any]]:
         query = """
-        SELECT id, type, payload, attempts
-        FROM tasks
-        WHERE status = 'pending'
+        SELECT id, task_type, payload, status
+        FROM processing_queue
+        WHERE status = 'new'
         ORDER BY id ASC
         LIMIT 1
         FOR UPDATE SKIP LOCKED;
@@ -45,7 +44,12 @@ class PostgresQueue:
                 return None
 
             await conn.execute(
-                "UPDATE tasks SET status='processing' WHERE id=$1",
+                """
+                UPDATE processing_queue
+                SET status='processing',
+                    ingested_at=now()
+                WHERE id=$1
+                """,
                 row["id"]
             )
 
@@ -53,8 +57,9 @@ class PostgresQueue:
 
     async def mark_done(self, task_id: int) -> None:
         query = """
-        UPDATE tasks
-        SET status='done'
+        UPDATE processing_queue
+        SET status='done',
+            processed_at=now()
         WHERE id=$1;
         """
 
@@ -68,12 +73,11 @@ class PostgresQueue:
         attempts: int = 0
     ) -> None:
         query = """
-        UPDATE tasks
-        SET status='failed',
-            attempts=$2
+        UPDATE processing_queue
+        SET status='failed'
         WHERE id=$1;
         """
 
         async with self.pool.acquire() as conn:
-            await conn.execute(query, task_id, attempts)
+            await conn.execute(query, task_id)
 
