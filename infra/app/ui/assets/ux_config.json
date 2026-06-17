@@ -1,0 +1,6 @@
+{
+  "loading_text": "Идёт поиск...",
+  "empty_text": "Ничего не найдено",
+  "error_text": "Ошибка выполнения запроса",
+  "min_query_length": 2
+}
