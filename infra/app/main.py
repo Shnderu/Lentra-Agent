@@ -10,13 +10,16 @@ from app.core.trace import Span
 from app.core.metrics import LatencyHistogram, EventGraph
 from app.core.executor import TaskExecutor
 from app.core.dlq import DeadLetterQueue
+from app.core.retry_policy import RetryPolicy
+from app.core.replay import ReplayEngine
 
 
 def main():
     executor = TaskExecutor(max_workers=4, max_queue=5)
     dlq = DeadLetterQueue()
+    retry_policy = RetryPolicy(max_retries=2)
 
-    bus = EventBus(executor, dlq)
+    bus = EventBus(executor, dlq, retry_policy)
 
     hist = LatencyHistogram()
     graph = EventGraph()
@@ -26,33 +29,29 @@ def main():
     bus.subscribe("RESPONSE", lambda e, s, g: response_handler(e, s, g))
     bus.subscribe("UNKNOWN", lambda e, s, g: unknown_handler(e, s, g))
 
-    print("[BOOT] v5 production-grade diagnostic pipeline")
+    print("[BOOT] v6 production control pipeline")
 
     inputs = [
         "rent apartment Ho Chi Minh",
         "hello world",
         "rent studio Bangkok",
-        "rent villa Bali",
-        "rent cheap flat Saigon"
+        "rent villa Bali"
     ]
 
+    span = Span(trace_id="GLOBAL_TRACE")
+    span.hist = hist
+
     for t in inputs:
-        span = Span(trace_id="trace-" + t[:6])
-        span.hist = hist
-
         event = Event(type="USER_MESSAGE", payload={"text": t})
-
         bus.publish(event, span, graph)
 
-        span.report()
-
-    print("\n--- METRICS ---")
-    hist.dump_all()
-
-    print("\n--- DLQ ---")
+    print("\n--- DLQ BEFORE REPLAY ---")
     dlq.dump()
 
-    print("\n--- GRAPH ---")
+    replay = ReplayEngine(bus, dlq)
+    replay.replay_all(span, graph)
+
+    print("\n--- FINAL GRAPH ---")
     graph.dump()
 
 

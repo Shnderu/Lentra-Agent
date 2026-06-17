@@ -1,5 +1,4 @@
 from app.services.rent_search import rent_search
-from app.core.metrics import LatencyHistogram
 import time
 
 
@@ -7,7 +6,6 @@ def intent_router(event, span, graph):
     span.start("router")
 
     text = event.payload.get("text", "")
-    time.sleep(0.005)
 
     if "rent" in text.lower():
         out = {
@@ -29,16 +27,13 @@ def intent_router(event, span, graph):
 def rent_search_handler(event, span, graph):
     span.start("rent_handler")
 
-    hist: LatencyHistogram = getattr(span, "hist", None)
-
     query = event.payload.get("query")
 
     t0 = time.time()
     result = rent_search(query)
     latency = time.time() - t0
 
-    if hist:
-        hist.observe("rent_search", latency)
+    print(f"[RENT] latency={latency:.3f}s")
 
     span.end("rent_handler")
 
