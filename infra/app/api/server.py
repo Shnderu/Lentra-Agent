@@ -62,7 +62,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def run():
     server = HTTPServer(("0.0.0.0", 8080), Handler)
-    print("[API] v10 memory layer enabled")
+    print("[API] v10.1 session layer started")
     server.serve_forever()
 
 
