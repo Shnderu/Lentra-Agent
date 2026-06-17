@@ -1,27 +1,23 @@
-from dataclasses import dataclass
+from lentra.bot.core.intent_router import IntentRouter
+from lentra.bot.core.intent_resolver import IntentResolver
+from lentra.bot.core.feature_registry import FeatureRegistry
 
-from lentra.bot.features.rent_search.service import RentSearchService
-from lentra.rent.connectors.default_connector import DefaultConnector
 
-
-@dataclass
 class Container:
-    rent_search_service: RentSearchService
-    bot: object = None
+    def __init__(self, connector):
+        self.connector = connector
+
+        self.feature_registry = FeatureRegistry()
+
+        self.intent_resolver = IntentResolver(
+            feature_registry=self.feature_registry
+        )
+
+        self.router = IntentRouter(
+            intent_resolver=self.intent_resolver,
+            connector=connector
+        )
 
 
-def build_container():
-    connector = DefaultConnector()
-
-    rent_service = RentSearchService(
-        connectors=[connector]
-    )
-
-    container = Container(
-        rent_search_service=rent_service,
-        bot=None
-    )
-
-    print("[BOOT] CONTAINER BUILT")
-
-    return container
+def build_container(connector):
+    return Container(connector)

@@ -1,34 +1,47 @@
+from lentra.rent.runtime.observability.tracer.trace_recorder import TraceRecorder
+from lentra.rent.runtime.observability.metrics.metrics import Metrics
+
+
 class RentSearchService:
-    def __init__(self, connectors, trace=None):
-        self.connectors = connectors
-        self.trace = trace
 
-    async def search(self, query: dict):
+    def __init__(self, connector):
+        self.connector = connector
+        self.tracer = TraceRecorder()
+        self.metrics = Metrics()
 
-        if self.trace:
-            self.trace.node("rent_search_start", query)
+    async def search(self, payload: dict):
 
-        results = []
+        self.metrics.start("rent_search")
 
-        for c in self.connectors:
+        # --- TRACE START ---
+        n0 = "telegram_update_received"
+        self.tracer.node(n0, payload)
 
-            if self.trace:
-                self.trace.node("connector_call", {
-                    "connector": c.__class__.__name__
-                })
+        query = {
+            "text": payload.get("text"),
+            "user_id": payload.get("user_id")
+        }
 
-            data = c.fetch(query)
+        n1 = "connector_call"
+        self.tracer.node(n1, query)
+        self.tracer.edge(n0, n1)
 
-            if self.trace:
-                self.trace.node("connector_result", data)
+        # --- CONNECTOR CALL (STRICT CONTRACT) ---
+        result = await self.connector.call(query)
 
-            results.append(data)
+        n2 = "connector_result"
+        self.tracer.node(n2, {"items": len(result.get("items", []))})
+        self.tracer.edge(n1, n2)
 
-        if self.trace:
-            self.trace.node("rent_search_end", {"items": len(results)})
+        n3 = "rent_search_end"
+        self.tracer.node(n3, {})
+        self.tracer.edge(n2, n3)
+
+        self.metrics.end("rent_search")
 
         return {
-            "text": "rent_search v3",
-            "raw": results,
-            "trace_id": self.trace.trace_id if self.trace else None
+            "text": "rent_search v1 stable",
+            "raw": result,
+            "trace": self.tracer.dump(),
+            "metrics": self.metrics.dump()
         }

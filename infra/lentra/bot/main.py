@@ -1,51 +1,23 @@
-import asyncio
-
-from lentra.bot.core.container import build_container
-from lentra.bot.handlers.router_builder import build_main_router
-from lentra.bot.adapters.telegram_update_adapter import TelegramUpdateAdapter
-from lentra.bot.runtime.trace import Trace
+from lentra.bot.connectors.default_connector import DefaultConnector
 
 
 def main():
     print("[BOOT] ENTER MAIN")
 
-    container = build_container()
-    router = build_main_router(container)
+    connector = DefaultConnector()
 
-    adapter = TelegramUpdateAdapter()
+    print("[BOOT] CONNECTOR READY")
 
-    async def process_update(tg_update: dict):
+    result = connector.search(
+        {
+            "text": "rent apartment",
+            "user_id": 123,
+        }
+    )
 
-        trace = Trace()
-        container.trace = trace
-        adapter.trace = trace
+    print("[RESULT]", result)
 
-        update = adapter.normalize(tg_update)
-        result = await router.handle(update)
-
-        print("===== TRACE DUMP =====")
-        print(trace.dump())
-        print("======================")
-        print("[RESULT]", result)
-
-        return result
-
-
-    async def mock_stream():
-        while True:
-            tg_update = {
-                "update_id": 1,
-                "message": {
-                    "text": "rent apartment",
-                    "from": {"id": 123}
-                }
-            }
-
-            await process_update(tg_update)
-            await asyncio.sleep(5)
-
-
-    asyncio.run(mock_stream())
+    print("[BOOT] EXIT")
 
 
 if __name__ == "__main__":
