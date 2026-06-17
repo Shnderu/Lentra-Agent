@@ -5,6 +5,7 @@ from app.core.aggregation.rent_aggregator import RentAggregator
 from app.core.source_health import SourceHealth
 from app.core.context.context_injector import ContextInjector
 from app.core.contracts.query_options import QueryOptions
+from app.core.contracts.query_validator import QueryValidator
 import time
 
 
@@ -17,6 +18,7 @@ aggregator = RentAggregator()
 health = SourceHealth()
 
 context = ContextInjector()
+validator = QueryValidator()
 
 
 def safe_call(source_name, fn, query):
@@ -70,6 +72,16 @@ def rent_fetch_handler(event, span, graph):
     intent = event.payload
     query = intent.get("city") or "default"
 
+    options = QueryOptions(
+        city=intent.get("city"),
+        budget=intent.get("budget"),
+        limit=10,
+        sort_by="score",
+        offset=0
+    )
+
+    options = validator.validate(options)
+
     sources = []
 
     if health.is_healthy("mock"):
@@ -83,16 +95,11 @@ def rent_fetch_handler(event, span, graph):
     return {
         "type": "RENT_AGGREGATE",
         "payload": {
+            "trace_id": event.trace_id,
             "query": query,
             "sources": sources,
             "session": intent.get("session"),
-            "options": QueryOptions(
-                city=intent.get("city"),
-                budget=intent.get("budget"),
-                limit=10,
-                sort_by="score",
-                offset=0
-            )
+            "options": options
         },
         "trace_id": event.trace_id
     }
@@ -104,6 +111,7 @@ def rent_aggregate_handler(event, span, graph):
     payload = event.payload
 
     result = aggregator.aggregate(
+        payload["trace_id"],
         payload["query"],
         payload["sources"],
         payload.get("session"),
@@ -114,7 +122,7 @@ def rent_aggregate_handler(event, span, graph):
 
     return {
         "type": "RESPONSE",
-        "payload": result,
+        "payload": result.to_dict(),
         "trace_id": event.trace_id
     }
 
