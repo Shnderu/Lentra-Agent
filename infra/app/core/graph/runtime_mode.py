@@ -1,10 +1,8 @@
 """
-Graph engine is now a TOOLING LAYER ONLY.
-
-Used for:
-- tracing
-- debugging
-- simulation
+Graph engine is now TRACE ONLY LAYER.
 """
 
-RUNTIME_MODE = "tooling"
+RUNTIME_MODE = "tracing"
+
+def is_active():
+    return False
