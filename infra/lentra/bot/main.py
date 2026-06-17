@@ -1,32 +1,51 @@
-# ============================================================
-# LENTRA BOT MAIN (SAFE DI FIX)
-# ============================================================
-
 import asyncio
 
-from lentra.core.safety.ast_guard import install_import_guard
-from lentra.bot.handlers.router_builder import build_main_router
 from lentra.bot.core.container import build_container
+from lentra.bot.handlers.router_builder import build_main_router
+from lentra.bot.adapters.telegram_update_adapter import TelegramUpdateAdapter
+from lentra.bot.runtime.trace import Trace
 
 
 def main():
-    # SAFE MODE INIT
-    install_import_guard()
+    print("[BOOT] ENTER MAIN")
 
-    # DI CONTAINER
     container = build_container()
-
-    # ROUTER BUILD (FIXED CONTRACT)
     router = build_main_router(container)
 
-    # BOOT LOG
-    print("[BOOT] ENTER MAIN")
-    print("[BOOT] BOT + DP CREATED")
-    print("[BOOT] ROUTER BUILT")
-    print("[BOOT] ROUTER INCLUDED")
+    adapter = TelegramUpdateAdapter()
 
-    # START BOT
-    asyncio.run(container.bot.run(router))
+    async def process_update(tg_update: dict):
+
+        trace = Trace()
+        container.trace = trace
+        adapter.trace = trace
+
+        update = adapter.normalize(tg_update)
+        result = await router.handle(update)
+
+        print("===== TRACE DUMP =====")
+        print(trace.dump())
+        print("======================")
+        print("[RESULT]", result)
+
+        return result
+
+
+    async def mock_stream():
+        while True:
+            tg_update = {
+                "update_id": 1,
+                "message": {
+                    "text": "rent apartment",
+                    "from": {"id": 123}
+                }
+            }
+
+            await process_update(tg_update)
+            await asyncio.sleep(5)
+
+
+    asyncio.run(mock_stream())
 
 
 if __name__ == "__main__":

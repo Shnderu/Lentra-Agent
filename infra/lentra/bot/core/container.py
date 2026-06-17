@@ -1,19 +1,27 @@
-from lentra.rent.repository import RentRepository
-from lentra.telegram.bot_factory import build_bot
+from dataclasses import dataclass
 
+from lentra.bot.features.rent_search.service import RentSearchService
+from lentra.rent.connectors.default_connector import DefaultConnector
+
+
+@dataclass
 class Container:
-    def __init__(self):
-        # rent layer
-        self.rent_repository = RentRepository()
-
-        # telegram bot (ВАЖНО: возвращаем как DI объект)
-        self.bot = build_bot()
-
-        # временные заглушки
-        self.scoring = None
-        self.filters = None
-        self.connectors = None
+    rent_search_service: RentSearchService
+    bot: object = None
 
 
 def build_container():
-    return Container()
+    connector = DefaultConnector()
+
+    rent_service = RentSearchService(
+        connectors=[connector]
+    )
+
+    container = Container(
+        rent_search_service=rent_service,
+        bot=None
+    )
+
+    print("[BOOT] CONTAINER BUILT")
+
+    return container

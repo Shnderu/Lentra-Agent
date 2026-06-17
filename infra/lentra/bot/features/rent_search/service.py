@@ -1,27 +1,34 @@
-from lentra.bot.features.rent_search.repository import RentRepository
-from lentra.bot.features.rent_search.mapper import map_to_cards
-from lentra.bot.features.rent_search.application.use_cases.query_parser import QueryParser
-from lentra.bot.features.rent_search.application.services.ranking_service import RankingService
-from lentra.bot.features.rent_search.application.services.response_builder import ResponseBuilder
-
-
 class RentSearchService:
-    def __init__(self, repository: RentRepository):
-        self.repository = repository
-        self.parser = QueryParser()
-        self.ranker = RankingService()
-        self.builder = ResponseBuilder()
+    def __init__(self, connectors, trace=None):
+        self.connectors = connectors
+        self.trace = trace
 
-    def search(self, query: str):
+    async def search(self, query: dict):
 
-        context = self.parser.parse(query)
+        if self.trace:
+            self.trace.node("rent_search_start", query)
 
-        raw = self.repository.search(context.query)
+        results = []
 
-        items = map_to_cards(raw)
+        for c in self.connectors:
 
-        ranked = self.ranker.rank(items, context)
+            if self.trace:
+                self.trace.node("connector_call", {
+                    "connector": c.__class__.__name__
+                })
 
-        response_text = self.builder.build(context, ranked)
+            data = c.fetch(query)
 
-        return response_text
+            if self.trace:
+                self.trace.node("connector_result", data)
+
+            results.append(data)
+
+        if self.trace:
+            self.trace.node("rent_search_end", {"items": len(results)})
+
+        return {
+            "text": "rent_search v3",
+            "raw": results,
+            "trace_id": self.trace.trace_id if self.trace else None
+        }
