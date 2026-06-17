@@ -15,12 +15,14 @@ class Span:
         if key in self.spans:
             self.spans[key] += time.time()
 
+    def get(self, key: str):
+        return self.spans.get(key, 0.0)
+
+    def total(self):
+        return sum(v for v in self.spans.values())
+
     def report(self):
         print("\n[TRACE REPORT]")
-        total = 0.0
-
         for k, v in self.spans.items():
             print(f"  {k}: {v*1000:.2f} ms")
-            total += v
-
-        print(f"  TOTAL: {total*1000:.2f} ms\n")
+        print(f"  TOTAL: {self.total()*1000:.2f} ms\n")

@@ -7,33 +7,42 @@ from app.core.handlers import (
     unknown_handler
 )
 from app.core.trace import Span
+from app.core.metrics import LatencyHistogram, EventGraph
 
 
 def main():
     bus = EventBus()
 
-    bus.subscribe("USER_MESSAGE", lambda e, s: bus.publish(intent_router(e, s), s))
-    bus.subscribe("RENT_SEARCH", lambda e, s: bus.publish(rent_search_handler(e, s), s))
-    bus.subscribe("RESPONSE", lambda e, s: response_handler(e, s))
-    bus.subscribe("UNKNOWN", lambda e, s: unknown_handler(e, s))
+    hist = LatencyHistogram()
+    graph = EventGraph()
 
-    print("[BOOT] pipeline v2 latency tracing enabled")
+    bus.subscribe("USER_MESSAGE", lambda e, s, g: bus.publish(intent_router(e, s, g), s, g, e))
+    bus.subscribe("RENT_SEARCH", lambda e, s, g: bus.publish(rent_search_handler(e, s, g), s, g, e))
+    bus.subscribe("RESPONSE", lambda e, s, g: response_handler(e, s, g))
+    bus.subscribe("UNKNOWN", lambda e, s, g: unknown_handler(e, s, g))
 
-    test_events = [
+    print("[BOOT] v3 diagnostics pipeline")
+
+    test_inputs = [
         "I want rent apartment in Ho Chi Minh",
-        "hello world"
+        "hello world",
+        "rent studio in Bangkok"
     ]
 
-    for text in test_events:
-        span = Span(trace_id="trace-" + text[:5])
+    for text in test_inputs:
+        span = Span(trace_id="trace-" + text[:6])
+        span.hist = hist
 
-        event = Event(
-            type="USER_MESSAGE",
-            payload={"text": text}
-        )
+        event = Event(type="USER_MESSAGE", payload={"text": text})
 
-        bus.publish(event, span)
+        bus.publish(event, span, graph)
+
         span.report()
+
+    print("\n--- METRICS ---")
+    print(hist.summary("rent_search"))
+
+    graph.dump()
 
 
 if __name__ == "__main__":
