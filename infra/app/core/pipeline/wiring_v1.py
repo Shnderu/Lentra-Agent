@@ -1,10 +1,11 @@
 from app.core.intent.intent_router_v1 import build_query
 from app.core.scenario.scenario_engine_v1 import run_scenario
 from app.core.adapters.rent_data_adapter_v1 import RentDataAdapterV1
+from app.core.pipeline.response_formatter_v1 import format_response
 
 
 # =========================
-# RANKING (v1 MONETIZATION LOGIC)
+# RANKING v1
 # =========================
 
 def rank_listings(listings):
@@ -14,11 +15,9 @@ def rank_listings(listings):
     def score(item):
         base = 0
 
-        # premium boost (монетизация будущая)
         if item.get("source") == "premium":
             base += 100
 
-        # price heuristic (чем более "валидная" цена — тем выше)
         price = item.get("price")
         if isinstance(price, (int, float)):
             if 500 <= price <= 2000:
@@ -28,7 +27,6 @@ def rank_listings(listings):
             else:
                 base += 10
 
-        # city match boost (если появится фильтр позже)
         if item.get("city"):
             base += 5
 
@@ -38,32 +36,26 @@ def rank_listings(listings):
 
 
 # =========================
-# CORE PIPELINE ADAPTER
+# PIPELINE
 # =========================
 
 async def execute_pipeline(query):
-    """
-    Domain execution layer v1:
-    real data + ranking + monetization hooks
-    """
-
     adapter = RentDataAdapterV1()
 
     listings = await adapter.get_rent_listings(query)
     ranked = rank_listings(listings)
 
     class Context:
-        def __init__(self, query, listings, ranked):
+        def __init__(self):
             self.query = query
             self.listings = listings
             self.ranked = ranked
-            self.insights = {}
 
-    return Context(query, listings, ranked)
+    return Context()
 
 
 # =========================
-# MAIN ENTRY (INTENT → SCENARIO → CORE)
+# ENTRY POINT
 # =========================
 
 async def execute(text: str, meta: dict | None = None, **kwargs):
@@ -76,4 +68,4 @@ async def execute(text: str, meta: dict | None = None, **kwargs):
         **kwargs
     )
 
-    return result
+    return format_response(result)
