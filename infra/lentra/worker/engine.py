@@ -8,8 +8,31 @@ from lentra.db.queue import PostgresQueue
 DB_DSN = os.getenv("DB_DSN")
 
 
+async def restore_stuck_tasks(pool):
+    async with pool.acquire() as conn:
+        result = await conn.execute(
+            """
+            UPDATE processing_queue
+            SET
+                status = 'pending',
+                updated_at = NOW()
+            WHERE
+                status = 'processing'
+                AND updated_at < NOW() - INTERVAL '10 minutes'
+            """
+        )
+
+    restored = int(result.split()[-1])
+
+    if restored > 0:
+        print(f"[WORKER] Restored {restored} stuck tasks")
+    else:
+        print("[WORKER] No stuck tasks found")
+
+
 async def process_task(task):
     task_type = task["task_type"]
+
     print(f"[WORKER] {task_type}")
 
     # simulate work
@@ -17,7 +40,14 @@ async def process_task(task):
 
 
 async def worker_loop():
-    pool = await asyncpg.create_pool(dsn=DB_DSN, min_size=1, max_size=10)
+    pool = await asyncpg.create_pool(
+        dsn=DB_DSN,
+        min_size=1,
+        max_size=10,
+    )
+
+    await restore_stuck_tasks(pool)
+
     queue = PostgresQueue(pool)
 
     print("[WORKER] STARTED")
@@ -32,28 +62,34 @@ async def worker_loop():
 
             try:
                 await process_task(task)
+
                 await queue.mark_done(task["id"])
 
             except Exception as e:
                 print("[WORKER TASK ERROR]", str(e))
                 traceback.print_exc()
 
-                await queue.mark_failed(task["id"], str(e))
+                await queue.mark_failed(
+                    task["id"],
+                    str(e),
+                )
 
         except Exception as e:
             print("[WORKER LOOP ERROR]", str(e))
             traceback.print_exc()
+
             await asyncio.sleep(2)
 
 
 async def main():
-    # HARD BLOCK main from exiting
     while True:
         try:
             await worker_loop()
+
         except Exception as e:
             print("[WORKER FATAL RESTART]", str(e))
             traceback.print_exc()
+
             await asyncio.sleep(3)
 
 
