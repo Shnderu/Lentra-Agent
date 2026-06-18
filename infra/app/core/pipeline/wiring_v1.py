@@ -1,27 +1,30 @@
 from app.core.intent.intent_router_v1 import build_query
 from app.core.scenario.scenario_engine_v1 import run_scenario
+from app.core.adapters.rent_data_adapter_v1 import RentDataAdapterV1
 
 
 # =========================
-# CORE PIPELINE ADAPTER (stub boundary)
+# CORE PIPELINE ADAPTER
 # =========================
 
 async def execute_pipeline(query):
     """
-    Единая точка входа в domain core v1.
-    Сейчас — stub.
-    Позже будет подключён:
-    - real estate adapters
-    - ranking engine
-    - normalizers
+    Domain execution layer v1:
+    теперь подключены реальные данные
     """
+
+    adapter = RentDataAdapterV1()
+
+    listings = await adapter.get_rent_listings(query)
+
     class Context:
-        def __init__(self, query):
+        def __init__(self, query, listings):
             self.query = query
+            self.listings = listings
             self.ranked = []
             self.insights = {}
 
-    return Context(query)
+    return Context(query, listings)
 
 
 # =========================
