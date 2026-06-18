@@ -1,10 +1,17 @@
-"""
-LEGACY ADAPTER LAYER
-Forwarding requests to lentra primary system.
-"""
+from fastapi import FastAPI
+from app.core.gateway.execution_entry_v1 import execute as gateway_execute
 
-from lentra.services.intelligence import handle_request
+app = FastAPI()
 
 
-def legacy_search(payload):
-    return handle_request(payload)
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
+@app.post("/execute")
+async def execute(payload: dict):
+    """
+    Единственная точка входа API → core gateway
+    """
+    return gateway_execute(payload)
