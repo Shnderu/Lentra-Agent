@@ -10,3 +10,7 @@ def create_app():
         return handle_request(payload)
 
     return app
+
+
+# 🔥 CRITICAL FIX: expose ASGI app for uvicorn
+app = create_app()

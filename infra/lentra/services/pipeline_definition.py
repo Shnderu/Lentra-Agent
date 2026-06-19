@@ -1,27 +1,32 @@
-from lentra.domain.search.engine import search_engine
-from lentra.domain.ranking.engine import rank_engine
-from lentra.domain.aggregation.engine import aggregate_engine
-from lentra.core.contracts.pipeline import Pipeline, PipelineStep
-from lentra.core.contracts.pipeline_lock import PipelineLock
+from lentra.core.router.multi_scenario_router_v1 import MultiScenarioRouterV1
+from lentra.core.scenario.composition_engine_v1 import composition_engine
+from lentra.core.graph.state_runtime_v1 import state_graph_runtime
+from lentra.core.scenario.scenario_engine_v1 import scenario_engine
 
 
-def build_pipeline():
+router = MultiScenarioRouterV1()
 
-    pipeline = Pipeline(steps=[
-        PipelineStep(
-            name="search",
-            handler=lambda inp, ctx: search_engine.search(inp["query"])
-        ),
-        PipelineStep(
-            name="ranking",
-            handler=lambda inp, ctx: rank_engine.rank(inp)
-        ),
-        PipelineStep(
-            name="aggregation",
-            handler=lambda inp, ctx: aggregate_engine.aggregate(inp)
-        )
-    ])
 
-    PipelineLock.lock()
+def build_pipeline(intent):
 
-    return pipeline
+    class Pipeline:
+        def execute(self, payload):
+
+            routed = router.route(intent)
+
+            plan = composition_engine.build(intent, routed.scenarios)
+
+            prev = None
+            for step in plan:
+                if prev:
+                    state_graph_runtime.add_edge(prev, step.scenario)
+                prev = step.scenario
+
+            result = state_graph_runtime.execute(intent, scenario_engine)
+
+            return {
+                "status": "ok",
+                "execution": result
+            }
+
+    return Pipeline()
