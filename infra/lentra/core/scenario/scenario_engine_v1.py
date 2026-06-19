@@ -9,15 +9,30 @@ class ScenarioEngineV1:
 
         if handler is None:
             return {
-                "error": f"scenario_not_found:{node}"
+                "data": {
+                    "error": f"scenario_not_found:{node}"
+                },
+                "next": []
             }
 
-        result = handler(state)
+        result = handler(state) or {}
 
-        if result is None:
-            result = {}
+        # -------------------------
+        # normalize output contract
+        # -------------------------
+        data = result.get("data", result)
+        nxt = result.get("next", [])
 
-        return result
+        # -------------------------
+        # mutate state (CRITICAL FIX)
+        # -------------------------
+        if isinstance(data, dict):
+            state.data.update(data)
+
+        return {
+            "data": data,
+            "next": nxt
+        }
 
     def execute(self, node, state):
         return self.execute_node(node, state)
