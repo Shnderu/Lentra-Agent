@@ -1,43 +1,23 @@
+from lentra.scenarios.registry import scenario_registry
+
+
 class ScenarioEngineV1:
 
     def execute_node(self, node, state):
 
-        enriched = {
-            "node": node,
-            "processed_intent": state.intent.get("name"),
-            "payload": state.intent.get("payload"),
-        }
+        handler = scenario_registry.get(node)
 
-        # -------------------------
-        # RENT FLOW
-        # -------------------------
-        if node == "rent_scenario_v1":
-
-            state.data["rent_analyzed"] = True
-
-            # FIX: stop implicit cascade unless condition met
-            if state.intent.get("name") != "rent_search":
-                return {"data": enriched}
-
+        if handler is None:
             return {
-                "data": enriched,
-                "next": ["pricing_scenario_v1"]  # explicit routing
+                "error": f"scenario_not_found:{node}"
             }
 
-        # -------------------------
-        # PRICING FLOW
-        # -------------------------
-        if node == "pricing_scenario_v1":
+        result = handler(state)
 
-            # only run if explicitly triggered OR routed
-            if not state.data.get("rent_analyzed"):
-                return {"data": enriched}
+        if result is None:
+            result = {}
 
-            state.data["pricing_checked"] = True
-
-            return {"data": enriched}
-
-        return {"data": enriched}
+        return result
 
     def execute(self, node, state):
         return self.execute_node(node, state)
