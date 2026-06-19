@@ -4,6 +4,7 @@ from lentra.core.contracts.state_contract_v1 import ExecutionStateV1
 from lentra.core.trace.execution_trace_v1 import ExecutionTraceV1
 from lentra.core.policy.scenario_policy_v1 import ScenarioPolicyV1
 from lentra.core.graph.guards.transition_guard_v1 import TransitionGuardV1
+from lentra.core.scenario.scenario_engine_v1 import scenario_engine
 from lentra.core.scoring.scenario_scoring_v1 import ScenarioScoringV1
 from lentra.core.conflict.conflict_resolver_v1 import ConflictResolverV1
 
@@ -11,39 +12,39 @@ from lentra.core.conflict.conflict_resolver_v1 import ConflictResolverV1
 class StateGraphRuntimeV1:
 
     def __init__(self):
-        self.edges = {}
         self.policy = ScenarioPolicyV1()
         self.guard = TransitionGuardV1()
         self.scorer = ScenarioScoringV1()
         self.conflict = ConflictResolverV1()
 
-    def add_edge(self, src, dst):
-
-        if src not in self.edges:
-            self.edges[src] = []
-
-        self.edges[src].append(dst)
-
-    def score_scenarios(self, intent):
+    # -------------------------
+    # PLAN LAYER (NEW v3)
+    # -------------------------
+    def build_execution_plan(self, intent):
 
         candidates = intent.get("scenarios", ["default_scenario_v1"])
 
         scored = []
-
         for sc in candidates:
             scored.append({
                 "name": sc,
                 "score": self.scorer.score(intent, sc)
             })
 
-        return scored
+        resolved = self.conflict.resolve(scored)
 
-    def select_execution_plan(self, intent):
+        primary = resolved.get("primary", {"name": "default_scenario_v1"})
+        secondary = resolved.get("secondary", [])
 
-        scored = self.score_scenarios(intent)
-        return self.conflict.resolve(scored)
+        return {
+            "primary": primary,
+            "secondary": secondary
+        }
 
-    def execute_scenario(self, start_node, state, node_executor, trace):
+    # -------------------------
+    # EXECUTION LAYER
+    # -------------------------
+    def execute_scenario(self, start_node, state, trace):
 
         visited = set()
 
@@ -63,9 +64,12 @@ class StateGraphRuntimeV1:
                     "data": dict(state.data)
                 }
 
-                result = node_executor.execute(node, state)
+                # ENGINE CALL (v2 contract)
+                result = scenario_engine.execute(node, state)
 
-                state.merge(result)
+                # APPLY STATE MUTATION
+                if result.data:
+                    state.data.update(result.data)
 
                 trace.record(
                     node=node,
@@ -73,9 +77,8 @@ class StateGraphRuntimeV1:
                     output_state=state.data
                 )
 
-                next_nodes = result.get("next", [])
-
-                for nxt in next_nodes:
+                # ROUTING CONTROL
+                for nxt in (result.next or []):
                     if self.guard.can_transition(node, nxt, state):
                         run(nxt, state)
 
@@ -93,7 +96,10 @@ class StateGraphRuntimeV1:
 
         return run(start_node, state)
 
-    def execute(self, intent, node_executor):
+    # -------------------------
+    # ENTRY POINT
+    # -------------------------
+    def execute(self, intent, node_executor=None):
 
         state = ExecutionStateV1(
             intent=intent if isinstance(intent, dict) else intent.__dict__
@@ -102,29 +108,23 @@ class StateGraphRuntimeV1:
         trace = ExecutionTraceV1()
 
         # -------------------------
-        # NEW: execution plan
+        # BUILD PLAN (NEW v3 CORE)
         # -------------------------
-        plan = self.select_execution_plan(state.intent)
+        plan = self.build_execution_plan(state.intent)
 
-        primary = plan["primary"]["name"] if plan["primary"] else "default_scenario_v1"
+        primary = plan["primary"]["name"]
 
-        # execute primary
-        final_state = self.execute_scenario(
-            primary,
-            state,
-            node_executor,
-            trace
-        )
+        # -------------------------
+        # PRIMARY EXECUTION
+        # -------------------------
+        final_state = self.execute_scenario(primary, state, trace)
 
-        # execute secondary (light execution)
+        # -------------------------
+        # SECONDARY EXECUTION (controlled)
+        # -------------------------
         for sc in plan["secondary"]:
-            if sc["score"] > 0.6:
-                self.execute_scenario(
-                    sc["name"],
-                    state,
-                    node_executor,
-                    trace
-                )
+            if sc.get("score", 0) > 0.6:
+                self.execute_scenario(sc["name"], state, trace)
 
         return {
             "entry": primary,
