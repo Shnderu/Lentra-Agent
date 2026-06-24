@@ -16,11 +16,8 @@ class StateGraphRuntimeV1:
         self.guard = TransitionGuardV1()
         self.scorer = ScenarioScoringV1()
         self.conflict = ConflictResolverV1()
-        self.edges = {}  # RESTORED
+        self.edges = {}
 
-    # -------------------------
-    # BACKWARD COMPATIBILITY FIX
-    # -------------------------
     def add_edge(self, src, dst):
         if src not in self.edges:
             self.edges[src] = []
@@ -28,46 +25,74 @@ class StateGraphRuntimeV1:
 
     def build_execution_plan(self, intent):
 
-        candidates = intent.get("scenarios", ["default_scenario_v1"])
+        candidates = intent.get(
+            "scenarios",
+            ["default_scenario_v1"]
+        )
 
         scored = []
+
         for sc in candidates:
-            scored.append({
-                "name": sc,
-                "score": self.scorer.score(intent, sc)
-            })
+            scored.append(
+                {
+                    "name": sc,
+                    "score": self.scorer.score(intent, sc)
+                }
+            )
 
         resolved = self.conflict.resolve(scored)
 
         return {
-            "primary": resolved.get("primary", {"name": "default_scenario_v1"}),
-            "secondary": resolved.get("secondary", [])
+            "primary": resolved.get(
+                "primary",
+                {"name": "default_scenario_v1"}
+            ),
+            "secondary": resolved.get(
+                "secondary",
+                []
+            )
         }
 
     def execute_scenario(self, start_node, state, trace):
 
         visited = set()
 
-        def run(node, state):
+        def run(node):
 
             try:
+
                 if node in visited:
-                    return state
+                    return
 
                 visited.add(node)
 
-                if not self.policy.should_run_node(node, state):
-                    return state
+                if not self.policy.should_run_node(
+                    node,
+                    state
+                ):
+                    return
 
                 before = {
                     "intent": state.intent,
                     "data": dict(state.data)
                 }
 
-                result = scenario_engine.execute(node, state)
+                result = scenario_engine.execute(
+                    node,
+                    state
+                )
 
-                data = getattr(result, "data", {}) or {}
-                next_nodes = getattr(result, "next", []) or []
+                data = getattr(
+                    result,
+                    "data",
+                    {}
+                ) or {}
+
+                next_nodes = getattr(
+                    result,
+                    "next",
+                    []
+                ) or []
 
                 if isinstance(data, dict):
                     state.data.update(data)
@@ -75,44 +100,78 @@ class StateGraphRuntimeV1:
                 trace.record(
                     node=node,
                     input_state=before,
-                    output_state=state.data
+                    output_state=dict(state.data)
                 )
 
                 for nxt in next_nodes:
-                    if self.guard.can_transition(node, nxt, state):
-                        run(nxt, state)
 
-                return state
+                    if self.guard.can_transition(
+                        node,
+                        nxt,
+                        state
+                    ):
+                        run(nxt)
 
-            except Exception as e:
+            except Exception:
 
                 trace.record(
                     node=node,
-                    input_state={"error": str(e)},
-                    output_state={"traceback": traceback.format_exc()}
+                    input_state={
+                        "error": "execution_failed"
+                    },
+                    output_state={
+                        "traceback": traceback.format_exc()
+                    }
                 )
 
-                raise e
+                raise
 
-        return run(start_node, state)
+        run(start_node)
+
+        return state
 
     def execute(self, intent, node_executor=None):
 
         state = ExecutionStateV1(
-            intent=intent if isinstance(intent, dict) else intent.__dict__
+            intent=intent
+            if isinstance(intent, dict)
+            else intent.__dict__
         )
 
         trace = ExecutionTraceV1()
 
-        plan = self.build_execution_plan(state.intent)
+        plan = self.build_execution_plan(
+            state.intent
+        )
 
         primary = plan["primary"]["name"]
 
-        final_state = self.execute_scenario(primary, state, trace)
+        final_state = self.execute_scenario(
+            primary,
+            state,
+            trace
+        )
+
+        executed_nodes = {
+            item["node"]
+            for item in trace.export()
+        }
 
         for sc in plan["secondary"]:
-            if sc.get("score", 0) > 0.6:
-                self.execute_scenario(sc["name"], state, trace)
+
+            scenario_name = sc["name"]
+
+            if sc.get("score", 0) <= 0.6:
+                continue
+
+            if scenario_name in executed_nodes:
+                continue
+
+            self.execute_scenario(
+                scenario_name,
+                state,
+                trace
+            )
 
         return {
             "entry": primary,
