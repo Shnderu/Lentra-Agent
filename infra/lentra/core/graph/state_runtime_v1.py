@@ -16,10 +16,16 @@ class StateGraphRuntimeV1:
         self.guard = TransitionGuardV1()
         self.scorer = ScenarioScoringV1()
         self.conflict = ConflictResolverV1()
+        self.edges = {}  # RESTORED
 
     # -------------------------
-    # PLAN LAYER (NEW v3)
+    # BACKWARD COMPATIBILITY FIX
     # -------------------------
+    def add_edge(self, src, dst):
+        if src not in self.edges:
+            self.edges[src] = []
+        self.edges[src].append(dst)
+
     def build_execution_plan(self, intent):
 
         candidates = intent.get("scenarios", ["default_scenario_v1"])
@@ -33,17 +39,11 @@ class StateGraphRuntimeV1:
 
         resolved = self.conflict.resolve(scored)
 
-        primary = resolved.get("primary", {"name": "default_scenario_v1"})
-        secondary = resolved.get("secondary", [])
-
         return {
-            "primary": primary,
-            "secondary": secondary
+            "primary": resolved.get("primary", {"name": "default_scenario_v1"}),
+            "secondary": resolved.get("secondary", [])
         }
 
-    # -------------------------
-    # EXECUTION LAYER
-    # -------------------------
     def execute_scenario(self, start_node, state, trace):
 
         visited = set()
@@ -64,12 +64,13 @@ class StateGraphRuntimeV1:
                     "data": dict(state.data)
                 }
 
-                # ENGINE CALL (v2 contract)
                 result = scenario_engine.execute(node, state)
 
-                # APPLY STATE MUTATION
-                if result.data:
-                    state.data.update(result.data)
+                data = getattr(result, "data", {}) or {}
+                next_nodes = getattr(result, "next", []) or []
+
+                if isinstance(data, dict):
+                    state.data.update(data)
 
                 trace.record(
                     node=node,
@@ -77,8 +78,7 @@ class StateGraphRuntimeV1:
                     output_state=state.data
                 )
 
-                # ROUTING CONTROL
-                for nxt in (result.next or []):
+                for nxt in next_nodes:
                     if self.guard.can_transition(node, nxt, state):
                         run(nxt, state)
 
@@ -96,9 +96,6 @@ class StateGraphRuntimeV1:
 
         return run(start_node, state)
 
-    # -------------------------
-    # ENTRY POINT
-    # -------------------------
     def execute(self, intent, node_executor=None):
 
         state = ExecutionStateV1(
@@ -107,21 +104,12 @@ class StateGraphRuntimeV1:
 
         trace = ExecutionTraceV1()
 
-        # -------------------------
-        # BUILD PLAN (NEW v3 CORE)
-        # -------------------------
         plan = self.build_execution_plan(state.intent)
 
         primary = plan["primary"]["name"]
 
-        # -------------------------
-        # PRIMARY EXECUTION
-        # -------------------------
         final_state = self.execute_scenario(primary, state, trace)
 
-        # -------------------------
-        # SECONDARY EXECUTION (controlled)
-        # -------------------------
         for sc in plan["secondary"]:
             if sc.get("score", 0) > 0.6:
                 self.execute_scenario(sc["name"], state, trace)
