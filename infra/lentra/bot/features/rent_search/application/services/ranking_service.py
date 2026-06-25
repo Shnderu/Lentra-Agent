@@ -27,7 +27,6 @@ class RankingService:
         def normalize_city(city: str | None):
             if not city:
                 return None
-
             return self.CITY_ALIASES.get(
                 city.lower().strip(),
                 city.lower().strip()
@@ -42,18 +41,24 @@ class RankingService:
             if context.city and item_city == context.city:
                 s += 50
 
-            # ✅ теперь используем нормализованную цену
+            # -------------------------
+            # PRICE SCORE (NEW LOGIC)
+            # -------------------------
             if item.price_value is not None:
 
-                if context.min_price is not None:
-                    if item.price_value >= context.min_price:
-                        s += 10
+                if (
+                    context.min_price is not None
+                    and item.price_value >= context.min_price
+                ):
+                    s += 10
 
-                if context.max_price is not None:
-                    if item.price_value <= context.max_price:
-                        s += 10
+                if (
+                    context.max_price is not None
+                    and item.price_value <= context.max_price
+                ):
+                    s += 10
 
-            # базовый вес
+            # base weight
             s += 1
 
             return s

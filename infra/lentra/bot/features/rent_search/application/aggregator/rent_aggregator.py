@@ -3,7 +3,7 @@ import asyncio
 
 from lentra.bot.features.rent_search.providers.base.provider import RentProvider
 from lentra.bot.features.rent_search.application.dto.search_context import SearchContext
-from lentra.bot.features.rent_search.contracts import RentSearchItem
+from lentra.bot.features.rent_search.contracts.rent_item import RentSearchItem
 from lentra.bot.features.rent_search.application.services.normalizer import RentNormalizer
 
 
@@ -29,19 +29,15 @@ class RentAggregator:
                 continue
             items.extend(r)
 
-        # -------------------------
-        # NORMALIZATION STEP (NEW)
-        # -------------------------
-        normalized = []
+        # NORMALIZATION STEP (CRITICAL)
+        normalized: List[RentSearchItem] = []
+
         for item in items:
-            try:
-                normalized.append(
-                    self.normalizer.normalize(
-                        item,
-                        country=context.country
-                    )
+            normalized.append(
+                self.normalizer.normalize(
+                    item=item,
+                    country=getattr(context, "country", None)
                 )
-            except Exception:
-                normalized.append(item)
+            )
 
         return normalized
