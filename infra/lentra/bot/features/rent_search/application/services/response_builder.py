@@ -2,24 +2,27 @@ from lentra.bot.features.rent_search.application.dto.search_context import Searc
 
 
 class ResponseBuilder:
-    """
-    Формирует финальный текст ответа пользователю
-    """
 
     def build(self, context: SearchContext, items) -> str:
 
         header = (
-            f"🏠 Rent search result\n"
-            f"Query: {context.raw_query}\n"
-            f"City: {context.city or 'any'}\n\n"
+            f"🏠 Lentra Rent Search\n"
+            f"Запрос: {context.raw_query}\n"
+            f"Страна: {context.country or 'any'}\n"
+            f"Город: {context.city or 'any'}\n\n"
         )
 
         if not items:
-            return header + "No results found"
+            return header + "Объекты не найдены"
 
-        body = "\n".join(
-            f"• {i.title} | {i.price} | {i.city}"
-            for i in items
-        )
+        lines = []
 
-        return header + body
+        for item in items[:20]:
+
+            lines.append(
+                f"• {item.title}\n"
+                f"  💰 {item.price}\n"
+                f"  📍 {item.city}\n"
+            )
+
+        return header + "\n".join(lines)

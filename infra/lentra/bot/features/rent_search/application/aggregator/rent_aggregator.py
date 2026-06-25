@@ -1,5 +1,7 @@
 from typing import List
-from lentra.bot.features.rent_search.providers.base import RentProvider
+import asyncio
+
+from lentra.bot.features.rent_search.providers.base.provider import RentProvider
 from lentra.bot.features.rent_search.contracts import RentSearchItem
 from lentra.bot.features.rent_search.application.dto.search_context import SearchContext
 
@@ -9,15 +11,20 @@ class RentAggregator:
     def __init__(self, providers: List[RentProvider]):
         self.providers = providers
 
-    def search(self, context: SearchContext) -> List[RentSearchItem]:
+    async def search(self, context: SearchContext) -> List[RentSearchItem]:
 
-        results: List[RentSearchItem] = []
+        tasks = [
+            provider.search(context)
+            for provider in self.providers
+        ]
 
-        for provider in self.providers:
-            try:
-                results.extend(provider.search(context))
-            except Exception:
-                # пока fail-safe
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        items: List[RentSearchItem] = []
+
+        for r in results:
+            if isinstance(r, Exception):
                 continue
+            items.extend(r)
 
-        return results
+        return items
