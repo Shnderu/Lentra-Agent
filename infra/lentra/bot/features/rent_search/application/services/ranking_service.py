@@ -24,8 +24,7 @@ class RankingService:
         context: SearchContext
     ) -> List[RentSearchItem]:
 
-        def normalize_city(city):
-
+        def normalize_city(city: str | None):
             if not city:
                 return None
 
@@ -34,37 +33,29 @@ class RankingService:
                 city.lower().strip()
             )
 
-        def score(item):
+        def score(item: RentSearchItem):
 
             s = 0.0
 
-            item_city = normalize_city(
-                getattr(item, "city", None)
-            )
+            item_city = normalize_city(getattr(item, "city", None))
 
             if context.city and item_city == context.city:
                 s += 50
 
+            # ✅ теперь используем нормализованную цену
             if item.price_value is not None:
 
-                if (
-                    context.min_price is not None
-                    and item.price_value >= context.min_price
-                ):
-                    s += 10
+                if context.min_price is not None:
+                    if item.price_value >= context.min_price:
+                        s += 10
 
-                if (
-                    context.max_price is not None
-                    and item.price_value <= context.max_price
-                ):
-                    s += 10
+                if context.max_price is not None:
+                    if item.price_value <= context.max_price:
+                        s += 10
 
+            # базовый вес
             s += 1
 
             return s
 
-        return sorted(
-            items,
-            key=score,
-            reverse=True
-        )
+        return sorted(items, key=score, reverse=True)

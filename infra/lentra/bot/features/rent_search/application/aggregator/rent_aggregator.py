@@ -2,11 +2,9 @@ from typing import List
 import asyncio
 
 from lentra.bot.features.rent_search.providers.base.provider import RentProvider
-from lentra.bot.features.rent_search.contracts import RentSearchItem
 from lentra.bot.features.rent_search.application.dto.search_context import SearchContext
-
+from lentra.bot.features.rent_search.contracts import RentSearchItem
 from lentra.bot.features.rent_search.application.services.normalizer import RentNormalizer
-from lentra.bot.features.rent_search.application.services.deduplicator import RentDeduplicator
 
 
 class RentAggregator:
@@ -14,39 +12,36 @@ class RentAggregator:
     def __init__(self, providers: List[RentProvider]):
         self.providers = providers
         self.normalizer = RentNormalizer()
-        self.deduplicator = RentDeduplicator()
 
-    async def search(
-        self,
-        context: SearchContext
-    ) -> List[RentSearchItem]:
+    async def search(self, context: SearchContext) -> List[RentSearchItem]:
 
         tasks = [
             provider.search(context)
             for provider in self.providers
         ]
 
-        results = await asyncio.gather(
-            *tasks,
-            return_exceptions=True
-        )
+        results = await asyncio.gather(*tasks, return_exceptions=True)
 
         items: List[RentSearchItem] = []
 
-        for result in results:
-
-            if isinstance(result, Exception):
+        for r in results:
+            if isinstance(r, Exception):
                 continue
+            items.extend(r)
 
-            for item in result:
-
-                normalized = self.normalizer.normalize(
-                    item=item,
-                    country=context.country
+        # -------------------------
+        # NORMALIZATION STEP (NEW)
+        # -------------------------
+        normalized = []
+        for item in items:
+            try:
+                normalized.append(
+                    self.normalizer.normalize(
+                        item,
+                        country=context.country
+                    )
                 )
+            except Exception:
+                normalized.append(item)
 
-                items.append(normalized)
-
-        items = self.deduplicator.deduplicate(items)
-
-        return items
+        return normalized

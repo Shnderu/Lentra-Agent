@@ -6,6 +6,8 @@ from lentra.bot.features.rent_search.contracts.rent_item import RentSearchItem
 
 class ThailandProvider(RentProvider):
 
+    country = "thailand"
+
     def search(self, context: SearchContext) -> List[RentSearchItem]:
 
         if context.country != "thailand":

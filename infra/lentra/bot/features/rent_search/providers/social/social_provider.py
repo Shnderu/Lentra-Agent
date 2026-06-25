@@ -6,6 +6,8 @@ from lentra.bot.features.rent_search.contracts.rent_item import RentSearchItem
 
 class SocialProvider(RentProvider):
 
+    country = None  # глобальный источник (пока)
+
     def search(self, context: SearchContext) -> List[RentSearchItem]:
 
         # пока stub, позже Telegram/FB scraping

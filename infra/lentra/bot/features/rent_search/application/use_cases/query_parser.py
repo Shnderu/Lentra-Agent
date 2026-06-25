@@ -1,32 +1,34 @@
 import re
-
 from lentra.bot.features.rent_search.application.dto.search_context import SearchContext
 
 
 class QueryParser:
+    """
+    Преобразует сырой текст в структурированный SearchContext
+    """
 
-    CITY_MAP = {
-        "nha trang": ("nha_trang", "vietnam"),
-        "nhatrang": ("nha_trang", "vietnam"),
-        "дананг": ("da_nang", "vietnam"),
-        "da nang": ("da_nang", "vietnam"),
-        "danang": ("da_nang", "vietnam"),
-        "сайгон": ("ho_chi_minh", "vietnam"),
-        "ho chi minh": ("ho_chi_minh", "vietnam"),
-        "hcmc": ("ho_chi_minh", "vietnam"),
-        "ханой": ("hanoi", "vietnam"),
-        "hanoi": ("hanoi", "vietnam"),
+    CITY_ALIASES = {
+        "da nang": "da_nang",
+        "danang": "da_nang",
+        "nha trang": "nha_nang",
+        "ho chi minh": "ho_chi_minh",
+        "saigon": "ho_chi_minh",
+        "hanoi": "hanoi",
+        "bangkok": "bangkok",
+        "phuket": "phuket",
+        "chiang mai": "chiang_mai",
+    }
 
-        "bangkok": ("bangkok", "thailand"),
-        "phuket": ("phuket", "thailand"),
-        "chiang mai": ("chiang_mai", "thailand"),
+    COUNTRY_ALIASES = {
+        "thailand": "thailand",
+        "vietnam": "vietnam",
     }
 
     def parse(self, raw_query: str) -> SearchContext:
-
         query = raw_query.lower().strip()
 
-        city, country = self._extract_location(query)
+        city = self._extract_city(query)
+        country = self._extract_country(query)
 
         min_price, max_price = self._extract_price(query)
 
@@ -38,35 +40,37 @@ class QueryParser:
             city=city,
             country=country,
             min_price=min_price,
-            max_price=max_price,
+            max_price=max_price
         )
 
-    def _extract_location(self, text: str):
+    def _extract_city(self, text: str):
+        cities = list(self.CITY_ALIASES.keys())
 
-        for key, value in self.CITY_MAP.items():
-            if key in text:
-                return value
+        for c in cities:
+            if c in text:
+                return self.CITY_ALIASES[c]
 
-        return None, None
+        return None
+
+    def _extract_country(self, text: str):
+        countries = list(self.COUNTRY_ALIASES.keys())
+
+        for c in countries:
+            if c in text:
+                return self.COUNTRY_ALIASES[c]
+
+        # fallback: если есть city → infer country минимально
+        if "da_nang" in text or "ho_chi_minh" in text or "hanoi" in text:
+            return "vietnam"
+
+        return None
 
     def _extract_price(self, text: str):
-
         match = re.search(r"(\d+)\s*-\s*(\d+)", text)
-
         if match:
-            return (
-                int(match.group(1)),
-                int(match.group(2))
-            )
-
+            return int(match.group(1)), int(match.group(2))
         return None, None
 
-    def _clean(self, text: str):
-
-        text = re.sub(
-            r"\d+\s*-\s*\d+",
-            "",
-            text
-        )
-
+    def _clean(self, text: str) -> str:
+        text = re.sub(r"\d+\s*-\s*\d+", "", text)
         return text.strip()
