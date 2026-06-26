@@ -1,17 +1,11 @@
-from fastapi import FastAPI
-from app.core.gateway.execution_entry_v1 import execute as gateway_execute
+"""
+DEPRECATED API SERVER WRAPPER
+"""
 
-app = FastAPI()
+# LEGACY GATEWAY REMOVED
+# All execution moved to lentra.core.gateway
 
-
-@app.get("/health")
-def health():
-    return {"status": "ok"}
-
-
-@app.post("/execute")
-async def execute(payload: dict):
-    """
-    Единственная точка входа API → core gateway
-    """
-    return gateway_execute(payload)
+def gateway_execute(*args, **kwargs):
+    raise RuntimeError(
+        "Legacy gateway disabled. Use lentra.core.gateway.FlowGlue"
+    )

@@ -1,15 +1,19 @@
-class SystemBoundary:
-    """
-    Single source of truth for system ownership.
-    """
+ALLOWED_RUNTIME_IMPORTS = {
+    "lentra.core.gateway",
+    "lentra.core.intent",
+    "lentra.core.scenario",
+    "lentra.core.registry",
+    "lentra.core.graph",
+    "lentra.core.guards",
+}
 
-    PRIMARY_SYSTEM = "lentra"
-    LEGACY_EXECUTION_LAYER = "app.core.graph"
 
-    @staticmethod
-    def is_core(module: str) -> bool:
-        return module.startswith("lentra.")
+def is_allowed(module: str) -> bool:
+    return any(module.startswith(p) for p in ALLOWED_RUNTIME_IMPORTS)
 
-    @staticmethod
-    def is_legacy(module: str) -> bool:
-        return module.startswith("app.core")
+
+def assert_no_legacy_import(module: str):
+    if module.startswith("app.core"):
+        raise ImportError(
+            "[SEAL] LEGACY LAYER IS DEPRECATED"
+        )

@@ -1,4 +1,4 @@
-from app.core.memory.db import MemoryDB
+from lentra.core.memory.db import MemoryDB
 
 
 class ContextInjector:

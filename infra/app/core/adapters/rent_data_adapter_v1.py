@@ -1,5 +1,5 @@
-from app.core.adapters.fake_real_estate_api import FakeRealEstateAPI
-from app.core.adapters.mock_rent_adapter import MockRentAdapter
+from lentra.core.adapters.fake_real_estate_api import FakeRealEstateAPI
+from lentra.core.adapters.mock_rent_adapter import MockRentAdapter
 
 
 # =========================

@@ -6,7 +6,7 @@ from lentra.core.contracts.pipeline_lock import PipelineLock
 from lentra.core.graph.compiler.compiler import ArchitectureCompiler
 
 # 🔥 SINGLE SOURCE OF TRUTH
-from app.core.gateway.execution_entry_v1 import init as gateway_init
+from lentra.core.gateway.execution_entry_v1 import init as gateway_init
 from lentra.bot.core.intent_router import IntentRouter
 from lentra.core.scenario.scenario_engine_v1 import ScenarioEngineV1
 

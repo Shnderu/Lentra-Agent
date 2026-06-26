@@ -1,4 +1,4 @@
-from app.core.session.memory_store import MemoryStore
+from lentra.core.session.memory_store import MemoryStore
 
 
 class SessionManager:

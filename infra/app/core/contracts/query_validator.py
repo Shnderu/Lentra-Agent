@@ -1,4 +1,4 @@
-from app.core.contracts.query_options import QueryOptions
+from lentra.core.contracts.query_options import QueryOptions
 
 
 class QueryValidator:

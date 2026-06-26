@@ -1,14 +1,11 @@
-from app.intent.router import IntentRouter
-from app.core.scenario.scenario_engine_v1 import ScenarioEngineV1
+from lentra.core.di.container import build_container
 
 
-def init_gateway():
+def build_gateway():
     """
-    FIX: гарантируем корректную инициализацию dependency graph
+    Worker gateway is now fully DI-driven.
+    No partial arguments allowed.
     """
-    scenario_engine = ScenarioEngineV1()
+    container = build_container()
 
-    # FIX: router теперь без registry/ctx ошибок
-    intent_router = IntentRouter()
-
-    return intent_router, scenario_engine
+    return container

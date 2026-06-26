@@ -1,7 +1,7 @@
 import time
-from app.core.observability.metrics_store import MetricsStore
-from app.core.observability.anomaly_detector import AnomalyDetector
-from app.core.adaptive.tuner import AdaptiveTuner
+from lentra.core.observability.metrics_store import MetricsStore
+from lentra.core.observability.anomaly_detector import AnomalyDetector
+from lentra.core.adaptive.tuner import AdaptiveTuner
 
 
 class Tracer:

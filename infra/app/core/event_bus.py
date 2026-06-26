@@ -1,6 +1,6 @@
-from app.core.graph.execution_graph import ExecutionGraph
-from app.core.graph.engine import GraphEngine
-from app.core.graph.build_graph import build_graph
+from lentra.core.graph.execution_graph import ExecutionGraph
+from lentra.core.graph.engine import GraphEngine
+from lentra.core.graph.build_graph import build_graph
 
 
 class EventBus:

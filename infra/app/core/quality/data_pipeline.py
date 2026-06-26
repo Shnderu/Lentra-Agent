@@ -1,5 +1,5 @@
-from app.core.quality.data_normalizer import DataNormalizer
-from app.core.quality.deduplicator import Deduplicator
+from lentra.core.quality.data_normalizer import DataNormalizer
+from lentra.core.quality.deduplicator import Deduplicator
 
 
 class DataPipeline:

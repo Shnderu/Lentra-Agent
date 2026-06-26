@@ -1,7 +1,7 @@
-from app.core.intent.intent_router_v1 import build_query
-from app.core.scenario.scenario_engine_v1 import run_scenario
-from app.core.adapters.rent_data_adapter_v1 import RentDataAdapterV1
-from app.core.pipeline.response_formatter_v1 import format_response
+from lentra.core.intent.intent_router_v1 import build_query
+from lentra.core.scenario.scenario_engine_v1 import run_scenario
+from lentra.core.adapters.rent_data_adapter_v1 import RentDataAdapterV1
+from lentra.core.pipeline.response_formatter_v1 import format_response
 
 
 # =========================

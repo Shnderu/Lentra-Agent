@@ -1,18 +1,20 @@
-# ============================================================
-# WORKER ENTRYPOINT V17.2
-# ============================================================
-
 import asyncio
-from lentra.deployment.worker_pool.pool import WorkerPool
-
-
-async def process(task):
-    print(f"[WORKER] processing {task}")
+from lentra.core.di.container import build_container
 
 
 async def main():
-    pool = WorkerPool(workers=5)
-    await pool.start(process)
+    container = build_container()
+
+    flow = container["flow_glue"]
+    engine = container["execution_engine"]
+
+    print("[WORKER] STARTED OK")
+
+    result = engine.run(flow)
+
+    print("[WORKER] RESULT:", result)
+
+    return result
 
 
 if __name__ == "__main__":

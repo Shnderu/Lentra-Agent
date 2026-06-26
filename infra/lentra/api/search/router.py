@@ -1,4 +1,4 @@
-from lentra.application.search.pipeline import execute_search
+from lentralication.search.pipeline import execute_search
 from lentra.api.schemas.search_request import SearchRequest
 from lentra.api.schemas.search_response import SearchResponse, PropertyResponse
 

@@ -1,5 +1,5 @@
 from typing import Dict, Any, List
-from app.core.models import ListingDTO
+from lentra.core.models import ListingDTO
 
 
 class ListingNormalizer:

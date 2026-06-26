@@ -1,5 +1,5 @@
-from app.core.graph.node import GraphNode
-from app.core.handlers import (
+from lentra.core.graph.node import GraphNode
+from lentra.core.handlers import (
     rent_intelligence_handler,
     rent_fetch_handler,
     rent_aggregate_handler,

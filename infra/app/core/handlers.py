@@ -1,12 +1,12 @@
-from app.core.rent_intelligence import RentIntelligenceEngine
-from app.core.adapters.mock_rent_adapter import MockRentAdapter
-from app.core.adapters.fake_real_estate_api import FakeRealEstateAPI
-from app.core.aggregation.rent_aggregator import RentAggregator
-from app.core.source_health import SourceHealth
-from app.core.context.context_injector import ContextInjector
-from app.core.contracts.query_options import QueryOptions
-from app.core.contracts.query_validator import QueryValidator
-from app.core.ux.response_serializer import ResponseSerializer
+from lentra.core.rent_intelligence import RentIntelligenceEngine
+from lentra.core.adapters.mock_rent_adapter import MockRentAdapter
+from lentra.core.adapters.fake_real_estate_api import FakeRealEstateAPI
+from lentra.core.aggregation.rent_aggregator import RentAggregator
+from lentra.core.source_health import SourceHealth
+from lentra.core.context.context_injector import ContextInjector
+from lentra.core.contracts.query_options import QueryOptions
+from lentra.core.contracts.query_validator import QueryValidator
+from lentra.core.ux.response_serializer import ResponseSerializer
 import time
 
 

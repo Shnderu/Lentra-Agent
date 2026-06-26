@@ -1,4 +1,4 @@
-from app.core.graph.node import GraphNode
+from lentra.core.graph.node import GraphNode
 
 
 class ExecutionGraph:

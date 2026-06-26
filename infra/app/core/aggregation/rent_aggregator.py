@@ -1,6 +1,6 @@
 from typing import List
-from app.core.quality.data_pipeline import DataPipeline
-from app.core.ranking.advanced_ranker import AdvancedRanker
+from lentra.core.quality.data_pipeline import DataPipeline
+from lentra.core.ranking.advanced_ranker import AdvancedRanker
 
 
 class RentAggregator:

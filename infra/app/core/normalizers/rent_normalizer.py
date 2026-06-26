@@ -1,5 +1,5 @@
 from typing import List, Dict
-from app.core.contracts.listing_dto import ListingDTO
+from lentra.core.contracts.listing_dto import ListingDTO
 
 
 class RentNormalizer:

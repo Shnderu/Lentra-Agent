@@ -1,4 +1,4 @@
-from app.core.contracts.api_response import APIResponse
+from lentra.core.contracts.api_response import APIResponse
 
 
 class ResponseSerializer:

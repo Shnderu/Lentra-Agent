@@ -1,4 +1,4 @@
-from app.core.observability.alerts.alert_manager import AlertManager
+from lentra.core.observability.alerts.alert_manager import AlertManager
 
 
 class AnomalyDetector:

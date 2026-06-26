@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import List, Optional
-from app.core.contracts.listing_dto import ListingDTO
+from lentra.core.contracts.listing_dto import ListingDTO
 
 
 @dataclass

@@ -1,7 +1,7 @@
 import time
 from lentra.domain.property.search import search_properties
-from lentra.application.contracts.guards import safe_get_payload
-from lentra.application.search.logger import log_search
+from lentralication.contracts.guards import safe_get_payload
+from lentralication.search.logger import log_search
 
 
 def execute_search(event: dict, state=None):

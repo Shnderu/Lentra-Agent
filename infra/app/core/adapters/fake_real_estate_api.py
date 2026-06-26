@@ -1,8 +1,8 @@
 import time
 import random
 from typing import List
-from app.core.contracts.source_contract import BaseRentSource
-from app.core.contracts.listing_dto import ListingDTO
+from lentra.core.contracts.source_contract import BaseRentSource
+from lentra.core.contracts.listing_dto import ListingDTO
 
 
 class FakeRealEstateAPI(BaseRentSource):

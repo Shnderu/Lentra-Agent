@@ -1,4 +1,4 @@
-from lentra.application.search.pipeline import execute_search
+from lentralication.search.pipeline import execute_search
 
 
 def route(chat_id, event):
