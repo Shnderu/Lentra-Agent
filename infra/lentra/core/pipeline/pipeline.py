@@ -1,4 +1,6 @@
 from lentra.core.parsing.query_parser import parse_query
+from lentra.core.geo.v2.router.geo_router import GeoRouterV2
+
 from lentra.core.data.fetcher import fetch_listings
 from lentra.core.normalization.normalizer import normalize
 from lentra.core.dedup.deduplicator import deduplicate
@@ -10,6 +12,9 @@ from lentra.core.response.builder import build_response
 
 class LentraPipeline:
 
+    def __init__(self):
+        self.geo = GeoRouterV2()
+
     def run(self, text: str):
 
         print("[PIPELINE] INPUT:", text)
@@ -17,20 +22,20 @@ class LentraPipeline:
         query = parse_query(text)
         print("[PIPELINE] QUERY:", query)
 
+        # GEO ROUTING V2 (NEW)
+        query = self.geo.route(query)
+        print("[PIPELINE] GEO:", query)
+
         listings = fetch_listings(query)
         listings = normalize(listings)
         listings = deduplicate(listings)
 
-        market = estimate_market_price(query, listings)
+        market = estimate_market_price(listings, query)
 
         listings = score_risk(listings, market)
         listings = rank_listings(listings)
 
-        response = build_response(
-            [l.to_dict() for l in listings],
-            market,
-            query
-        )
+        response = build_response(listings, market, query)
 
         print("[PIPELINE] DONE")
 
