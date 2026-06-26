@@ -8,8 +8,8 @@ from lentra.core.risk.risk_scorer import score_risk
 
 from lentra.core.v2.market.market_intelligence import MarketIntelligenceV2
 from lentra.core.v2.risk.risk_engine import RiskEngineV2
-
 from lentra.core.v2.ranking.ranker_v2 import RankerV2
+from lentra.core.v2.area.expat_area_score import ExpatAreaScoreV2
 
 from lentra.core.response.builder import build_response
 
@@ -20,6 +20,7 @@ class LentraPipeline:
         self.market_v2 = MarketIntelligenceV2()
         self.risk_v2 = RiskEngineV2()
         self.ranker_v2 = RankerV2()
+        self.area_v2 = ExpatAreaScoreV2()
 
     def run(self, text: str):
 
@@ -37,25 +38,29 @@ class LentraPipeline:
 
         print("[PIPELINE] MARKET V2 ACTIVE")
 
-        # v1 risk
-        listings = score_risk(listings)
+        listings_v1 = score_risk(listings)
 
-        # attach v2 risk signals
         enriched = []
-        for item in listings:
+        for item in listings_v1:
+
+            # v2 risk
             try:
-                v2 = self.risk_v2.score(item, market_v2)
-                item["risk_v2"] = v2
-                item["risk_score"] = v2["risk_score"]
-            except Exception as e:
-                print("[V2 RISK ERROR]", e)
+                v2_risk = self.risk_v2.score(item, market_v2)
+                item["risk_score"] = v2_risk["risk_score"]
+                item["risk_v2"] = v2_risk
+            except Exception:
                 item["risk_score"] = item.get("risk_score", 0)
+
+            # area score
+            try:
+                item["area_v2"] = self.area_v2.score(item)
+            except Exception:
+                item["area_v2"] = None
 
             enriched.append(item)
 
         listings = enriched
 
-        # v2 ranking
         listings = self.ranker_v2.rank(listings, market_v2)
 
         response = build_response(listings, market_v2, query)
