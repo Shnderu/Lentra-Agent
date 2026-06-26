@@ -2,81 +2,36 @@ import asyncio
 import asyncpg
 import os
 import traceback
-import json
 
 from app.core.gateway.execution_entry_v1 import execute as gateway_execute
 from lentra.db.queue import PostgresQueue
-from lentra.services.telegram_notifier import TelegramNotifier
 
 DB_DSN = os.getenv("DB_DSN")
-
-# =========================
-# DELIVERY LAYER (NEW)
-# =========================
-notifier = TelegramNotifier()
-notifier.start()
-
-
-def _extract_chat_id(task: dict):
-    """
-    Safe extraction from different payload formats
-    """
-    try:
-        payload = task.get("payload", {})
-        if isinstance(payload, str):
-            payload = json.loads(payload)
-
-        return payload.get("chat_id")
-    except Exception:
-        return None
-
-
-def _render_result(result: dict) -> str:
-    """
-    Minimal renderer (can be replaced later with UX layer)
-    """
-    if not result:
-        return "Пустой результат"
-
-    if isinstance(result, dict):
-        if result.get("type") == "rent_search":
-            items = result.get("results", [])
-            return "\n".join(
-                f"🏠 {i.get('title', 'no-title')} | {i.get('price', '')}"
-                for i in items[:5]
-            )
-
-        if result.get("type") == "fallback":
-            return "⚠️ fallback сценарий"
-
-    return str(result)
 
 
 async def process_task(task):
     """
-    All flows go through gateway + delivery
+    Все задачи теперь идут через единый gateway
     """
-
     result = gateway_execute(task)
-
     print(f"[WORKER] {task['task_type']} -> {result.get('ok', True)}")
-    print("[WORKER RESULT RAW]:", result)
 
-    # =========================
-    # TELEGRAM DELIVERY FIX
-    # =========================
-    chat_id = _extract_chat_id(task)
 
-    if chat_id:
-        try:
-            text = _render_result(result)
-            notifier.send(chat_id, text)
-            print(f"[WORKER] TELEGRAM SENT -> chat_id={chat_id}")
-        except Exception as e:
-            print("[WORKER TELEGRAM ERROR]", str(e))
-            traceback.print_exc()
-    else:
-        print("[WORKER] NO CHAT_ID FOUND - SKIP DELIVERY")
+async def init_gateway():
+    """
+    FIX: IntentRouter теперь требует registry
+    """
+    from lentra.bot.core.container import Container
+    from lentra.bot.core.feature_registry import FeatureRegistry
+    from lentra.bot.core.intent_router import IntentRouter
+    from lentra.bot.core.intent_resolver import IntentResolver
+
+    registry = FeatureRegistry()
+
+    intent_router = IntentRouter(registry=registry)
+    intent_resolver = IntentResolver(feature_registry=registry)
+
+    return intent_router, intent_resolver
 
 
 async def worker_loop():
@@ -84,6 +39,13 @@ async def worker_loop():
     queue = PostgresQueue(pool)
 
     print("[WORKER] STARTED")
+
+    # FIX: инициализация gateway зависимостей
+    try:
+        await init_gateway()
+    except Exception as e:
+        print("[WORKER INIT ERROR]", str(e))
+        traceback.print_exc()
 
     while True:
         try:
