@@ -1,23 +1,23 @@
 from lentra.core.parsing.query_parser import parse_query
-from lentra.core.geo.v2.router.geo_router import GeoRouterV2
-from lentra.core.data.v2.fetcher import GeoFetcherV2
-
+from lentra.core.data.fetcher import fetch_listings
 from lentra.core.normalization.normalizer import normalize
 from lentra.core.dedup.deduplicator import deduplicate
 
-from lentra.core.market.v2.intelligence import MarketIntelligenceV2
-
+from lentra.core.market.pricing import estimate_market_price
 from lentra.core.risk.risk_scorer import score_risk
 from lentra.core.ranking.ranker import rank_listings
+
+from lentra.core.v2.market.market_intelligence import MarketIntelligenceV2
+from lentra.core.v2.risk.risk_engine import RiskEngineV2
+
 from lentra.core.response.builder import build_response
 
 
 class LentraPipeline:
 
     def __init__(self):
-        self.geo = GeoRouterV2()
-        self.fetcher = GeoFetcherV2()
-        self.market = MarketIntelligenceV2()
+        self.market_v2 = MarketIntelligenceV2()
+        self.risk_v2 = RiskEngineV2()
 
     def run(self, text: str):
 
@@ -26,20 +26,44 @@ class LentraPipeline:
         query = parse_query(text)
         print("[PIPELINE] QUERY:", query)
 
-        query = self.geo.route(query)
-        print("[PIPELINE] GEO:", query)
-
-        listings = self.fetcher.fetch(query)
+        listings = fetch_listings(query)
         listings = normalize(listings)
         listings = deduplicate(listings)
 
-        market = self.market.analyze(listings, query)
-        print("[MARKET V2]", market)
+        # -------------------------
+        # V1 MARKET
+        # -------------------------
+        market_v1 = estimate_market_price(listings, query)
 
-        listings = score_risk(listings, market)
-        listings = rank_listings(listings)
+        # -------------------------
+        # V2 MARKET (SHADOW)
+        # -------------------------
+        market_v2 = self.market_v2.build_market_context(listings, query)
 
-        response = build_response(listings, market, query)
+        print("[PIPELINE] MARKET V1:", market_v1)
+        print("[PIPELINE] MARKET V2:", market_v2)
+
+        # -------------------------
+        # V1 RISK (CURRENT)
+        # -------------------------
+        listings_v1 = score_risk(listings, market_v1)
+
+        # -------------------------
+        # V2 RISK (SHADOW)
+        # -------------------------
+        listings_v2 = []
+        for item in listings:
+            try:
+                listings_v2.append(self.risk_v2.score(item, market_v2))
+            except Exception as e:
+                print("[V2 RISK ERROR]", e)
+
+        # -------------------------
+        # V1 RANKING (STABLE)
+        # -------------------------
+        listings = rank_listings(listings_v1)
+
+        response = build_response(listings, market_v1, query)
 
         print("[PIPELINE] DONE")
 
