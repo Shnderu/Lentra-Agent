@@ -3,7 +3,7 @@ from lentra.core.models.listing import Listing
 
 def score_risk(listings: list, market: dict) -> list:
 
-    market_price = market.get("market_price") or 0
+    global_price = market.get("market_price") or 0
 
     for l in listings:
 
@@ -18,12 +18,9 @@ def score_risk(listings: list, market: dict) -> list:
             score += 20
             flags.append("suspicious_low_price")
 
-        if market_price and l.price:
-            deviation = ((l.price - market_price) / market_price) * 100
+        if global_price and l.price:
+            deviation = ((l.price - global_price) / global_price) * 100
             l.market_deviation = round(deviation, 2)
-
-        if score > 100:
-            score = 100
 
         l.risk_score = score
         l.risk_flags = flags
