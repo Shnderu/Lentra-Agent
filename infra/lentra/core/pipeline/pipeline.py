@@ -10,6 +10,7 @@ from lentra.core.v2.market.market_intelligence import MarketIntelligenceV2
 from lentra.core.v2.risk.risk_engine import RiskEngineV2
 from lentra.core.v2.ranking.ranker_v2 import RankerV2
 from lentra.core.v2.area.expat_area_score import ExpatAreaScoreV2
+from lentra.core.v2.scoring.unified_scorer import UnifiedScorerV2
 
 from lentra.core.response.builder import build_response
 
@@ -21,6 +22,7 @@ class LentraPipeline:
         self.risk_v2 = RiskEngineV2()
         self.ranker_v2 = RankerV2()
         self.area_v2 = ExpatAreaScoreV2()
+        self.scorer_v2 = UnifiedScorerV2()
 
     def run(self, text: str):
 
@@ -51,17 +53,21 @@ class LentraPipeline:
             except Exception:
                 item["risk_score"] = item.get("risk_score", 0)
 
-            # area score
+            # area
             try:
                 item["area_v2"] = self.area_v2.score(item)
             except Exception:
                 item["area_v2"] = None
 
+            # unified score
+            try:
+                item["ai_score_v2"] = self.scorer_v2.score(item, market_v2)
+            except Exception:
+                item["ai_score_v2"] = {"score": 0, "verdict": "unknown"}
+
             enriched.append(item)
 
-        listings = enriched
-
-        listings = self.ranker_v2.rank(listings, market_v2)
+        listings = self.ranker_v2.rank(enriched, market_v2)
 
         response = build_response(listings, market_v2, query)
 
