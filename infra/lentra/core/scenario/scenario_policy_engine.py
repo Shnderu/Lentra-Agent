@@ -1,25 +1,55 @@
-from typing import Dict, Any
+from lentra.core.contracts.v1 import ScenarioV1, IntentV1, FlowV1
 
 
 class ScenarioPolicyEngine:
     """
-    intent -> scenario mapping + execution contract
+    DOMAIN LAYER v2
+
+    Отвечает только за:
+    - выбор сценария
+    - запуск сценария
+
+    ❌ НЕ делает классификацию
+    ❌ НЕ знает про parsing текста
     """
 
-    def __init__(self, rules: Dict[str, str]):
-        self.rules = rules or {}
+    def select(self, intent: IntentV1, flow: FlowV1) -> ScenarioV1:
+        intent_type = intent.type
 
-    def select(self, intent: Dict[str, Any], user_input: Dict[str, Any]) -> str:
-        intent_type = intent.get("type")
+        if intent_type == "search":
+            return ScenarioV1(
+                name="search_scenario",
+                handler="lentra.scenarios.search.handler",
+                params={}
+            )
 
-        if not intent_type:
-            return "fallback"
+        if intent_type == "question":
+            return ScenarioV1(
+                name="qa_scenario",
+                handler="lentra.scenarios.qa.handler",
+                params={}
+            )
 
-        return self.rules.get(intent_type, "fallback")
+        if intent_type == "command":
+            return ScenarioV1(
+                name="command_scenario",
+                handler="lentra.scenarios.command.handler",
+                params={}
+            )
 
-    def run(self, scenario: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        return ScenarioV1(
+            name="fallback_scenario",
+            handler="lentra.scenarios.fallback.handler",
+            params={}
+        )
+
+    def run(self, scenario: ScenarioV1, flow: FlowV1):
+        # В v2 пока заглушка исполнения сценариев
+        handler_path = scenario.handler
+
         return {
-            "scenario": scenario,
-            "context": context,
-            "status": "ok"
+            "status": "ok",
+            "scenario": scenario.name,
+            "handler": handler_path,
+            "input": flow.text
         }

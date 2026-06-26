@@ -1,3 +1,13 @@
-from lentra.core.scenario.policy import build_scenario_policy_engine
+class PolicyEngine:
+    """
+    POLICY = NON-EXECUTION LAYER
 
-__all__ = ["build_scenario_policy_engine"]
+    Только мета-информация.
+    Никакого влияния на flow.
+    """
+
+    def evaluate(self, *args, **kwargs):
+        return {
+            "allowed": True,
+            "metadata": {}
+        }
