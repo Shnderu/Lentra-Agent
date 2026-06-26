@@ -1,27 +1,18 @@
-
-from lentra.core.queue.task_repository import TaskRepository
-from lentra.core.data_layer.sources.facebook import FacebookSource
-from lentra.core.data_layer.builders.task_builder import TaskBuilder
+from lentra.workers.base_worker import BaseWorker
 
 
-class IngestionWorker:
+class IngestionWorker(BaseWorker):
+    """
+    DATA INGESTION = NO CORE LOGIC ACCESS
 
-    def __init__(self):
-        self.repo = TaskRepository("postgresql://lentra:lentra@localhost:5432/lentra")
-        self.source = FacebookSource()
-        self.builder = TaskBuilder()
+    ONLY:
+    ingest → executor → pipeline
+    """
 
-    def run(self):
+    def ingest(self, raw_data: dict):
+        task = {
+            "type": "ingestion",
+            "payload": raw_data
+        }
 
-        print("[INGESTION] START")
-
-        listings = self.source.fetch()
-
-        for l in listings:
-
-            task = self.builder.build(l)
-
-            task_id = self.repo.push(task)
-
-            print("[INGESTED]", task_id, task)
-
+        return self.handle(task)
