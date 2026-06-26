@@ -1,11 +1,17 @@
+class PricingEvaluator:
+    """
+    PURE FUNCTION MODULE
 
-def estimate_market_price(listings, query):
-    prices = [l["normalized_price"] for l in listings]
-    if not prices:
-        return {"market_price": None}
+    NO DEPENDENCIES ON:
+    - ranking
+    - risk
+    - dedup
+    - feature_store
+    """
 
-    avg = sum(prices) / len(prices)
-
-    return {
-        "market_price": round(avg, 2)
-    }
+    def evaluate(self, listing: dict, market: dict):
+        return {
+            "market_price": market.get("avg_price"),
+            "delta": listing["price"] - market.get("avg_price", 0),
+            "status": "computed"
+        }

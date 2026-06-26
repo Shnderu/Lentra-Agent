@@ -1,3 +1,9 @@
+class Ranker:
+    """
+    FINAL SCORING LAYER ONLY
 
-def rank_listings(listings):
-    return sorted(listings, key=lambda x: x.get("risk_score", 1.0))
+    INPUT ONLY FROM PIPELINE CONTEXT
+    """
+
+    def rank(self, listings: list):
+        return sorted(listings, key=lambda x: x.get("price", 0))
