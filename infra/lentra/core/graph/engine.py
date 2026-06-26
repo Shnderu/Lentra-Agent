@@ -1,15 +1,32 @@
 """
-COMPAT LAYER v1
-Graph execution bridge → Scenario Engine v1
+GRAPH ENGINE ISOLATED MODE
+
+АРХИТЕКТУРНОЕ ПРАВИЛО:
+- Graph НЕ участвует в runtime execution
+- Graph НЕ вызывается pipeline/executor
+- Graph используется только оффлайн (analysis / compile)
 """
 
-from lentra.core.executor import execute_scenario  # предполагаемый единый executor
+class GraphEngine:
+    """
+    DISABLED RUNTIME EXECUTION ENGINE
+    """
 
-class ExecutionEngine:
-    def run(self, payload: dict):
-        """
-        Unified execution entry point
-        """
-        return execute_scenario(payload)
+    def __init__(self):
+        self.enabled = False
 
-execution_engine = ExecutionEngine()
+    def execute(self, *args, **kwargs):
+        raise RuntimeError(
+            "Graph execution is disabled. "
+            "Use pipeline as single execution authority."
+        )
+
+    def compile(self, graph_definition):
+        """
+        Allowed: static compilation only
+        """
+        return {
+            "status": "compiled",
+            "mode": "offline",
+            "graph": graph_definition
+        }
