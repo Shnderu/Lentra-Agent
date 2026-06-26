@@ -1,33 +1,15 @@
-from typing import List, Dict, Any
-import hashlib
+from lentra.core.models.listing import Listing
 
 
-def _hash_item(item: Dict[str, Any]) -> str:
-    """
-    Простой стабильный ключ дедупликации.
-    Сейчас: цена + локация + заголовок (если есть)
-    """
-    base = f"{item.get('title','')}_{item.get('price','')}_{item.get('location','')}"
-    return hashlib.md5(base.encode("utf-8")).hexdigest()
-
-
-def deduplicate(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """
-    Базовый dedup engine (MVP уровень).
-    Группирует одинаковые объявления по хэшу.
-    """
+def deduplicate(listings: list) -> list:
     seen = {}
-    result = []
 
-    for item in items:
-        key = _hash_item(item)
+    for l in listings:
+        key = (l.title.lower(), l.location.lower(), l.price)
 
         if key in seen:
-            # добавляем ссылку на дубль
-            seen[key]["duplicates"].append(item)
+            seen[key].duplicates.append(l.id)
         else:
-            item["duplicates"] = []
-            seen[key] = item
-            result.append(item)
+            seen[key] = l
 
-    return result
+    return list(seen.values())

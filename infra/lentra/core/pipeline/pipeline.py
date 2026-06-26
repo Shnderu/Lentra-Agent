@@ -15,25 +15,22 @@ class LentraPipeline:
         print("[PIPELINE] INPUT:", text)
 
         query = parse_query(text)
-        if isinstance(query, str):
-            raise ValueError("parse_query returned string instead of dict")
-
         print("[PIPELINE] QUERY:", query)
 
         listings = fetch_listings(query)
-        if not isinstance(listings, list):
-            raise ValueError("fetch_listings must return list")
-
         listings = normalize(listings)
         listings = deduplicate(listings)
 
-        # MARKET PRICE: samples = listings
         market = estimate_market_price(query, listings)
 
         listings = score_risk(listings, market)
         listings = rank_listings(listings)
 
-        response = build_response(listings, market, query)
+        response = build_response(
+            [l.to_dict() for l in listings],
+            market,
+            query
+        )
 
         print("[PIPELINE] DONE")
 

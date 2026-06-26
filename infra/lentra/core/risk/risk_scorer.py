@@ -1,43 +1,36 @@
-from typing import Dict, Any
+from lentra.core.models.listing import Listing
 
 
-def score_risk(property_data: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    MVP risk engine (heuristic scoring)
+def score_risk(listings: list, market: dict) -> list:
 
-    Сигналы:
-    - нет цены → высокий риск
-    - подозрительно низкая цена → риск
-    - нет описания → средний риск
-    """
+    market_price = market.get("market_price") or 0
 
-    risk_score = 0
-    flags = []
+    for l in listings:
 
-    price = property_data.get("price")
-    description = property_data.get("description", "")
+        score = 0
+        flags = []
 
-    if price is None:
-        risk_score += 50
-        flags.append("no_price")
+        if not l.price:
+            score += 50
+            flags.append("no_price")
 
-    if price is not None and price < 200:
-        risk_score += 20
-        flags.append("suspicious_low_price")
+        if l.price and l.price < 200:
+            score += 20
+            flags.append("suspicious_low_price")
 
-    if not description:
-        risk_score += 10
-        flags.append("no_description")
+        if market_price and l.price:
+            deviation = ((l.price - market_price) / market_price) * 100
+            l.market_deviation = round(deviation, 2)
 
-    if risk_score > 100:
-        risk_score = 100
+        if score > 100:
+            score = 100
 
-    return {
-        "risk_score": risk_score,
-        "flags": flags,
-        "level": (
-            "low" if risk_score < 30 else
-            "medium" if risk_score < 70 else
+        l.risk_score = score
+        l.risk_flags = flags
+        l.risk_level = (
+            "low" if score < 30 else
+            "medium" if score < 70 else
             "high"
         )
-    }
+
+    return listings
