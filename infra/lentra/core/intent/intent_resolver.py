@@ -1,10 +1,20 @@
+from lentra.core.contracts.v1 import IntentV1
+from lentra.core.intent.intent_classifier import IntentClassifier
+
+
 class IntentResolver:
-    def __init__(self, registry):
-        self.registry = registry
+    """
+    CORE v1.1 — строго IntentV1 output
+    """
 
-    def resolve(self, text: str):
-        return self.registry.classify(text)
+    def __init__(self):
+        self.classifier = IntentClassifier()
 
+    def resolve(self, flow) -> IntentV1:
+        raw = self.classifier.classify(flow.text)
 
-def build_intent_resolver(registry):
-    return IntentResolver(registry)
+        return IntentV1(
+            type=raw.get("type", "unknown"),
+            confidence=raw.get("confidence", 0.0),
+            raw=raw
+        )

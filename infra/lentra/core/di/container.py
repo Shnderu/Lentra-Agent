@@ -1,25 +1,20 @@
 from lentra.core.gateway.flow_glue import FlowGlue
-
-from lentra.core.scenario.policy import build_scenario_policy_engine
-from lentra.core.intent.router import build_intent_resolver
-
+from lentra.core.intent.intent_resolver import IntentResolver
+from lentra.core.scenario.scenario_policy_engine import ScenarioPolicyEngine
+from lentra.core.queue.task_queue_repository import TaskQueueRepository
 
 def build_container():
-    """
-    CLEAN DI CONTAINER (FLOW-GLUE ONLY)
-    """
+    db = build_db()
 
-    intent_resolver = build_intent_resolver()
-
-    scenario_policy_engine = build_scenario_policy_engine({})
+    intent_resolver = IntentResolver()
+    scenario_engine = ScenarioPolicyEngine()
 
     flow_glue = FlowGlue(
         intent_resolver=intent_resolver,
-        scenario_policy_engine=scenario_policy_engine
+        scenario_policy_engine=scenario_engine
     )
 
     return {
-        "flow_glue": flow_glue,
-        "intent_resolver": intent_resolver,
-        "scenario_policy_engine": scenario_policy_engine,
+        "task_queue": TaskQueueRepository(db),
+        "flow_glue": flow_glue
     }

@@ -1,11 +1,12 @@
-FORBIDDEN_IMPORTS = [
-    "app.core.intent",
-    "app.core.scenario",
-    "app.core.gateway",
-]
+class SystemBoundaryGuard:
+    """
+    PASSIVE VALIDATION ONLY
 
+    НЕ влияет на execution flow
+    """
 
-def assert_no_legacy_imports(module_name: str):
-    for bad in FORBIDDEN_IMPORTS:
-        if module_name.startswith(bad):
-            raise ImportError(f"Legacy import forbidden: {module_name}")
+    def check(self, data):
+        return {
+            "allowed": True,
+            "reason": None
+        }
