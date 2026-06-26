@@ -1,48 +1,81 @@
 from typing import Dict, Any, List
 
 
-class RiskEngineV2:
+def score_risk_v2(property_data: Dict[str, Any], market_context: Dict[str, Any] = None) -> Dict[str, Any]:
+    """
+    V2 Risk Engine (MVP+):
+    - расширенные флаги
+    - учет отклонения от рынка
+    - базовая анти-скам логика под SEA рынок
+    """
 
-    def score(self, listing: Dict[str, Any], market_context: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        v2 risk scoring:
-        - deviation from market
-        - missing fields
-        - suspicious pricing patterns
-        """
+    risk_score = 0
+    flags: List[str] = []
 
-        risk = 0
-        flags: List[str] = []
+    price = property_data.get("price")
+    description = property_data.get("description", "")
+    location = property_data.get("location", "")
 
-        price = listing.get("price")
+    # --- базовые сигналы ---
+    if price is None:
+        risk_score += 50
+        flags.append("no_price")
+
+    if not description:
+        risk_score += 10
+        flags.append("no_description")
+
+    # --- SEA scam heuristics ---
+    if isinstance(description, str):
+        desc_low = description.lower()
+
+        if any(x in desc_low for x in ["urgent", "today only", "last unit"]):
+            risk_score += 15
+            flags.append("pressure_selling")
+
+        if any(x in desc_low for x in ["whatsapp only", "telegram only"]):
+            risk_score += 10
+            flags.append("off_platform_contact")
+
+    # --- price anomaly ---
+    market_price = None
+    deviation = None
+
+    if market_context:
         market_price = market_context.get("market_price")
+        deviation = market_context.get("deviation")
 
-        if price is None:
-            risk += 60
-            flags.append("no_price")
+        if deviation is not None:
+            if deviation < -30:
+                risk_score += 25
+                flags.append("too_cheap_vs_market")
 
-        if market_price and price:
-            deviation = ((price - market_price) / market_price) * 100
+            if deviation > 80:
+                risk_score += 20
+                flags.append("overpriced_anomaly")
 
-            if abs(deviation) > 30:
-                risk += 30
-                flags.append("high_deviation")
+    # --- location weak signal ---
+    if not location:
+        risk_score += 5
+        flags.append("no_location")
 
-            if price < market_price * 0.5:
-                risk += 40
-                flags.append("too_cheap")
+    # clamp
+    if risk_score > 100:
+        risk_score = 100
 
-        if not listing.get("description"):
-            risk += 10
-            flags.append("no_description")
+    level = (
+        "low" if risk_score < 30 else
+        "medium" if risk_score < 70 else
+        "high"
+    )
 
-        return {
-            "risk_score": min(risk, 100),
-            "flags": flags,
-            "level": (
-                "low" if risk < 30 else
-                "medium" if risk < 70 else
-                "high"
-            ),
-            "deviation": deviation if market_price and price else None
-        }
+    return {
+        "risk_score": risk_score,
+        "level": level,
+        "flags": flags,
+        "market_context": {
+            "market_price": market_price,
+            "deviation": deviation
+        },
+        "engine": "v2"
+    }
