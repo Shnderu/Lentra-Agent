@@ -1,8 +1,5 @@
 import traceback
 
-# Core execution boundary (FROZEN v1)
-# This module becomes the ONLY allowed entrypoint for runtime flows:
-# API / BOT / WORKER must eventually converge here.
 
 class ExecutionGatewayV1:
     """
@@ -11,7 +8,6 @@ class ExecutionGatewayV1:
     """
 
     def __init__(self):
-        # lazy imports to avoid circular dependency issues
         self.intent_router = None
         self.scenario_engine = None
 
@@ -29,37 +25,30 @@ class ExecutionGatewayV1:
 
         if self.scenario_engine is None:
             try:
-                from app.core.scenario.scenario_engine_v1 import ScenarioEngineV1
+                from lentra.core.scenario.scenario_engine_v1 import ScenarioEngineV1
                 self.scenario_engine = ScenarioEngineV1()
             except Exception:
                 self.scenario_engine = None
 
     def execute(self, event: dict) -> dict:
-        """
-        Main execution contract.
-        Input: normalized event (api/bot/worker)
-        Output: unified response
-        """
-
         self._load_dependencies()
 
         try:
-            # 1. INTENT PHASE
             if self.intent_router:
                 intent = self.intent_router(event)
             else:
                 intent = {"type": "fallback", "raw": event}
 
-            # 2. SCENARIO PHASE
+            # 🔥 FIX: НЕ ДАЁМ silent no_scenario_engine
             if self.scenario_engine:
                 result = self.scenario_engine.run(intent)
             else:
-                result = {
-                    "status": "no_scenario_engine",
+                return {
+                    "ok": False,
+                    "error": "scenario_engine_not_available",
                     "intent": intent
                 }
 
-            # 3. RESPONSE WRAP
             return {
                 "ok": True,
                 "intent": intent,
@@ -74,11 +63,3 @@ class ExecutionGatewayV1:
                 "intent": None,
                 "result": None
             }
-
-
-# singleton (simple freeze model)
-gateway = ExecutionGatewayV1()
-
-
-def execute(event: dict) -> dict:
-    return gateway.execute(event)

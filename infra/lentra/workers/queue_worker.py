@@ -16,7 +16,7 @@ notifier.start()
 def process():
     with engine.begin() as conn:
         task = conn.execute(text("""
-            SELECT id, raw_message_id
+            SELECT id, raw_message_id, payload
             FROM processing_queue
             WHERE status = 'new'
             ORDER BY id ASC
@@ -40,10 +40,22 @@ def process():
 
     candidates = search(property_obj.title or "", limit=20)
 
-    ranked = rank([property_obj])  # упрощённо (в будущем batch)
+    ranked = rank([property_obj])
+
+    # 🔥 FIX: достаём реальный chat_id из payload
+    chat_id = None
+    try:
+        import json
+        payload = json.loads(task.payload) if task.payload else {}
+        chat_id = payload.get("chat_id")
+    except Exception:
+        chat_id = None
+
+    if not chat_id:
+        chat_id = 928857415  # fallback
 
     for r in ranked:
-        notifier.send(928857415, f"🏠 {r['title']} | score={r['score']:.3f}")
+        notifier.send(chat_id, f"🏠 {r['title']} | score={r['score']:.3f}")
 
     with engine.begin() as conn:
         conn.execute(text("""

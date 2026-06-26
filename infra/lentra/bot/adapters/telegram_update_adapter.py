@@ -25,6 +25,19 @@ class TelegramUpdateAdapter:
         }
 
     def _detect_intent(self, text: str) -> str:
-        if "rent" in text.lower():
+        t = text.lower()
+
+        rent_keywords = [
+            "rent",
+            "apartment",
+            "studio",
+            "condo",
+            "room",
+            "house",
+            "bedroom"
+        ]
+
+        if any(k in t for k in rent_keywords):
             return "rent_search"
+
         return "unknown"

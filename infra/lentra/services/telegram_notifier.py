@@ -1,25 +1,34 @@
-from pyrogram import Client
 import os
+import requests
 
-API_ID = int(os.getenv("TG_API_ID", "0"))
-API_HASH = os.getenv("TG_API_HASH", "")
-SESSION = "lentra_pyro"
+BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
+BASE_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
 
 class TelegramNotifier:
 
     def __init__(self):
-        self.app = Client(SESSION, api_id=API_ID, api_hash=API_HASH)
+        if not BOT_TOKEN:
+            print("[NOTIFIER ERROR] BOT_TOKEN is empty")
 
     def start(self):
-        self.app.start()
+        print("[NOTIFIER] HTTP MODE READY")
 
     def stop(self):
-        self.app.stop()
+        pass
 
     def send(self, user_id: int, text: str):
         try:
-            self.app.send_message(user_id, text)
-            print("[PUSH] sent to", user_id)
+            r = requests.post(
+                f"{BASE_URL}/sendMessage",
+                json={
+                    "chat_id": user_id,
+                    "text": text
+                },
+                timeout=(3, 10)
+            )
+
+            print("[PUSH STATUS]", r.status_code, r.text)
+
         except Exception as e:
-            print("[PUSH ERROR]", e)
+            print("[PUSH ERROR]", repr(e))

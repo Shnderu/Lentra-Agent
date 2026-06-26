@@ -10,7 +10,8 @@ class FeatureManager:
     def __init__(self, registry: FeatureRegistry):
         self.registry = registry
 
-    async def execute(self, intent: str, ctx: FeatureContext) -> str:
+    def execute(self, intent: str, ctx: FeatureContext) -> str:
+
         feature = self.registry.get(intent)
 
         if not feature:
@@ -20,8 +21,5 @@ class FeatureManager:
             return "No feature available"
 
         result = feature(ctx)
-
-        if hasattr(result, "__await__"):
-            return await result
 
         return result

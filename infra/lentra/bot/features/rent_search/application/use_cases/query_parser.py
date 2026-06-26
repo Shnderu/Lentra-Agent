@@ -10,18 +10,20 @@ class QueryParser:
     CITY_ALIASES = {
         "da nang": "da_nang",
         "danang": "da_nang",
-        "nha trang": "nha_nang",
         "ho chi minh": "ho_chi_minh",
         "saigon": "ho_chi_minh",
         "hanoi": "hanoi",
         "bangkok": "bangkok",
         "phuket": "phuket",
         "chiang mai": "chiang_mai",
+        "nha trang": "nha_trang",
     }
 
     COUNTRY_ALIASES = {
-        "thailand": "thailand",
         "vietnam": "vietnam",
+        "thailand": "thailand",
+        "vn": "vietnam",
+        "th": "thailand",
     }
 
     def parse(self, raw_query: str) -> SearchContext:
@@ -44,25 +46,15 @@ class QueryParser:
         )
 
     def _extract_city(self, text: str):
-        cities = list(self.CITY_ALIASES.keys())
-
-        for c in cities:
-            if c in text:
-                return self.CITY_ALIASES[c]
-
+        for k, v in self.CITY_ALIASES.items():
+            if k in text:
+                return v
         return None
 
     def _extract_country(self, text: str):
-        countries = list(self.COUNTRY_ALIASES.keys())
-
-        for c in countries:
-            if c in text:
-                return self.COUNTRY_ALIASES[c]
-
-        # fallback: если есть city → infer country минимально
-        if "da_nang" in text or "ho_chi_minh" in text or "hanoi" in text:
-            return "vietnam"
-
+        for k, v in self.COUNTRY_ALIASES.items():
+            if k in text:
+                return v
         return None
 
     def _extract_price(self, text: str):
