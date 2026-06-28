@@ -6,4 +6,4 @@ from typing import Dict, Any
 class Task:
     id: str
     payload: Dict[str, Any]
-    status: str = "pending"
+    status: str
