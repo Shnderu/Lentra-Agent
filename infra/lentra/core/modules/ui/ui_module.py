@@ -1,25 +1,30 @@
-
-from lentra.core.ai.concierge.ui.view_model_mapper import ViewModelMapper
+from lentra.core.contracts.pipeline_context import PipelineContext
 
 
 class UIModule:
 
-    def __init__(self):
+    def run(self, ctx: PipelineContext) -> PipelineContext:
 
-        self.engine = ViewModelMapper()
+        objects = []
 
-    def run(self, ctx):
+        for obj in ctx.snapshot.objects:
 
-        # SAFETY: only MarketObject allowed
-        if not hasattr(ctx, "market_objects"):
+            if hasattr(obj, "to_ui_payload"):
+                objects.append(obj.to_ui_payload())
+            else:
+                objects.append({
+                    "id": getattr(obj, "id", None),
+                    "price": getattr(obj, "market_price", None),
+                    "risk": getattr(obj, "risk", None),
+                    "area_score": getattr(obj, "area_score", None),
+                    "verdict": getattr(obj, "verdict", None)
+                })
 
-            ctx.ui = []
-
-            return ctx
-
-        ctx.ui = [
-            self.engine.build_card(obj)
-            for obj in ctx.market_objects
-        ]
+        ctx.ui = {
+            "query": ctx.snapshot.query,
+            "total": ctx.snapshot.total_objects,
+            "average_price": ctx.snapshot.average_market_price,
+            "objects": objects
+        }
 
         return ctx

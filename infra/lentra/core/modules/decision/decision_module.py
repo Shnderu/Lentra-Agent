@@ -1,29 +1,25 @@
-
-from lentra.core.market_intelligence.decision.ranking_engine import RankingEngine
-
-
 class DecisionModule:
-
-    def __init__(self):
-        self.engine = RankingEngine()
-
     def run(self, ctx):
 
-        if not hasattr(ctx, "search_results"):
-            return ctx
+        snapshot = ctx.snapshot
+        objects = snapshot.objects
 
-        # 🔥 ГАРАНТИЯ: всегда enrich BEFORE UI
-        ranked = self.engine.run(ctx.search_results)
+        for obj in objects:
 
-        for obj in ranked:
+            price = obj["price"]
+            risk = obj["risk"]
+            area = obj["area_score"]
 
-            if not hasattr(obj, "final_score"):
-                obj.final_score = 0.0
+            # SIMPLE stable scoring v3
+            score = (area * 0.6) - (risk * 0.3)
 
-            # 🔥 HARD GUARANTEE CONTRACT
-            obj.confidence = getattr(obj, "confidence", 0.5)
+            obj["final_score"] = round(score, 3)
 
-        ctx.search_results = ranked
+            if score > 3.5:
+                obj["verdict"] = "good"
+            elif score > 2.5:
+                obj["verdict"] = "neutral"
+            else:
+                obj["verdict"] = "bad"
 
         return ctx
-

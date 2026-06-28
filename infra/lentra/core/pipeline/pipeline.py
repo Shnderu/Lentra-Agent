@@ -1,37 +1,39 @@
+from lentra.core.pipeline.context import PipelineContext
 from lentra.core.modules.market.market_module import MarketModule
-from lentra.core.modules.risk.risk_module import RiskModule
-from lentra.core.modules.forecast.forecast_module import ForecastModule
 from lentra.core.modules.decision.decision_module import DecisionModule
-from lentra.core.modules.persona.persona_module import PersonaModule
-from lentra.core.modules.ui.ui_module import UIModule
-
-from lentra.core.market_intelligence.persona.persona_engine import PersonaEngine
-from lentra.core.market_intelligence.normalizer.safety_normalizer import SafetyNormalizer
-
-from lentra.core.contracts.pipeline_context import PipelineContext
 
 
 class LentraPipeline:
 
-    def run(self, raw):
+    def __init__(self):
+        self.market = MarketModule()
+        self.decision = DecisionModule()
 
-        ctx = PipelineContext(raw)
+    def run(self, payload: dict):
 
-        ctx = MarketModule().run(ctx)
+        # 1. MARKET
+        market_ctx = self.market.run(payload)
 
-        ctx = RiskModule().run(ctx)
-        ctx = ForecastModule().run(ctx)
+        # 2. ЖЁСТКАЯ НОРМАЛИЗАЦИЯ SNAPSHOT
+        if isinstance(market_ctx, dict) and "objects" in market_ctx:
+            from lentra.core.pipeline.context import Snapshot
 
-        ctx = PersonaModule().run(ctx)
-        ctx = PersonaEngine().run(ctx)
+            snapshot = Snapshot(objects=market_ctx["objects"])
 
-        ctx = DecisionModule().run(ctx)
+            ctx = PipelineContext(
+                query=market_ctx.get("query", ""),
+                snapshot=snapshot,
+                meta=market_ctx
+            )
+        else:
+            # fallback safe state
+            ctx = PipelineContext(
+                query=str(payload),
+                snapshot=Snapshot(objects=[]),
+                meta={}
+            )
 
-        ctx = SafetyNormalizer().run(ctx)
+        # 3. DECISION
+        enriched = self.decision.run(ctx)
 
-        ctx = UIModule().run(ctx)
-
-        # 🔥 FIX: RESTORE CONTRACT
-        ctx.snapshot = ctx.snapshot if hasattr(ctx, "snapshot") else ctx.market_snapshot
-
-        return ctx
+        return enriched

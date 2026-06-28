@@ -1,38 +1,44 @@
-
 from fastapi import FastAPI, Query
 from lentra.core.pipeline.pipeline import LentraPipeline
 
-app = FastAPI()
+app = FastAPI(title="Lentra Concierge API")
 
 pipeline = LentraPipeline()
 
 
 @app.get("/search")
 def search(q: str = Query(...)):
+    ctx = pipeline.run({"title": q})
 
-    try:
+    snapshot = getattr(ctx, "snapshot", None)
 
-        ctx = pipeline.run({"title": q})
+    objects = []
+    total = 0
+    average_price = 0.0
 
-    except Exception as e:
-
-        return {"error": str(e)}
-
-    s = ctx.snapshot
+    if snapshot and hasattr(snapshot, "objects"):
+        objects = snapshot.objects
+        total = len(objects)
+        average_price = (
+            sum(o.get("price", 0) for o in objects) / total
+            if total > 0 else 0.0
+        )
 
     return {
-        "query": s.query,
-        "total": s.total_objects,
-        "average_price": s.average_market_price,
-        "objects": [
-            {
-                "id": o.id,
-                "price": o.market_price,
-                "risk": o.risk,
-                "area_score": o.area_score,
-                "verdict": o.verdict,
-                "negotiation": o.negotiation,
-            }
-            for o in s.objects
-        ]
+        "query": q,
+        "total": total,
+        "average_price": average_price,
+        "objects": objects,
+    }
+
+
+@app.get("/debug")
+def debug(q: str = Query("test")):
+    ctx = pipeline.run({"title": q})
+
+    return {
+        "ok": True,
+        "type": str(type(ctx)),
+        "has_snapshot": hasattr(ctx, "snapshot"),
+        "ctx": repr(ctx),
     }

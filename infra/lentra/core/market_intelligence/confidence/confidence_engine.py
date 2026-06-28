@@ -1,17 +1,17 @@
+from dataclasses import dataclass
+
 
 class ConfidenceEngine:
+    """
+    Calculates confidence score for market objects
+    """
 
-    def run(self, objects):
+    def run(self, ctx):
+        objects = getattr(ctx.snapshot, "objects", [])
 
         for obj in objects:
+            # базовая уверенность: риск обратно влияет
+            base = 1.0 - float(getattr(obj, "risk", 0.5))
+            obj.confidence = max(0.0, min(1.0, base))
 
-            # базовая эвристика
-            risk_factor = getattr(obj, "risk", 0.5)
-            area_factor = getattr(obj, "area_score", 5.0) / 10.0
-
-            obj.confidence = round(
-                max(0.1, min(1.0, (1 - risk_factor) * 0.6 + area_factor * 0.4)),
-                2
-            )
-
-        return objects
+        return ctx
