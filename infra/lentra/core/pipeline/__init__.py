@@ -1,3 +1,1 @@
-from .models import Listing
-
-__all__ = ["Listing"]
+from .pipeline import LentraPipeline

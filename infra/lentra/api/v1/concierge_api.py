@@ -1,44 +1,22 @@
-from fastapi import FastAPI, Query
+from fastapi import APIRouter
 from lentra.core.pipeline.pipeline import LentraPipeline
 
-app = FastAPI(title="Lentra Concierge API")
-
+router = APIRouter()
 pipeline = LentraPipeline()
 
 
-@app.get("/search")
-def search(q: str = Query(...)):
-    ctx = pipeline.run({"title": q})
-
-    snapshot = getattr(ctx, "snapshot", None)
-
-    objects = []
-    total = 0
-    average_price = 0.0
-
-    if snapshot and hasattr(snapshot, "objects"):
-        objects = snapshot.objects
-        total = len(objects)
-        average_price = (
-            sum(o.get("price", 0) for o in objects) / total
-            if total > 0 else 0.0
-        )
-
-    return {
-        "query": q,
-        "total": total,
-        "average_price": average_price,
-        "objects": objects,
-    }
-
-
-@app.get("/debug")
-def debug(q: str = Query("test")):
+@router.get("/search")
+def search(q: str):
     ctx = pipeline.run({"title": q})
 
     return {
-        "ok": True,
-        "type": str(type(ctx)),
-        "has_snapshot": hasattr(ctx, "snapshot"),
-        "ctx": repr(ctx),
+        "query": ctx.get("query"),
+        "total": ctx.get("total", 0),
+        "objects": ctx.get("objects", [])
     }
+
+
+from fastapi import FastAPI
+
+app = FastAPI()
+app.include_router(router)
