@@ -1,25 +1,15 @@
 from lentra.core.parsing.query_parser import parse_query
 from lentra.core.data.fetcher import fetch_listings
+
 from lentra.core.normalization.normalizer import normalize
-
-from lentra.core.dedup.deduplicator import deduplicate as deduplicate_v1
-from lentra.core.v2.dedup.deduplicator import deduplicate_v2
-
+from lentra.core.dedup.deduplicator import deduplicate
 from lentra.core.market.pricing import estimate_market_price
-
 from lentra.core.risk.risk_scorer import score_risk
-from lentra.core.v2.risk.risk_engine import score_risk_v2
-
 from lentra.core.ranking.ranker import rank_listings
-from lentra.core.v2.ranking.ranker import rank_listings_v2
-
 from lentra.core.response.builder import build_response
 
 
 class LentraPipeline:
-
-    def __init__(self, mode: str = "v1"):
-        self.mode = mode
 
     def run(self, text: str):
 
@@ -29,39 +19,18 @@ class LentraPipeline:
         print("[PIPELINE] QUERY:", query)
 
         listings = fetch_listings(query)
-        listings = normalize(listings)
 
-        # dedup
-        if self.mode == "v2":
-            listings = deduplicate_v2(listings)
-        else:
-            listings = deduplicate_v1(listings)
+        # IMPORTANT: keep OBJECT MODEL (NO dict conversion)
+        listings = normalize(listings)
+        listings = deduplicate(listings)
 
         market = estimate_market_price(listings, query)
 
-        # risk
-        if self.mode == "v2":
-            listings = [self._apply_risk_v2(x) for x in listings]
-        else:
-            listings = [self._apply_risk_v1(x) for x in listings]
-
-        # ranking
-        if self.mode == "v2":
-            listings = rank_listings_v2(listings, market)
-        else:
-            listings = rank_listings(listings)
+        listings = score_risk(listings, market)
+        listings = rank_listings(listings)
 
         response = build_response(listings, market, query)
 
         print("[PIPELINE] DONE")
+
         return response
-
-    def _apply_risk_v1(self, item):
-        res = score_risk(item)
-        item.update(res)
-        return item
-
-    def _apply_risk_v2(self, item):
-        res = score_risk_v2(item)
-        item.update(res)
-        return item

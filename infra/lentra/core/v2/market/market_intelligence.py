@@ -1,34 +1,55 @@
 from typing import List, Dict, Any
+from lentra.core.v2.models.listing import Listing
 
 
 class MarketIntelligenceV2:
+    """
+    V2 Market Intelligence Layer
 
-    def build_market_context(self, listings: List[Dict[str, Any]], query: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        v2: расширенный market layer (город, тип, бюджет)
-        """
+    Responsibilities:
+    - compute market price bands
+    - detect anomalies
+    - enrich listings with deviation context
+    """
 
-        prices = [x.get("price") for x in listings if x.get("price")]
+    def build_context(self, listings: List[Listing], query: Dict[str, Any]) -> Dict[str, Any]:
+
+        prices = [l.price for l in listings if l.price is not None]
 
         if not prices:
             return {
                 "market_price": None,
-                "bands": {},
-                "note": "no data"
+                "min_price": None,
+                "max_price": None,
+                "median_price": None,
+                "band_low": None,
+                "band_high": None,
             }
 
-        avg = sum(prices) / len(prices)
+        prices_sorted = sorted(prices)
+
+        n = len(prices_sorted)
+
+        median = prices_sorted[n // 2]
+        min_price = prices_sorted[0]
+        max_price = prices_sorted[-1]
+
+        # simple band model (MVP)
+        band_low = median * 0.85
+        band_high = median * 1.15
 
         return {
-            "market_price": round(avg, 2),
-            "min": min(prices),
-            "max": max(prices),
-            "bands": {
-                "cheap": avg * 0.8,
-                "market": avg,
-                "expensive": avg * 1.2
-            },
+            "market_price": float(median),
+            "min_price": float(min_price),
+            "max_price": float(max_price),
+            "median_price": float(median),
+            "band_low": float(band_low),
+            "band_high": float(band_high),
             "city": query.get("city"),
             "type": query.get("type"),
-            "budget": query.get("budget")
+            "budget": query.get("budget"),
         }
+
+
+def estimate_market_price_v2(listings: List[Listing], query: Dict[str, Any]):
+    return MarketIntelligenceV2().build_context(listings, query)

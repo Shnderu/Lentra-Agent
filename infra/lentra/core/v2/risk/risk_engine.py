@@ -1,49 +1,67 @@
-from typing import Dict, Any
+from typing import List, Dict, Any
+from lentra.core.v2.models.listing import Listing
 
 
 class RiskEngineV2:
     """
-    MVP v2 Risk Engine
-    Расширенный риск-скоринг (пока baseline + hooks под расширение)
+    V2 Anti-scam / risk scoring engine.
+
+    INPUT: Listing objects only
+    OUTPUT: enriched Listing objects
     """
 
-    def score(self, listing: Dict[str, Any]) -> Dict[str, Any]:
-        score = 0
-        flags = []
+    def score(self, listings: List[Listing], market_context: Dict[str, Any] = None) -> List[Listing]:
 
-        price = listing.get("price")
-        description = listing.get("description", "")
+        for listing in listings:
+            score = 0
+            flags = []
 
-        if price is None:
-            score += 50
-            flags.append("no_price")
+            price = listing.price
+            description = listing.description or ""
 
-        if price is not None and price < 200:
-            score += 25
-            flags.append("suspicious_low_price")
+            # -----------------------------
+            # Core heuristics
+            # -----------------------------
 
-        if not description:
-            score += 10
-            flags.append("no_description")
+            if price is None:
+                score += 50
+                flags.append("no_price")
 
-        # v2 расширение: наличие дублей снижает риск
-        if listing.get("duplicates"):
-            score -= 10
-            flags.append("has_duplicates_signal")
+            if price is not None and price < 200:
+                score += 20
+                flags.append("suspicious_low_price")
 
-        score = max(0, min(100, score))
+            if not description:
+                score += 10
+                flags.append("no_description")
 
-        return {
-            "risk_score": score,
-            "flags": flags,
-            "level": (
-                "low" if score < 30 else
-                "medium" if score < 70 else
-                "high"
-            )
-        }
+            # -----------------------------
+            # Duplicate signal
+            # -----------------------------
+
+            if listing.duplicates and len(listing.duplicates) > 0:
+                score += 15
+                flags.append("has_duplicates")
+
+            # -----------------------------
+            # Market deviation signal
+            # -----------------------------
+
+            if listing.market_deviation is not None:
+                if abs(listing.market_deviation) > 30:
+                    score += 25
+                    flags.append("high_market_deviation")
+
+            # -----------------------------
+            # Final normalization
+            # -----------------------------
+
+            listing.risk_score = min(score, 100)
+            listing.risk_flags = flags
+
+        return listings
 
 
-def score_risk_v2(listing: Dict[str, Any]) -> Dict[str, Any]:
-    engine = RiskEngineV2()
-    return engine.score(listing)
+# Backward compatibility hook (optional import safety)
+def score_risk_v2(listings: List[Listing], market_context: Dict[str, Any] = None):
+    return RiskEngineV2().score(listings, market_context)

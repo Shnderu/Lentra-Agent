@@ -1,40 +1,48 @@
-from typing import List, Dict, Any
-import hashlib
+from typing import List
+from lentra.core.v2.models.listing import Listing
 
 
 class DeduplicatorV2:
     """
-    MVP entity clustering dedup engine
+    V2 dedup engine (baseline clustering).
 
-    Идея:
-    - формируем стабильный fingerprint объекта
-    - группируем одинаковые листинги
+    Goal:
+    - detect duplicates
+    - attach duplicate IDs to primary listing
+    - keep model fully object-based
     """
 
-    def _fingerprint(self, item: Dict[str, Any]) -> str:
-        title = (item.get("title") or "").strip().lower()
-        price = str(item.get("price") or "")
-        location = (item.get("location") or "").strip().lower()
+    def deduplicate(self, listings: List[Listing]) -> List[Listing]:
 
-        raw = f"{title}|{price}|{location}"
-        return hashlib.md5(raw.encode()).hexdigest()
+        normalized = []
 
-    def deduplicate(self, listings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        groups = {}
+        for i, listing in enumerate(listings):
+            listing.duplicates = []
 
-        for item in listings:
-            fp = self._fingerprint(item)
+            for other in listings:
+                if listing.id == other.id:
+                    continue
 
-            if fp not in groups:
-                item["duplicates"] = []
-                item["cluster_id"] = fp
-                groups[fp] = item
-            else:
-                groups[fp].setdefault("duplicates", []).append(item)
+                # -----------------------------
+                # Basic clustering heuristic (MVP)
+                # -----------------------------
+                same_title = (
+                    listing.title
+                    and other.title
+                    and listing.title.strip().lower() == other.title.strip().lower()
+                )
 
-        return list(groups.values())
+                same_price = listing.price == other.price
+                same_city = listing.city == other.city
+
+                if same_title and same_price and same_city:
+                    listing.duplicates.append(other.id)
+
+            normalized.append(listing)
+
+        return normalized
 
 
-def deduplicate_v2(listings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    engine = DeduplicatorV2()
-    return engine.deduplicate(listings)
+# Compatibility wrapper (safe during migration)
+def deduplicate_v2(listings: List[Listing]) -> List[Listing]:
+    return DeduplicatorV2().deduplicate(listings)

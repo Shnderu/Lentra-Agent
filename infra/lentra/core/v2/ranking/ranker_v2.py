@@ -1,36 +1,60 @@
 from typing import List, Dict, Any
+from lentra.core.v2.models.listing import Listing
 
 
 class RankerV2:
+    """
+    V2 ranking engine:
+    - market deviation aware ranking
+    - risk-aware weighting
+    - fully Listing-based (no dict access)
+    """
 
-    def rank(self, listings: List[Dict[str, Any]], market_context: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """
-        v2 ranking:
-        - deviation from market
-        - risk penalty
-        - price attractiveness
-        """
+    def rank(self, listings: List[Listing], market: Dict[str, Any]) -> List[Listing]:
 
-        market_price = market_context.get("market_price")
+        market_price = market.get("market_price") if market else None
 
-        def score(item: Dict[str, Any]) -> float:
-            base = 100
+        for listing in listings:
 
-            price = item.get("price", 0)
-            risk = item.get("risk_score", 0)
+            score = 0
 
-            # price signal
+            price = listing.price or 0
+            risk = listing.risk_score or 0
+
+            # -----------------------------
+            # Market deviation scoring
+            # -----------------------------
             if market_price and price:
                 deviation = abs(price - market_price) / market_price * 100
-                base -= deviation * 0.8
+                listing.market_deviation = deviation
 
-            # risk penalty
-            base -= risk * 1.2
+                # sweet spot: near market price
+                if deviation < 10:
+                    score += 30
+                elif deviation < 25:
+                    score += 15
+                else:
+                    score -= 10
 
-            # bonus for cheap good deals
-            if market_price and price and price < market_price * 0.9:
-                base += 10
+            # -----------------------------
+            # Risk penalty
+            # -----------------------------
+            score -= risk * 0.5
 
-            return base
+            # -----------------------------
+            # Duplicate penalty
+            # -----------------------------
+            if listing.duplicates:
+                score -= len(listing.duplicates) * 5
 
-        return sorted(listings, key=score, reverse=True)
+            listing.ranking_score = score
+
+        # final sort
+        listings.sort(key=lambda x: x.ranking_score, reverse=True)
+
+        return listings
+
+
+# backward compatibility
+def rank_listings_v2(listings: List[Listing], market: Dict[str, Any]):
+    return RankerV2().rank(listings, market)
