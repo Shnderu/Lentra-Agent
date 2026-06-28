@@ -1,58 +1,26 @@
-from typing import Dict, Any
+from lentra.core.dto.listing_dto import ListingDTO
 
 
-class UnifiedScorerV2:
+class UnifiedScorer:
 
-    def score(self, listing: Dict[str, Any], market: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Финальный слой интерпретации объекта
-        """
+    def score(self, listing: ListingDTO, market: dict):
 
-        base = 100
+        price = listing.price or 0
+        market_price = market.get("market_price") or 0
 
-        price = listing.get("price") or 0
+        risk = market.get("risk_score", 0)
 
-        # --- MARKET SIGNAL ---
-        market_price = market.get("market_price")
+        deviation = 0
+        if market_price:
+            deviation = (price - market_price) / market_price * 100
 
-        if market_price and price:
-            deviation = abs(price - market_price) / market_price * 100
+        score = 100
 
-            if deviation < 10:
-                base += 10
-            elif deviation < 25:
-                base -= 5
-            else:
-                base -= 20
-
-        # --- RISK SIGNAL ---
-        risk = listing.get("risk_score", 0)
-        base -= risk * 0.9
-
-        # --- AREA SIGNAL ---
-        area = (listing.get("area_v2") or {}).get("area_score")
-
-        if area:
-            if area >= 8:
-                base += 10
-            elif area >= 6:
-                base += 3
-            else:
-                base -= 8
-
-        # clamp
-        base = max(0, min(100, base))
+        score -= abs(deviation) * 0.8
+        score -= risk * 0.5
 
         return {
-            "score": round(base, 2),
-            "verdict": self._verdict(base)
+            "score": score,
+            "deviation_pct": deviation,
+            "risk": risk
         }
-
-    def _verdict(self, score: float) -> str:
-        if score >= 80:
-            return "excellent_deal"
-        if score >= 65:
-            return "good_deal"
-        if score >= 45:
-            return "neutral"
-        return "risky"
