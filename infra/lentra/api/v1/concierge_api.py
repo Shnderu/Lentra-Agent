@@ -1,57 +1,38 @@
 
-
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from lentra.core.pipeline.pipeline import LentraPipeline
 
 app = FastAPI()
+
 pipeline = LentraPipeline()
 
 
-def safe_run(raw_listing):
-    result = pipeline.run(raw_listing)
-
-    # гарантируем одинаковый формат для UI
-    if "ui_badges" not in result:
-        result["ui_badges"] = []
-
-    if "ai" not in result:
-        result["ai"] = {"advice": [], "warnings": [], "verdict": None}
-
-    return result
-
-
 @app.get("/search")
-def search(q: str):
+def search(q: str = Query(...)):
 
-    raw_listing = {
-        "id": "api-1",
-        "title": q,
-        "price": 600,
-        "market_avg": 600,
-        "currency": "USD",
-        "city": "Da Nang",
-        "location": "My My",
-        "source": "api"
-    }
+    try:
+
+        ctx = pipeline.run({"title": q})
+
+    except Exception as e:
+
+        return {"error": str(e)}
+
+    s = ctx.snapshot
 
     return {
-        "query": q,
-        "result": safe_run(raw_listing)
+        "query": s.query,
+        "total": s.total_objects,
+        "average_price": s.average_market_price,
+        "objects": [
+            {
+                "id": o.id,
+                "price": o.market_price,
+                "risk": o.risk,
+                "area_score": o.area_score,
+                "verdict": o.verdict,
+                "negotiation": o.negotiation,
+            }
+            for o in s.objects
+        ]
     }
-
-
-@app.get("/listing")
-def listing(id: str):
-
-    raw_listing = {
-        "id": id,
-        "title": "studio",
-        "price": 600,
-        "market_avg": 550,
-        "currency": "USD",
-        "city": "Da Nang",
-        "location": "My My",
-        "source": "api"
-    }
-
-    return safe_run(raw_listing)

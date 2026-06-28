@@ -1,70 +1,38 @@
-from lentra.core.ai.semantic_search.vector_store.vector_store import search
-from lentra.core.ai.semantic_search.embeddings.embedding_engine import embed
 
-from lentra.core.market_intelligence.dedup.dedup_engine import DedupEngine
-from lentra.core.market_intelligence.object_model.property_object import PropertyObject
-from lentra.core.market_intelligence.market_intelligence_engine import MarketIntelligenceEngine
-from lentra.core.market_intelligence.area.area_engine import AreaEngine
-from lentra.core.ai.decision.ai_decision_engine import AIDecisionEngine
+from lentra.core.contracts.pipeline_context import PipelineContext
+from lentra.core.modules.market.market_module import MarketModule
+from lentra.core.modules.risk.risk_module import RiskModule
+from lentra.core.modules.forecast.forecast_module import ForecastModule
+from lentra.core.modules.decision.decision_module import DecisionModule
+from lentra.core.modules.persona.persona_module import PersonaModule
+from lentra.core.modules.ui.ui_module import UIModule
+
+from lentra.core.market_intelligence.confidence.confidence_engine import ConfidenceEngine
 
 
 class LentraPipeline:
 
-    def run(self, raw_listing: dict):
+    def run(self, raw):
 
-        print(f"[PIPELINE] RECEIVED: {raw_listing.get('id')}")
+        ctx = PipelineContext(raw)
 
-        results = search(embed(raw_listing.get("title", "")))
+        ctx = MarketModule().run(ctx)
 
-        clusters = DedupEngine(threshold=0.85).cluster(results)
+        if not hasattr(ctx, "snapshot") or ctx.snapshot is None:
+            raise RuntimeError("no snapshot")
 
-        mi_engine = MarketIntelligenceEngine()
-        area_engine = AreaEngine()
-        ai_engine = AIDecisionEngine()
+        ctx.objects = ctx.snapshot.objects
 
-        property_objects = [
-            PropertyObject(cluster_id, listings)
-            for cluster_id, listings in clusters.items()
-        ]
+        ctx = RiskModule().run(ctx)
+        ctx = ForecastModule().run(ctx)
 
-        enriched = []
+        # v2.1
+        ctx.objects = ConfidenceEngine().run(ctx.objects)
 
-        for obj in property_objects:
+        # v3 NEW
+        ctx = DecisionModule().run(ctx)
+        ctx = PersonaModule().run(ctx)
+        ctx = UIModule().run(ctx)
 
-            market = mi_engine.analyze(obj)
+        return ctx
 
-            location = obj.listings[0].get("location", "")
-
-            area = area_engine.score(location)
-
-            decision = ai_engine.decide(market, area)
-
-            enriched.append({
-                "cluster_id": obj.cluster_id,
-
-                "market_price": market["market_price"],
-                "price_deviation": market["price_deviation"],
-                "risk": market["risk"],
-
-                "area_score": area,
-
-                "verdict": decision["verdict"],
-                "negotiation": {
-                    "strategy": decision["negotiation_strategy"],
-                    "target_discount": decision["target_discount"]
-                },
-
-                "ai": {
-                    "explanation": decision["explanation"],
-                    "warnings": decision["warnings"]
-                },
-
-                "listings": obj.listings
-            })
-
-        print(f"[PIPELINE] DONE: {raw_listing.get('id')}")
-
-        return {
-            "id": raw_listing.get("id"),
-            "objects": enriched
-        }

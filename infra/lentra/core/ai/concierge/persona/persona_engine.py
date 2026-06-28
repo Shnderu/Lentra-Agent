@@ -1,41 +1,41 @@
 
 
-def build_concierge_response(listing: dict) -> dict:
+class PersonaEngine:
 
-    price = listing.get("price", 0)
-    risk = listing.get("risk", 0.5)
-    market = listing.get("market", {})
-    negotiation = listing.get("negotiation", {})
+    def profile(self, query: str):
 
-    advice = []
-    warnings = []
+        q = query.lower()
 
-    # --- decision logic ---
-    if risk > 0.7:
-        warnings.append("High fraud probability — verify landlord identity")
+        persona = {
+            "type": "unknown",
+            "weights": {
+                "price": 0.5,
+                "location": 0.5,
+                "internet": 0.5,
+                "noise": 0.5,
+                "comfort": 0.5
+            }
+        }
 
-    if market.get("verdict") == "overpriced":
-        advice.append("Try negotiation before committing")
+        # digital nomad detection
+        if "wifi" in q or "internet" in q:
+            persona["type"] = "digital_nomad"
+            persona["weights"]["internet"] = 0.9
+            persona["weights"]["noise"] = 0.7
+            persona["weights"]["price"] = 0.5
 
-    if negotiation.get("strategy") == "aggressive_negotiation":
-        advice.append(
-            f"Start offer at ~{negotiation.get('target_price')} USD"
-        )
+        # budget seeker
+        if "cheap" in q or "under" in q:
+            persona["type"] = "budget_seeker"
+            persona["weights"]["price"] = 0.9
 
-    if price < market.get("market_avg", price):
-        advice.append("This is a below-market opportunity — act fast")
+        # beach lifestyle
+        if "beach" in q:
+            persona["weights"]["location"] = 0.8
 
-    # --- final verdict ---
-    if risk < 0.5 and market.get("verdict") == "market aligned":
-        verdict = "safe_deal"
-    elif risk > 0.7:
-        verdict = "high_risk"
-    else:
-        verdict = "neutral_deal"
+        # expat logic
+        if "long" in q or "month" in q:
+            persona["type"] = "expat"
+            persona["weights"]["comfort"] = 0.8
 
-    return {
-        "verdict": verdict,
-        "advice": advice,
-        "warnings": warnings,
-        "summary": "AI concierge recommendation generated"
-    }
+        return persona

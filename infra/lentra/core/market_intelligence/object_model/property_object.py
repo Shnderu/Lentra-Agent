@@ -1,27 +1,21 @@
 
+from dataclasses import dataclass, field
+from typing import Any
 
+
+@dataclass(slots=True)
 class PropertyObject:
 
-    def __init__(self, cluster_id: str, listings: list):
+    id: str | None = None
 
-        self.cluster_id = cluster_id
-        self.listings = listings
+    title: str = ""
 
-        self.prices = [l["price"] for l in listings]
+    price: float | None = None
 
-        self.min_price = min(self.prices)
-        self.max_price = max(self.prices)
-        self.avg_price = sum(self.prices) / len(self.prices)
+    location: str | None = None
 
-    def market_price(self):
-        return self.avg_price
+    source: str | None = None
 
-    def price_spread(self):
-        return self.max_price - self.min_price
+    city: str | None = None
 
-    def dominant_source(self):
-        sources = {}
-        for l in self.listings:
-            src = l.get("source", "unknown")
-            sources[src] = sources.get(src, 0) + 1
-        return max(sources, key=sources.get)
+    metadata: dict[str, Any] = field(default_factory=dict)
