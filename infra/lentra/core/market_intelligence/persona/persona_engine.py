@@ -1,3 +1,3 @@
-class RankingEngine:
+class PersonaEngine:
     def run(self, ctx):
         return ctx
