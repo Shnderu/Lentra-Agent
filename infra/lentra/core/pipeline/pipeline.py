@@ -5,18 +5,16 @@ from lentra.core.dto.validator import ListingValidator
 class LentraPipeline:
 
     def __init__(self):
-        # здесь уже могут быть scorer / dedup / market engine
         self.steps = []
 
     def run(self, input_data):
 
-        # 1. NORMALIZE → DTO
+        # HARD GATE: normalize EVERYTHING
         dto = ListingDTO.from_any(input_data)
 
-        # 2. VALIDATE → hard gate
+        # HARD VALIDATION (fail fast, no silent corruption)
         ListingValidator.validate(dto)
 
-        # 3. EXECUTION FLOW
         data = dto
 
         for step in self.steps:
@@ -34,3 +32,26 @@ class LentraPipeline:
             "currency": dto.currency,
             "source": dto.source
         }
+from lentra.core.pipeline.retry import RetryPolicy
+
+
+class LentraPipeline:
+
+    def __init__(self):
+        self.steps = []
+        self.retry = RetryPolicy(retries=3)
+
+    def run(self, input_data):
+
+        def _run():
+            dto = ListingDTO.from_any(input_data)
+            ListingValidator.validate(dto)
+
+            data = dto
+
+            for step in self.steps:
+                data = step.run(data)
+
+            return self._finalize(data)
+
+        return self.retry.execute(_run)

@@ -1,5 +1,6 @@
 import time
 import traceback
+import json
 
 from lentra.worker.queue import pop_task
 from lentra.worker.result_store import save_result
@@ -23,13 +24,19 @@ def main():
             continue
 
         task_id = task.get("id")
-        query = task.get("query", "")
+        payload = task.get("payload")
 
         try:
             log("[TASK]", task_id)
 
-            # IMPORTANT: pipeline now owns DTO layer
-            result = pipeline.run(query)
+            # FIX: normalize payload before pipeline
+            if isinstance(payload, str):
+                try:
+                    payload = json.loads(payload)
+                except Exception:
+                    payload = {"text": payload}
+
+            result = pipeline.run(payload)
 
             save_result(task_id, result)
 
