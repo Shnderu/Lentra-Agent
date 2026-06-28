@@ -1,36 +1,36 @@
-from lentra.core.parsing.query_parser import parse_query
-from lentra.core.data.fetcher import fetch_listings
-
-from lentra.core.normalization.normalizer import normalize
-from lentra.core.dedup.deduplicator import deduplicate
-from lentra.core.market.pricing import estimate_market_price
-from lentra.core.risk.risk_scorer import score_risk
-from lentra.core.ranking.ranker import rank_listings
-from lentra.core.response.builder import build_response
+from lentra.core.dto.listing_dto import ListingDTO
+from lentra.core.dto.validator import ListingValidator
 
 
 class LentraPipeline:
 
-    def run(self, text: str):
+    def __init__(self):
+        # здесь уже могут быть scorer / dedup / market engine
+        self.steps = []
 
-        print("[PIPELINE] INPUT:", text)
+    def run(self, input_data):
 
-        query = parse_query(text)
-        print("[PIPELINE] QUERY:", query)
+        # 1. NORMALIZE → DTO
+        dto = ListingDTO.from_any(input_data)
 
-        listings = fetch_listings(query)
+        # 2. VALIDATE → hard gate
+        ListingValidator.validate(dto)
 
-        # IMPORTANT: keep OBJECT MODEL (NO dict conversion)
-        listings = normalize(listings)
-        listings = deduplicate(listings)
+        # 3. EXECUTION FLOW
+        data = dto
 
-        market = estimate_market_price(listings, query)
+        for step in self.steps:
+            data = step.run(data)
 
-        listings = score_risk(listings, market)
-        listings = rank_listings(listings)
+        return self._finalize(data)
 
-        response = build_response(listings, market, query)
+    def _finalize(self, dto: ListingDTO):
 
-        print("[PIPELINE] DONE")
-
-        return response
+        return {
+            "id": dto.id,
+            "title": dto.title,
+            "location": dto.location,
+            "price": dto.price,
+            "currency": dto.currency,
+            "source": dto.source
+        }

@@ -4,7 +4,6 @@ import traceback
 from lentra.worker.queue import pop_task
 from lentra.worker.result_store import save_result
 from lentra.core.pipeline.pipeline import LentraPipeline
-from lentra.core.compat.listing_adapter import ListingAdapter
 
 
 def log(*args):
@@ -29,10 +28,8 @@ def main():
         try:
             log("[TASK]", task_id)
 
-            # FIX: normalize input BEFORE pipeline
-            safe_query = ListingAdapter.normalize(query)
-
-            result = pipeline.run(safe_query)
+            # IMPORTANT: pipeline now owns DTO layer
+            result = pipeline.run(query)
 
             save_result(task_id, result)
 
