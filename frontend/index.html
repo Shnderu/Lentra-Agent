@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Lentra Rent Intelligence</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #0f1115;
+            color: #e6e6e6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+        }
+
+        .card {
+            background: #1a1d24;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-radius: 10px;
+        }
+
+        .price {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            margin-right: 6px;
+            border-radius: 6px;
+            background: #2a2f3a;
+            font-size: 12px;
+        }
+
+        .risk-high { color: #ff5c5c; }
+        .risk-medium { color: #ffcc66; }
+
+        .section-title {
+            margin-top: 8px;
+            font-weight: bold;
+            color: #aaa;
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <h2>SEA Rent Intelligence</h2>
+
+    <div id="results"></div>
+
+</div>
+
+<script>
+async function loadData() {
+
+    // MOCK API CALL (пока без backend http layer)
+    const response = await fetch("data.json");
+    const data = await response.json();
+
+    const container = document.getElementById("results");
+    container.innerHTML = "";
+
+    data.forEach(item => {
+
+        const card = document.createElement("div");
+        card.className = "card";
+
+        card.innerHTML = `
+            <div class="price">$${item.price}</div>
+            <div>Market: $${item.market_price} (${item.price_deviation})</div>
+
+            <div class="section-title">Verdict</div>
+            <div>${item.verdict}</div>
+
+            <div class="section-title">AI Advice</div>
+            <div>${(item.ai.advice || []).join("<br>")}</div>
+
+            <div class="section-title">Warnings</div>
+            <div class="risk-high">${(item.ai.warnings || []).join("<br>")}</div>
+
+            <div class="section-title">Negotiation</div>
+            <div>
+                Strategy: ${item.negotiation.strategy} <br>
+                Target: $${item.negotiation.target_price}
+            </div>
+
+            <div class="section-title">Badges</div>
+            <div>
+                ${(item.ui_badges || []).map(b => `<span class="badge">${b}</span>`).join("")}
+            </div>
+        `;
+
+        container.appendChild(card);
+    });
+}
+
+loadData();
+</script>
+
+</body>
+</html>

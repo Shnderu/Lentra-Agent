@@ -1,0 +1,54 @@
+[
+    {
+        "id": "cand-1",
+        "price": 650,
+        "market_price": 550,
+        "price_deviation": 0.18,
+        "verdict": "overpriced",
+
+        "risk": 0.7,
+
+        "ai": {
+            "verdict": "neutral_deal",
+            "advice": [
+                "Try negotiation before committing",
+                "Start offer at ~580 USD"
+            ],
+            "warnings": [
+                "High risk: verify landlord identity"
+            ]
+        },
+
+        "negotiation": {
+            "strategy": "standard_negotiation",
+            "target_price": 580
+        },
+
+        "ui_badges": ["⚠ High Risk", "📍 Prime Area"]
+    },
+
+    {
+        "id": "cand-2",
+        "price": 400,
+        "market_price": 450,
+        "price_deviation": -0.11,
+        "verdict": "undervalued",
+
+        "risk": 0.4,
+
+        "ai": {
+            "verdict": "safe_deal",
+            "advice": [
+                "Good deal — act fast"
+            ],
+            "warnings": []
+        },
+
+        "negotiation": {
+            "strategy": "low_room_for_negotiation",
+            "target_price": 390
+        },
+
+        "ui_badges": ["🔥 Good Deal"]
+    }
+]

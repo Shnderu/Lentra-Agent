@@ -1,48 +1,38 @@
 
 
-def compute_area_score(listing, cluster_stats):
+class AreaEngine:
 
-    score = 5.0
-    breakdown = {}
+    def score(self, location: str):
 
-    location = (listing.get("location") or "").lower()
+        # базовые эвристики (позже заменим на geo+data layer)
 
-    # 1. Beach proximity signal
-    if "beach" in location or "my khe" in location:
-        score += 2.0
-        breakdown["beach_access"] = 2.0
-    else:
-        score -= 0.5
-        breakdown["beach_access"] = -0.5
+        if not location:
+            return {
+                "area_score": 5.0,
+                "internet": 5.0,
+                "noise": 5.0,
+                "expat_density": 5.0
+            }
 
-    # 2. Internet signal
-    features = listing.get("features") or []
-    if "internet" in features:
-        score += 1.5
-        breakdown["internet"] = 1.5
-    else:
-        score -= 1.0
-        breakdown["internet"] = -1.0
+        if "My Khe" in location or "beach" in location.lower():
+            return {
+                "area_score": 8.5,
+                "internet": 9.0,
+                "noise": 6.0,
+                "expat_density": 8.0
+            }
 
-    # 3. Cluster quality proxy
-    if cluster_stats and cluster_stats["avg"] > 500:
-        score += 0.5
-        breakdown["cluster_quality"] = 0.5
+        if "center" in location.lower():
+            return {
+                "area_score": 7.0,
+                "internet": 8.0,
+                "noise": 4.5,
+                "expat_density": 7.5
+            }
 
-    # clamp 0–10
-    score = max(0, min(10, score))
-
-    if score >= 8:
-        level = "excellent"
-    elif score >= 6:
-        level = "good"
-    elif score >= 4:
-        level = "average"
-    else:
-        level = "poor"
-
-    return {
-        "area_score": round(score, 2),
-        "area_level": level,
-        "breakdown": breakdown
-    }
+        return {
+            "area_score": 6.0,
+            "internet": 6.0,
+            "noise": 6.0,
+            "expat_density": 6.0
+        }

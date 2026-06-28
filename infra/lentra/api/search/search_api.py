@@ -3,6 +3,7 @@
 from lentra.core.ai.semantic_search.embeddings.embedding_engine import embed
 from lentra.core.ai.semantic_search.vector_store.vector_store import search
 from lentra.core.pipeline.pipeline import LentraPipeline
+from lentra.core.ai.concierge.ranker.ranking_engine import rank_listings
 
 
 class SearchAPI:
@@ -33,4 +34,6 @@ class SearchAPI:
                 "reason": "vector_match"
             })
 
-        return results
+        ranked = rank_listings(results)
+
+        return ranked

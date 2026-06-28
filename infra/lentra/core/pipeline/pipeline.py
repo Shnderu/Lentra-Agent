@@ -1,57 +1,70 @@
+from lentra.core.ai.semantic_search.vector_store.vector_store import search
+from lentra.core.ai.semantic_search.embeddings.embedding_engine import embed
 
-
-from lentra.core.market_intelligence.normalization.listing_normalizer import normalize_listing
-from lentra.core.market_intelligence.dedup.dedup_engine import assign_cluster
-from lentra.core.market_intelligence.risk.risk_engine import update_risk_score
-from lentra.core.market_intelligence.pricing.price_engine import compute_price_signal
-from lentra.core.market_intelligence.area.area_intelligence import compute_area_intelligence
-
-from lentra.core.ai.concierge.ranker.meta_ranking_engine import compute_meta_score
+from lentra.core.market_intelligence.dedup.dedup_engine import DedupEngine
+from lentra.core.market_intelligence.object_model.property_object import PropertyObject
+from lentra.core.market_intelligence.market_intelligence_engine import MarketIntelligenceEngine
+from lentra.core.market_intelligence.area.area_engine import AreaEngine
+from lentra.core.ai.decision.ai_decision_engine import AIDecisionEngine
 
 
 class LentraPipeline:
 
-    def run(self, raw_listing):
+    def run(self, raw_listing: dict):
 
         print(f"[PIPELINE] RECEIVED: {raw_listing.get('id')}")
 
-        # 1. NORMALIZE
-        listing = normalize_listing(raw_listing)
+        results = search(embed(raw_listing.get("title", "")))
 
-        # 2. CLUSTER
-        cluster_id = assign_cluster(listing["id"], listing.get("location"))
+        clusters = DedupEngine(threshold=0.85).cluster(results)
 
-        # 3. RISK
-        risk = update_risk_score(listing)
+        mi_engine = MarketIntelligenceEngine()
+        area_engine = AreaEngine()
+        ai_engine = AIDecisionEngine()
 
-        # 4. PRICE SIGNAL (FIXED CONTRACT)
-        price_signal = compute_price_signal(
-            listing["price"],
-            {"cluster_hint": cluster_id}
-        )
+        property_objects = [
+            PropertyObject(cluster_id, listings)
+            for cluster_id, listings in clusters.items()
+        ]
 
-        # 5. AREA INTELLIGENCE
-        area = compute_area_intelligence(listing, {"listings_count": 1})
+        enriched = []
 
-        # 6. META RANKING
-        meta = compute_meta_score(
-            price_signal,
-            risk,
-            {"scam_score": 0.5},
-            area
-        )
+        for obj in property_objects:
 
-        result = {
-            "id": listing["id"],
-            "cluster_id": cluster_id,
-            "price": listing["price"],
-            "normalized_price": listing["price"],
-            "signal": price_signal.get("signal"),
-            "risk": risk.get("risk_score"),
-            "area_score": area.get("area_score"),
-            "meta_score": meta.get("final_score"),
-            "status": "indexed"
+            market = mi_engine.analyze(obj)
+
+            location = obj.listings[0].get("location", "")
+
+            area = area_engine.score(location)
+
+            decision = ai_engine.decide(market, area)
+
+            enriched.append({
+                "cluster_id": obj.cluster_id,
+
+                "market_price": market["market_price"],
+                "price_deviation": market["price_deviation"],
+                "risk": market["risk"],
+
+                "area_score": area,
+
+                "verdict": decision["verdict"],
+                "negotiation": {
+                    "strategy": decision["negotiation_strategy"],
+                    "target_discount": decision["target_discount"]
+                },
+
+                "ai": {
+                    "explanation": decision["explanation"],
+                    "warnings": decision["warnings"]
+                },
+
+                "listings": obj.listings
+            })
+
+        print(f"[PIPELINE] DONE: {raw_listing.get('id')}")
+
+        return {
+            "id": raw_listing.get("id"),
+            "objects": enriched
         }
-
-        print(f"[PIPELINE] DONE: {listing['id']}")
-        return result

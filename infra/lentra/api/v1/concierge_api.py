@@ -1,25 +1,57 @@
 
 
-from lentra.api.search.search_api import SearchAPI
-from lentra.core.ai.concierge.concierge_engine import ConciergeEngine
-from lentra.core.pipeline.safe_runner import safe_run
-from lentra.core.contracts.v1.response_schema import build_response
+from fastapi import FastAPI
+from lentra.core.pipeline.pipeline import LentraPipeline
+
+app = FastAPI()
+pipeline = LentraPipeline()
 
 
-class ConciergeAPIv1:
+def safe_run(raw_listing):
+    result = pipeline.run(raw_listing)
 
-    def __init__(self):
-        self.engine = ConciergeEngine(SearchAPI())
+    # гарантируем одинаковый формат для UI
+    if "ui_badges" not in result:
+        result["ui_badges"] = []
 
-    def search(self, query):
+    if "ai" not in result:
+        result["ai"] = {"advice": [], "warnings": [], "verdict": None}
 
-        raw = self.engine.run(query)
+    return result
 
-        if "error" in raw:
-            return raw
 
-        return build_response(
-            query=raw["query"],
-            plan=raw["plan"],
-            results=raw["results"]
-        )
+@app.get("/search")
+def search(q: str):
+
+    raw_listing = {
+        "id": "api-1",
+        "title": q,
+        "price": 600,
+        "market_avg": 600,
+        "currency": "USD",
+        "city": "Da Nang",
+        "location": "My My",
+        "source": "api"
+    }
+
+    return {
+        "query": q,
+        "result": safe_run(raw_listing)
+    }
+
+
+@app.get("/listing")
+def listing(id: str):
+
+    raw_listing = {
+        "id": id,
+        "title": "studio",
+        "price": 600,
+        "market_avg": 550,
+        "currency": "USD",
+        "city": "Da Nang",
+        "location": "My My",
+        "source": "api"
+    }
+
+    return safe_run(raw_listing)

@@ -1,71 +1,51 @@
-import psycopg2
-import hashlib
 
 
-def build_canonical_id(listing):
-    raw = f"{listing.get('title','')}-{listing.get('city','')}-{listing.get('price','')}"
-    return hashlib.sha256(raw.encode()).hexdigest()
+from collections import defaultdict
+from lentra.core.ai.semantic_search.embeddings.embedding_engine import embed
 
 
-def find_existing_cluster(canonical_id):
-    conn = psycopg2.connect(
-        dbname="lentra",
-        user="lentra",
-        host="127.0.0.1"
-    )
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT cluster_id
-        FROM tasks
-        WHERE canonical_id = %s
-        LIMIT 1
-    """, (canonical_id,))
-
-    row = cur.fetchone()
-
-    cur.close()
-    conn.close()
-
-    return row[0] if row else None
+def cosine_sim(a, b):
+    dot = sum(x*y for x, y in zip(a, b))
+    norm_a = sum(x*x for x in a) ** 0.5
+    norm_b = sum(x*x for x in b) ** 0.5
+    return dot / (norm_a * norm_b + 1e-8)
 
 
-def assign_cluster(listing, idempotency_key):
+class DedupEngine:
 
-    # LISTING MUST BE DICT
-    if not isinstance(listing, dict):
-        listing = {
-            "id": listing,
-            "idempotency_key": idempotency_key
-        }
+    def __init__(self, threshold: float = 0.85):
+        self.threshold = threshold
 
-    canonical_id = build_canonical_id(listing)
+    def cluster(self, listings: list):
 
-    existing = find_existing_cluster(canonical_id)
+        clusters = []
 
-    if existing:
-        return existing
+        for listing in listings:
 
-    conn = psycopg2.connect(
-        dbname="lentra",
-        user="lentra",
-        host="127.0.0.1"
-    )
-    cur = conn.cursor()
+            emb = embed(listing.get("title", ""))
 
-    cur.execute("""
-        INSERT INTO clusters (city, canonical_signature, avg_price, min_price, max_price, listings_count)
-        VALUES (%s, %s, 0, 0, 0, 0)
-        RETURNING id
-    """, (
-        listing.get("city", ""),
-        canonical_id
-    ))
+            placed = False
 
-    cluster_id = cur.fetchone()[0]
+            for cluster in clusters:
 
-    conn.commit()
-    cur.close()
-    conn.close()
+                # compare with first item of cluster
+                base = cluster["embedding"]
 
-    return cluster_id
+                if cosine_sim(emb, base) >= self.threshold:
+                    cluster["items"].append(listing)
+                    placed = True
+                    break
+
+            if not placed:
+                clusters.append({
+                    "embedding": emb,
+                    "items": [listing]
+                })
+
+        # convert to dict format
+        result = {}
+
+        for i, c in enumerate(clusters):
+            result[f"cluster_{i}"] = c["items"]
+
+        return result
