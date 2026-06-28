@@ -1,57 +1,50 @@
-from lentra.core.dto.listing_dto import ListingDTO
-from lentra.core.dto.validator import ListingValidator
+from lentra.core.contracts.v1.guard import enforce_listing_contract
+
+from lentra.core.market_intelligence.idempotency.idempotency_engine import (
+    build_idempotency_key,
+    is_processed,
+    mark_processed
+)
+
+from lentra.core.market_intelligence.dedup.dedup_engine import assign_cluster
+from lentra.core.market_intelligence.features.feature_mapper import to_feature_vector
+
+from lentra.core.market_intelligence.pricing.price_engine import update_cluster_stats
+from lentra.core.market_intelligence.risk.risk_engine import update_risk_score
 
 
 class LentraPipeline:
 
-    def __init__(self):
-        self.steps = []
+    def run(self, raw_listing):
+        dto = enforce_listing_contract(raw_listing)
 
-    def run(self, input_data):
+        print("[PIPELINE] RECEIVED:", dto.id)
 
-        # HARD GATE: normalize EVERYTHING
-        dto = ListingDTO.from_any(input_data)
+        key = build_idempotency_key(raw_listing)
 
-        # HARD VALIDATION (fail fast, no silent corruption)
-        ListingValidator.validate(dto)
+        if is_processed(key):
+            print("[PIPELINE] SKIP IDEMPOTENT:", dto.id)
+            return {"status": "skipped"}
 
-        data = dto
+        # 1. FEATURE LAYER (НОВЫЙ СТАНДАРТ)
+        feature = to_feature_vector(dto)
 
-        for step in self.steps:
-            data = step.run(data)
+        # 2. DEDUP
+        cluster_id = assign_cluster(raw_listing, key)
 
-        return self._finalize(data)
+        # 3. MARK IDEMPOTENT
+        mark_processed(dto.id, key)
 
-    def _finalize(self, dto: ListingDTO):
+        # 4. MARKET INTELLIGENCE
+        update_cluster_stats(cluster_id)
+        update_risk_score(cluster_id)
+
+        print("[PIPELINE] DONE:", dto.id)
 
         return {
             "id": dto.id,
-            "title": dto.title,
-            "location": dto.location,
-            "price": dto.price,
-            "currency": dto.currency,
-            "source": dto.source
+            "cluster_id": cluster_id,
+            "price": feature.price,
+            "normalized_price": feature.normalized_price,
+            "status": "indexed"
         }
-from lentra.core.pipeline.retry import RetryPolicy
-
-
-class LentraPipeline:
-
-    def __init__(self):
-        self.steps = []
-        self.retry = RetryPolicy(retries=3)
-
-    def run(self, input_data):
-
-        def _run():
-            dto = ListingDTO.from_any(input_data)
-            ListingValidator.validate(dto)
-
-            data = dto
-
-            for step in self.steps:
-                data = step.run(data)
-
-            return self._finalize(data)
-
-        return self.retry.execute(_run)

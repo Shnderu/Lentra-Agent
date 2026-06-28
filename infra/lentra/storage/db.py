@@ -1,48 +1,33 @@
-# LENTRA DB LAYER (PRODUCTION MODE)
-
 import os
 import psycopg2
-from psycopg2.extras import RealDictCursor
 
-def load_env():
-    env_path = "/opt/lentra/infra/.env"
-    if os.path.exists(env_path):
-        with open(env_path) as f:
-            for line in f:
-                if "=" in line:
-                    k, v = line.strip().split("=", 1)
-                    os.environ.setdefault(k, v)
 
-load_env()
-
-DB_NAME = os.getenv("DB_NAME")
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_HOST = os.getenv("DB_HOST")
-DB_PORT = os.getenv("DB_PORT")
+DB_CONFIG = {
+    "dbname": os.getenv("LENTRA_DB_NAME", "lentra"),
+    "user": os.getenv("LENTRA_DB_USER", "lentra"),
+    "password": os.getenv("LENTRA_DB_PASSWORD", ""),
+    "host": os.getenv("LENTRA_DB_HOST", "127.0.0.1"),
+    "port": os.getenv("LENTRA_DB_PORT", "5432"),
+}
 
 
 def get_conn():
     return psycopg2.connect(
-        dbname=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        host=DB_HOST,
-        port=DB_PORT
+        dbname=DB_CONFIG["dbname"],
+        user=DB_CONFIG["user"],
+        password=DB_CONFIG["password"],
+        host=DB_CONFIG["host"],
+        port=DB_CONFIG["port"],
     )
 
 
-def execute(sql, params=None):
+def execute(query, params=None, fetch=False):
     conn = get_conn()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-
     try:
-        cur.execute(sql, params)
-        conn.commit()
-        return cur
-    except Exception as e:
-        conn.rollback()
-        raise e
+        with conn.cursor() as cur:
+            cur.execute(query, params or ())
+            if fetch:
+                return cur.fetchall()
+            conn.commit()
     finally:
-        cur.close()
         conn.close()
