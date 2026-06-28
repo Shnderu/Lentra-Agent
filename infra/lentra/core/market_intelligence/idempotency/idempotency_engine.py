@@ -1,53 +1,37 @@
 import hashlib
 import json
-from lentra.storage.db import get_conn
 
 
-def build_idempotency_key(raw_listing: dict) -> str:
+def _safe_get(obj, key, default=None):
     """
-    ключ = стабильный хеш источника + id + цена
+    Универсальный доступ:
+    - dict -> .get()
+    - object -> getattr()
     """
+    if obj is None:
+        return default
+
+    if isinstance(obj, dict):
+        return obj.get(key, default)
+
+    return getattr(obj, key, default)
+
+
+def build_idempotency_key(raw_listing) -> str:
+    """
+    Генерация стабильного ключа идемпотентности.
+    Работает и с dict, и с DTO.
+    """
+
     base = {
-        "id": raw_listing.get("id"),
-        "source": raw_listing.get("source"),
-        "price": raw_listing.get("price"),
-        "title": raw_listing.get("title"),
+        "id": _safe_get(raw_listing, "id"),
+        "title": _safe_get(raw_listing, "title"),
+        "price": _safe_get(raw_listing, "price"),
+        "city": _safe_get(raw_listing, "city"),
+        "location": _safe_get(raw_listing, "location"),
+        "source": _safe_get(raw_listing, "source"),
     }
 
-    raw = json.dumps(base, sort_keys=True)
-    return hashlib.sha256(raw.encode()).hexdigest()
+    canonical = json.dumps(base, sort_keys=True, ensure_ascii=False)
 
-
-def is_processed(key: str) -> bool:
-    conn = get_conn()
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT 1
-        FROM tasks
-        WHERE idempotency_key = %s
-          AND status = 'done'
-        LIMIT 1
-    """, (key,))
-
-    exists = cur.fetchone() is not None
-
-    cur.close()
-    conn.close()
-
-    return exists
-
-
-def mark_processed(task_id: str, key: str):
-    conn = get_conn()
-    cur = conn.cursor()
-
-    cur.execute("""
-        UPDATE tasks
-        SET idempotency_key = %s
-        WHERE id = %s
-    """, (key, task_id))
-
-    conn.commit()
-    cur.close()
-    conn.close()
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()

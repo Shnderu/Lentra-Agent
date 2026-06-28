@@ -1,28 +1,88 @@
-from lentra.core.market_intelligence.repository.cluster_repository import get_cluster_listings
+import psycopg2
 
 
-def update_cluster_stats(cluster_id: str):
-    rows = get_cluster_listings(cluster_id)
+def fetch_cluster_stats(cluster_id):
+    conn = psycopg2.connect(
+        dbname="lentra",
+        user="lentra",
+        host="127.0.0.1"
+    )
+    cur = conn.cursor()
 
-    prices = []
-    for _, payload, _ in rows:
-        if isinstance(payload, dict):
-            p = payload.get("price")
-        else:
-            continue
+    cur.execute("""
+        SELECT
+            AVG((payload->>'price')::float),
+            MIN((payload->>'price')::float),
+            MAX((payload->>'price')::float),
+            COUNT(*)
+        FROM tasks
+        WHERE cluster_id = %s
+          AND status = 'indexed'
+    """, (cluster_id,))
 
-        if p is not None:
-            prices.append(float(p))
+    row = cur.fetchone()
 
-    if not prices:
-        return
+    cur.close()
+    conn.close()
 
-    avg_price = sum(prices) / len(prices)
-    min_price = min(prices)
-    max_price = max(prices)
+    if not row:
+        return {
+            "avg": None,
+            "min": None,
+            "max": None,
+            "count": 0
+        }
 
-    from lentra.storage.db import get_conn
-    conn = get_conn()
+    return {
+        "avg": row[0],
+        "min": row[1],
+        "max": row[2],
+        "count": row[3]
+    }
+
+
+# ЕДИНЫЙ КОНТРАКТ (СТАБИЛЬНЫЙ)
+def compute_price_signal(price, stats):
+    avg = stats.get("avg")
+
+    if avg is None:
+        return {
+            "signal": "neutral",
+            "risk": 0.5,
+            "delta_vs_market": None
+        }
+
+    delta = (price - avg) / avg if avg else 0
+
+    if delta > 0.25:
+        signal = "overpriced"
+        risk = 0.85
+    elif delta > 0.1:
+        signal = "slightly_over"
+        risk = 0.6
+    elif delta < -0.15:
+        signal = "underpriced"
+        risk = 0.4
+    else:
+        signal = "fair"
+        risk = 0.25
+
+    return {
+        "signal": signal,
+        "risk": risk,
+        "delta_vs_market": delta,
+        "market_avg": avg
+    }
+
+
+def update_cluster_stats(cluster_id):
+    stats = fetch_cluster_stats(cluster_id)
+
+    conn = psycopg2.connect(
+        dbname="lentra",
+        user="lentra",
+        host="127.0.0.1"
+    )
     cur = conn.cursor()
 
     cur.execute("""
@@ -30,9 +90,16 @@ def update_cluster_stats(cluster_id: str):
         SET avg_price = %s,
             min_price = %s,
             max_price = %s,
-            listings_count = %s
+            listings_count = %s,
+            updated_at = NOW()
         WHERE id = %s
-    """, (avg_price, min_price, max_price, len(prices), cluster_id))
+    """, (
+        stats["avg"],
+        stats["min"],
+        stats["max"],
+        stats["count"],
+        cluster_id
+    ))
 
     conn.commit()
     cur.close()

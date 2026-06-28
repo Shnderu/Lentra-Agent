@@ -1,33 +1,25 @@
-from lentra.core.contracts.v1.listing_dto import ListingDTO
+from lentra.core.contracts.v1.models.listing import Listing
 
 
-def enforce_listing_contract(raw_listing):
-    """
-    HARD CONTRACT GATE:
-    pipeline NEVER sees raw data
-    """
+def enforce_listing_contract(raw: dict) -> Listing:
 
-    if raw_listing is None:
-        raise ValueError("[CONTRACT] None input")
+    required = ["id", "title", "price", "currency", "city", "location", "source"]
 
-    if isinstance(raw_listing, str):
-        raise ValueError("[CONTRACT] str is forbidden input")
+    for r in required:
+        if r not in raw:
+            raise ValueError(f"[CONTRACT] missing {r}")
 
-    # 1) already DTO
-    if isinstance(raw_listing, ListingDTO):
-        return raw_listing
-
-    # 2) normalize anything else
     try:
-        dto = ListingDTO.from_raw(raw_listing)
-    except Exception as e:
-        raise ValueError(f"[CONTRACT] invalid listing: {e}")
-
-    # HARD validation
-    if not dto.id:
-        raise ValueError("[CONTRACT] missing id")
-
-    if dto.price is None or dto.price <= 0:
+        price = float(raw["price"])
+    except Exception:
         raise ValueError("[CONTRACT] invalid price")
 
-    return dto
+    return Listing(
+        id=str(raw["id"]),
+        title=str(raw["title"]),
+        price=price,
+        currency=str(raw["currency"]),
+        city=str(raw["city"]),
+        location=str(raw["location"]),
+        source=str(raw["source"]),
+    )

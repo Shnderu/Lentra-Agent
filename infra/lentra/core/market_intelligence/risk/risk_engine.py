@@ -1,36 +1,41 @@
-from lentra.core.market_intelligence.repository.cluster_repository import get_cluster_listings
+import psycopg2
 
 
-def update_risk_score(cluster_id: str):
-    rows = get_cluster_listings(cluster_id)
-
-    prices = []
-    for _, payload, _ in rows:
-        if isinstance(payload, dict) and payload.get("price"):
-            prices.append(float(payload["price"]))
-
-    if not prices:
-        return
-
-    avg_price = sum(prices) / len(prices)
-
-    if avg_price < 300:
-        risk = 0.2
-    elif avg_price < 800:
-        risk = 0.5
-    else:
-        risk = 0.8
-
-    from lentra.storage.db import get_conn
-    conn = get_conn()
+def update_risk_score(cluster_id):
+    conn = psycopg2.connect(
+        dbname="lentra",
+        user="lentra",
+        host="127.0.0.1"
+    )
     cur = conn.cursor()
 
     cur.execute("""
+        SELECT AVG((payload->>'price')::float)
+        FROM tasks
+        WHERE cluster_id = %s
+          AND status = 'indexed'
+    """, (cluster_id,))
+
+    avg_price = cur.fetchone()[0]
+
+    risk = 0.0
+
+    if avg_price:
+        if avg_price > 1200:
+            risk = 0.8
+        elif avg_price > 800:
+            risk = 0.5
+        else:
+            risk = 0.2
+
+    cur.execute("""
         UPDATE clusters
-        SET risk_score = %s
+        SET updated_at = NOW()
         WHERE id = %s
-    """, (risk, cluster_id))
+    """, (cluster_id,))
 
     conn.commit()
     cur.close()
     conn.close()
+
+    return risk

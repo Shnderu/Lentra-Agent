@@ -1,50 +1,38 @@
-from lentra.core.contracts.v1.guard import enforce_listing_contract
 
-from lentra.core.market_intelligence.idempotency.idempotency_engine import (
-    build_idempotency_key,
-    is_processed,
-    mark_processed
-)
 
+from lentra.core.pipeline.models import Listing
+
+from lentra.core.pipeline.hooks.index_hook import index_listing
+
+from lentra.core.market_intelligence.idempotency.idempotency_engine import build_idempotency_key
 from lentra.core.market_intelligence.dedup.dedup_engine import assign_cluster
-from lentra.core.market_intelligence.features.feature_mapper import to_feature_vector
-
-from lentra.core.market_intelligence.pricing.price_engine import update_cluster_stats
+from lentra.core.market_intelligence.pricing.price_engine import compute_price_signal
 from lentra.core.market_intelligence.risk.risk_engine import update_risk_score
 
 
 class LentraPipeline:
 
-    def run(self, raw_listing):
-        dto = enforce_listing_contract(raw_listing)
+    def run(self, raw_listing: dict):
 
-        print("[PIPELINE] RECEIVED:", dto.id)
+        print(f"[PIPELINE] RECEIVED: {raw_listing['id']}")
 
-        key = build_idempotency_key(raw_listing)
+        listing = Listing(raw_listing)
 
-        if is_processed(key):
-            print("[PIPELINE] SKIP IDEMPOTENT:", dto.id)
-            return {"status": "skipped"}
+        listing.idempotency_key = build_idempotency_key(raw_listing)
 
-        # 1. FEATURE LAYER (НОВЫЙ СТАНДАРТ)
-        feature = to_feature_vector(dto)
+        cluster_id = assign_cluster(listing.id, listing.idempotency_key)
 
-        # 2. DEDUP
-        cluster_id = assign_cluster(raw_listing, key)
+        listing.cluster_id = cluster_id
 
-        # 3. MARK IDEMPOTENT
-        mark_processed(dto.id, key)
+        # pricing + risk
+        signal = compute_price_signal(listing.price, cluster_id)
+        listing.normalized_price = signal["normalized_price"]
 
-        # 4. MARKET INTELLIGENCE
-        update_cluster_stats(cluster_id)
-        update_risk_score(cluster_id)
+        listing.risk = update_risk_score(listing)
 
-        print("[PIPELINE] DONE:", dto.id)
+        # FINAL STEP: INDEX INTO VECTOR STORE (NEW CRITICAL STEP)
+        index_listing(listing.to_dict())
 
-        return {
-            "id": dto.id,
-            "cluster_id": cluster_id,
-            "price": feature.price,
-            "normalized_price": feature.normalized_price,
-            "status": "indexed"
-        }
+        print(f"[PIPELINE] DONE: {raw_listing['id']}")
+
+        return listing.to_dict()

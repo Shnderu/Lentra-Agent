@@ -1,27 +1,23 @@
-from lentra.core.contracts.v1.listing_dto import ListingDTO
-from lentra.core.market_intelligence.features.feature_vector import MarketFeatureVector
 
 
-def to_feature_vector(dto: ListingDTO) -> MarketFeatureVector:
-    """
-    Единственная точка превращения рынка в ML-ready структуру
-    """
+def to_feature_vector(listing: dict):
 
-    return MarketFeatureVector(
-        id=dto.id,
-        price=dto.price,
-        currency=dto.currency,
-        city=dto.city,
-        location=dto.location,
-        source=dto.source,
-        normalized_price=_normalize_price(dto.price, dto.currency),
-    )
+    text = (listing.get("title") or "").lower()
 
+    features = set()
 
-def _normalize_price(price: float, currency: str) -> float:
-    # MVP: фиксируем USD
-    if currency == "USD":
-        return float(price)
+    # INTERNET MAPPING
+    if "wifi" in text or "internet" in text or "fiber" in text:
+        features.add("internet")
 
-    # future FX layer
-    return float(price)
+    # BEACH MAPPING
+    if "beach" in text or "sea" in text:
+        features.add("beach_proximity")
+
+    # NOISE (simple heuristic)
+    if "quiet" in text or "calm" in text:
+        features.add("low_noise")
+
+    return {
+        "features": list(features)
+    }
