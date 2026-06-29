@@ -1,32 +1,32 @@
-def parse_query(query: str):
+from typing import Dict, Any
+
+
+class QueryParser:
     """
-    Minimal MVP parser for search queries
+    Core query parser for market intelligence search.
+
+    Converts raw user query into structured intent.
     """
-    if not query:
-        return {}
 
-    tokens = query.lower().split()
+    def parse(self, query: str) -> Dict[str, Any]:
+        query_l = query.lower()
 
-    parsed = {
-        "raw": query,
-        "tokens": tokens,
-        "budget": None,
-        "keywords": tokens,
-        "city": None,
-        "noise_sensitive": False,
-        "internet_required": False,
-    }
+        intent_type = "rent" if any(
+            x in query_l for x in ["rent", "studio", "apartment", "flat"]
+        ) else "unknown"
 
-    # very simple heuristics (MVP)
-    for i, t in enumerate(tokens):
-        if t in ["under", "below", "до"]:
-            if i + 1 < len(tokens):
-                parsed["budget"] = tokens[i + 1]
+        location = None
+        if "da nang" in query_l:
+            location = "da nang"
 
-        if t in ["quiet", "low-noise", "тихо"]:
-            parsed["noise_sensitive"] = True
+        budget_max = None
+        for token in query_l.split():
+            if token.isdigit():
+                budget_max = int(token)
 
-        if t in ["internet", "wifi"]:
-            parsed["internet_required"] = True
-
-    return parsed
+        return {
+            "query": query,
+            "type": intent_type,
+            "location": location,
+            "budget_max": budget_max
+        }
