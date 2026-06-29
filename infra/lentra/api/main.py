@@ -1,21 +1,23 @@
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
-import traceback
+from pydantic import BaseModel
 
 from lentra.services.intelligence import handle_request
+
+# КРИТИЧНО: гарантируем загрузку сценариев и регистрацию в runtime
+# без этого scenario_registry остаётся пустым
+import lentra.scenarios
+
 
 app = FastAPI()
 
 
+class SearchRequest(BaseModel):
+    query: str
+
+
 @app.post("/search")
-def search(payload: dict):
-    try:
-        return handle_request(payload)
-    except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={
-                "error": str(e),
-                "trace": traceback.format_exc()
-            }
-        )
+def search(request: SearchRequest):
+    payload = {
+        "query": request.query
+    }
+    return handle_request(payload)
