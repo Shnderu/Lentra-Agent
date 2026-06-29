@@ -1,4 +1,5 @@
 from typing import Dict, Any
+import json
 
 from lentra.scenarios.registry import scenario_registry
 from lentra.services.intent_normalizer import intent_normalizer
@@ -7,6 +8,23 @@ from lentra.core.data_layer.market_context import market_context_builder
 from lentra.services.price_engine import price_engine
 from lentra.services.dedup_engine import dedup_engine
 from lentra.services.risk_engine import risk_engine
+
+
+def safe(obj):
+    if obj is None:
+        return {}
+
+    if isinstance(obj, dict):
+        return obj
+
+    if hasattr(obj, "__dict__"):
+        return obj.__dict__
+
+    try:
+        json.dumps(obj)
+        return obj
+    except Exception:
+        return str(obj)
 
 
 class ScenarioRouter:
@@ -24,25 +42,21 @@ class Pipeline:
         self.router = ScenarioRouter()
 
     def execute(self, request: Dict[str, Any]) -> Dict[str, Any]:
-        raw_query = request.get("raw_query", "")
+
+        raw_query = request.get("query", "")
 
         intent = intent_normalizer.build(raw_query)
 
         property_obj = property_extractor.extract(intent, raw_query)
+        property_dict = safe(property_obj)
 
-        market_context = market_context_builder.build(property_obj.__dict__)
+        market_context = market_context_builder.build(property_dict)
+        market_dict = safe(market_context)
 
-        price_analysis = price_engine.evaluate(
-            property_obj.__dict__,
-            market_context.__dict__
-        )
-
-        dedup = dedup_engine.cluster(property_obj.__dict__)
-
-        risk = risk_engine.evaluate(
-            property_obj.__dict__,
-            market_context.__dict__
-        )
+        # FIXED CONTRACT CALLS
+        price_analysis = safe(price_engine.analyze(intent, market_dict))
+        dedup = safe(dedup_engine.cluster(property_dict))
+        risk = safe(risk_engine.evaluate(property_dict, market_dict))
 
         scenario_name = self.router.route(intent)
 
@@ -56,8 +70,8 @@ class Pipeline:
 
         result = scenario.execute({
             "intent": intent,
-            "property": property_obj.__dict__,
-            "market": market_context.__dict__,
+            "property": property_dict,
+            "market": market_dict,
             "price": price_analysis,
             "dedup": dedup,
             "risk": risk,
@@ -67,8 +81,8 @@ class Pipeline:
         return {
             "entry": scenario_name,
             "intent": intent,
-            "property": property_obj.__dict__,
-            "market": market_context.__dict__,
+            "property": property_dict,
+            "market": market_dict,
             "price": price_analysis,
             "dedup": dedup,
             "risk": risk,

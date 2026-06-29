@@ -2,52 +2,34 @@ from typing import Dict, Any
 
 
 class RiskEngine:
-    def evaluate(self, property_obj: Dict[str, Any], market: Dict[str, Any]) -> Dict[str, Any]:
-        raw = (property_obj.get("raw_query") or "").lower()
-        location = property_obj.get("location") or ""
+    def evaluate(self, property_obj: Dict[str, Any], market: Dict[str, Any] = None) -> Dict[str, Any]:
+        market = market or {}
 
-        risk = 0
+        budget = property_obj.get("budget_max")
 
-        # heuristic signals
-        if "cheap" in raw:
-            risk += 1
+        # HARD NORMALIZATION (critical fix)
+        if budget is None:
+            budget = 0
 
-        if "beach" in raw and location in ["da nang", "bali"]:
-            risk += 1
+        try:
+            budget = float(budget)
+        except Exception:
+            budget = 0
 
-        if property_obj.get("budget_max", 0) < 300:
-            risk += 2
+        risk_score = 0.2
 
-        # location signal
-        if location == "unknown" or not location:
-            risk += 2
+        if budget < 300:
+            risk_score += 0.3
 
-        if risk <= 1:
-            level = "low"
-        elif risk <= 3:
-            level = "medium"
-        else:
-            level = "high"
+        if market.get("risk_level") == "unknown":
+            risk_score += 0.2
+
+        risk_score = min(risk_score, 1.0)
 
         return {
-            "risk_score": risk,
-            "risk_level": level,
-            "reasons": self._explain(risk, raw, location)
+            "risk_score": round(risk_score, 2),
+            "risk_level": "low" if risk_score < 0.5 else "medium",
         }
-
-    def _explain(self, risk: int, raw: str, location: str):
-        reasons = []
-
-        if "cheap" in raw:
-            reasons.append("price_above_market_signal_missing")
-
-        if not location:
-            reasons.append("missing_location_context")
-
-        if risk >= 3:
-            reasons.append("multi_signal_risk")
-
-        return reasons
 
 
 risk_engine = RiskEngine()
