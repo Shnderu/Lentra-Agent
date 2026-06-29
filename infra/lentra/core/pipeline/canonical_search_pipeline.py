@@ -4,23 +4,34 @@ from typing import Any, Dict, List, Optional
 class CanonicalSearchPipeline:
     """
     v3 SINGLE SOURCE OF TRUTH pipeline.
-
-    Порядок:
-    1. normalize
-    2. deduplicate
-    3. market enrichment (future)
-    4. ranking (future)
-    5. DTO output
     """
 
-    def __init__(self, dedup_engine=None, market_engine=None, ranking_engine=None):
+    def __init__(
+        self,
+        dedup_engine=None,
+        market_engine=None,
+        ranking_engine=None,
+        intelligence_orchestrator=None,
+        guard=None,
+    ):
         self.dedup_engine = dedup_engine
         self.market_engine = market_engine
         self.ranking_engine = ranking_engine
+        self.intelligence_orchestrator = intelligence_orchestrator
+        self.guard = guard
 
     def run(self, objects: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+
+        if self.guard:
+            self.guard.assert_canonical("canonical_pipeline_v3")
+
         objects = self._normalize(objects)
         objects = self._deduplicate(objects)
+
+        # 🧠 INTELLIGENCE RESTORED HERE
+        if self.intelligence_orchestrator:
+            objects = self.intelligence_orchestrator.enrich(objects)
+
         objects = self._market(objects)
         objects = self._rank(objects)
 

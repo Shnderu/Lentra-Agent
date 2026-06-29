@@ -1,0 +1,47 @@
+[
+  {
+    "id": "dn_001",
+    "title": "Studio near My Khe Beach",
+    "price": 650,
+    "currency": "USD",
+    "location": "Da Nang, My Khe",
+    "source": "facebook",
+    "description": "modern studio 5 min walk to beach, wifi included"
+  },
+  {
+    "id": "dn_002",
+    "title": "Cheap studio Da Nang center",
+    "price": 420,
+    "currency": "USD",
+    "location": "Da Nang center",
+    "source": "telegram",
+    "description": "small studio, old building, central area"
+  },
+  {
+    "id": "dn_003",
+    "title": "Luxury apartment river view",
+    "price": 900,
+    "currency": "USD",
+    "location": "Han River",
+    "source": "facebook",
+    "description": "high floor, river view, gym, pool"
+  },
+  {
+    "id": "dn_004",
+    "title": "Studio near beach - scam suspicious",
+    "price": 500,
+    "currency": "USD",
+    "location": "My An",
+    "source": "telegram",
+    "description": "owner refuses viewing, urgent rent"
+  },
+  {
+    "id": "dn_005",
+    "title": "Cozy studio expat friendly",
+    "price": 720,
+    "currency": "USD",
+    "location": "An Thuong",
+    "source": "agency",
+    "description": "expat area, cafes, stable internet"
+  }
+]

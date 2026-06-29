@@ -4,9 +4,10 @@ from lentra.core.contracts.state_contract_v1 import ExecutionStateV1
 from lentra.core.trace.execution_trace_v1 import ExecutionTraceV1
 from lentra.core.policy.scenario_policy_v1 import ScenarioPolicyV1
 from lentra.core.graph.guards.transition_guard_v1 import TransitionGuardV1
-from lentra.core.scenario.scenario_engine_v1 import scenario_engine
 from lentra.core.scoring.scenario_scoring_v1 import ScenarioScoringV1
 from lentra.core.conflict.conflict_resolver_v1 import ConflictResolverV1
+
+from lentra.scenarios.registry import scenario_registry
 
 
 class StateGraphRuntimeV1:
@@ -60,16 +61,12 @@ class StateGraphRuntimeV1:
         def run(node):
 
             try:
-
                 if node in visited:
                     return
 
                 visited.add(node)
 
-                if not self.policy.should_run_node(
-                    node,
-                    state
-                ):
+                if not self.policy.should_run_node(node, state):
                     return
 
                 before = {
@@ -77,22 +74,15 @@ class StateGraphRuntimeV1:
                     "data": dict(state.data)
                 }
 
-                result = scenario_engine.execute(
-                    node,
-                    state
-                )
+                handler = scenario_registry.get(node)
 
-                data = getattr(
-                    result,
-                    "data",
-                    {}
-                ) or {}
+                if handler is None:
+                    raise Exception(f"Scenario not found in registry: {node}")
 
-                next_nodes = getattr(
-                    result,
-                    "next",
-                    []
-                ) or []
+                result = handler.execute(state)
+
+                data = getattr(result, "data", {}) or {}
+                next_nodes = getattr(result, "next", []) or []
 
                 if isinstance(data, dict):
                     state.data.update(data)
@@ -104,26 +94,15 @@ class StateGraphRuntimeV1:
                 )
 
                 for nxt in next_nodes:
-
-                    if self.guard.can_transition(
-                        node,
-                        nxt,
-                        state
-                    ):
+                    if self.guard.can_transition(node, nxt, state):
                         run(nxt)
 
             except Exception:
-
                 trace.record(
                     node=node,
-                    input_state={
-                        "error": "execution_failed"
-                    },
-                    output_state={
-                        "traceback": traceback.format_exc()
-                    }
+                    input_state={"error": "execution_failed"},
+                    output_state={"traceback": traceback.format_exc()}
                 )
-
                 raise
 
         run(start_node)
@@ -133,24 +112,16 @@ class StateGraphRuntimeV1:
     def execute(self, intent, node_executor=None):
 
         state = ExecutionStateV1(
-            intent=intent
-            if isinstance(intent, dict)
-            else intent.__dict__
+            intent=intent if isinstance(intent, dict) else intent.__dict__
         )
 
         trace = ExecutionTraceV1()
 
-        plan = self.build_execution_plan(
-            state.intent
-        )
+        plan = self.build_execution_plan(state.intent)
 
         primary = plan["primary"]["name"]
 
-        final_state = self.execute_scenario(
-            primary,
-            state,
-            trace
-        )
+        final_state = self.execute_scenario(primary, state, trace)
 
         executed_nodes = {
             item["node"]
@@ -158,7 +129,6 @@ class StateGraphRuntimeV1:
         }
 
         for sc in plan["secondary"]:
-
             scenario_name = sc["name"]
 
             if sc.get("score", 0) <= 0.6:
@@ -167,11 +137,7 @@ class StateGraphRuntimeV1:
             if scenario_name in executed_nodes:
                 continue
 
-            self.execute_scenario(
-                scenario_name,
-                state,
-                trace
-            )
+            self.execute_scenario(scenario_name, state, trace)
 
         return {
             "entry": primary,

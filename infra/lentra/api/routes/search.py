@@ -1,19 +1,15 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Query
 
-from lentra.api.deps import get_db
-from lentra.db.repositories.apartment_repository import ApartmentRepository
-from lentra.db.services.search_service import SearchService
+from lentra.api.search_handler import SearchHandler
 
 router = APIRouter()
 
+handler = SearchHandler()
 
-@router.post("/v1/search")
-def search(payload: dict, db: Session = Depends(get_db)):
-    query = payload.get("query")
-    budget_max = payload.get("budget_max")
 
-    repo = ApartmentRepository(db)
-    service = SearchService(repo)
-
-    return service.search(query=query, budget_max=budget_max)
+@router.get("/search")
+def search(q: str = Query(...)):
+    """
+    Единственный публичный search endpoint.
+    """
+    return handler.handle(q)
