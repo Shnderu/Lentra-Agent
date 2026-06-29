@@ -1,38 +1,20 @@
-
-
 class AreaEngine:
 
-    def score(self, location: str):
+    def score(self, location: str) -> dict:
 
-        # базовые эвристики (позже заменим на geo+data layer)
+        location = (location or "").lower()
 
-        if not location:
-            return {
-                "area_score": 5.0,
-                "internet": 5.0,
-                "noise": 5.0,
-                "expat_density": 5.0
-            }
+        score = 5.0
 
-        if "My Khe" in location or "beach" in location.lower():
-            return {
-                "area_score": 8.5,
-                "internet": 9.0,
-                "noise": 6.0,
-                "expat_density": 8.0
-            }
+        if "beach" in location:
+            score += 2.0
 
-        if "center" in location.lower():
-            return {
-                "area_score": 7.0,
-                "internet": 8.0,
-                "noise": 4.5,
-                "expat_density": 7.5
-            }
+        if "center" in location or "downtown" in location:
+            score += 1.0
+
+        if "wifi" in location:
+            score += 0.5
 
         return {
-            "area_score": 6.0,
-            "internet": 6.0,
-            "noise": 6.0,
-            "expat_density": 6.0
+            "area_quality": min(score, 10.0)
         }

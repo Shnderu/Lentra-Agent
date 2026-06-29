@@ -1,59 +1,60 @@
-
 from lentra.core.market_intelligence.models.market_object import MarketObject
 
 
 class VerdictEngine:
 
-    def run(self, obj: MarketObject) -> MarketObject:
+    def run(self, obj):
+
+        # normalize input (dict or object-safe)
+        risk = getattr(obj, "risk", None)
+        if risk is None and isinstance(obj, dict):
+            risk = obj.get("risk", 0.5)
+        if risk is None:
+            risk = 0.5
+
+        area_score = getattr(obj, "area_score", None)
+        if area_score is None and isinstance(obj, dict):
+            area_score = obj.get("area_score", 5.0)
+        if area_score is None:
+            area_score = 5.0
+
+        price_deviation = getattr(obj, "price_deviation", None)
+        if price_deviation is None and isinstance(obj, dict):
+            price_deviation = obj.get("price_deviation", 0.0)
+        if price_deviation is None:
+            price_deviation = 0.0
 
         score = 0.5
 
         # risk impact
-        score -= obj.risk * 0.4
+        score -= float(risk) * 0.4
 
         # area impact
-        if obj.area_score:
-
-            score += (obj.area_score - 5) * 0.05
+        score += (float(area_score) - 5.0) * 0.05
 
         # price deviation impact
-        if obj.price_deviation:
-
-            score -= abs(obj.price_deviation) * 0.3
-
-        # negotiation impact
-        if obj.negotiation:
-
-            discount = obj.negotiation.get("target_discount", 0.03)
-
-            score += discount * 0.2
+        score -= abs(float(price_deviation)) * 0.3
 
         # clamp
-        score = max(0.0, min(1.0, score))
+        if score < 0:
+            score = 0.0
+        if score > 1:
+            score = 1.0
 
-        # map to verdict
-        if score >= 0.75:
+        verdict = (
+            "strong_buy" if score >= 0.75 else
+            "good_deal" if score >= 0.6 else
+            "neutral" if score >= 0.4 else
+            "overpriced" if score >= 0.25 else
+            "avoid"
+        )
 
-            verdict = "strong_buy"
-
-        elif score >= 0.6:
-
-            verdict = "good_deal"
-
-        elif score >= 0.4:
-
-            verdict = "neutral"
-
-        elif score >= 0.25:
-
-            verdict = "overpriced"
-
+        # write back safely
+        if isinstance(obj, dict):
+            obj["verdict"] = verdict
+            obj["confidence"] = round(score, 3)
         else:
-
-            verdict = "avoid"
-
-        obj.verdict = verdict
-
-        obj.confidence = round(score, 3)
+            obj.verdict = verdict
+            obj.confidence = round(score, 3)
 
         return obj

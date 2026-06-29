@@ -1,51 +1,42 @@
-
-
-from collections import defaultdict
-from lentra.core.ai.semantic_search.embeddings.embedding_engine import embed
-
-
-def cosine_sim(a, b):
-    dot = sum(x*y for x, y in zip(a, b))
-    norm_a = sum(x*x for x in a) ** 0.5
-    norm_b = sum(x*x for x in b) ** 0.5
-    return dot / (norm_a * norm_b + 1e-8)
-
-
 class DedupEngine:
 
-    def __init__(self, threshold: float = 0.85):
-        self.threshold = threshold
-
-    def cluster(self, listings: list):
+    def cluster(self, listings):
 
         clusters = []
+        used = set()
 
-        for listing in listings:
+        for i, item in enumerate(listings):
 
-            emb = embed(listing.get("title", ""))
+            if i in used:
+                continue
 
-            placed = False
+            cluster = [item]
+            used.add(i)
 
-            for cluster in clusters:
+            for j, other in enumerate(listings):
 
-                # compare with first item of cluster
-                base = cluster["embedding"]
+                if j in used:
+                    continue
 
-                if cosine_sim(emb, base) >= self.threshold:
-                    cluster["items"].append(listing)
-                    placed = True
-                    break
+                if self._similar(item, other):
+                    cluster.append(other)
+                    used.add(j)
 
-            if not placed:
-                clusters.append({
-                    "embedding": emb,
-                    "items": [listing]
-                })
+            clusters.append({
+                "listings": cluster
+            })
 
-        # convert to dict format
-        result = {}
+        return clusters
 
-        for i, c in enumerate(clusters):
-            result[f"cluster_{i}"] = c["items"]
+    def _similar(self, a, b):
 
-        return result
+        if (a.get("title") or "").lower() == (b.get("title") or "").lower():
+            return True
+
+        pa = a.get("price")
+        pb = b.get("price")
+
+        if pa and pb:
+            return abs(pa - pb) / max(pa, pb) < 0.1
+
+        return False

@@ -1,38 +1,19 @@
-
-from statistics import median
-from lentra.core.market_intelligence.models.market_object import MarketObject
-
-
 class MarketPriceEngine:
 
-    def run(self, obj: MarketObject) -> MarketObject:
+    def analyze(self, listing: dict) -> dict:
 
-        prices = [
-            l.price
-            for l in obj.listings
-            if l.price is not None
-        ]
+        price = listing.get("price", 0)
 
-        if not prices:
+        if not price:
+            return {
+                "market_avg": 0,
+                "currency": listing.get("currency", "USD")
+            }
 
-            obj.market_price = None
-            obj.median_price = None
-            obj.price_deviation = None
+        # baseline approximation (temporary unified model)
+        market_avg = price * 0.9
 
-            return obj
-
-        obj.market_price = sum(prices) / len(prices)
-        obj.median_price = median(prices)
-
-        # deviation = relative spread from median
-        if obj.median_price > 0:
-
-            obj.price_deviation = (
-                obj.market_price - obj.median_price
-            ) / obj.median_price
-
-        else:
-
-            obj.price_deviation = 0.0
-
-        return obj
+        return {
+            "market_avg": market_avg,
+            "currency": listing.get("currency", "USD")
+        }
