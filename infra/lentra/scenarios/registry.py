@@ -1,16 +1,22 @@
+import sys
+
 class ScenarioRegistry:
     def __init__(self):
-        self._scenarios = {}
+        self._store = {}
 
-    def register(self, name: str, scenario):
-        self._scenarios[name] = scenario
+    def register(self, name, scenario):
+        print(f"[REGISTRY] register -> {name}")
+        self._store[name] = scenario
 
-    def get(self, name: str):
-        return self._scenarios.get(name)
+    def get(self, name):
+        return self._store.get(name)
 
-    def list(self):
-        return list(self._scenarios.keys())
+    def dump(self):
+        return list(self._store.keys())
 
 
-# SINGLETON REGISTRY (critical fix)
 scenario_registry = ScenarioRegistry()
+
+print("[REGISTRY INIT] id =", id(scenario_registry))
+print("[REGISTRY INIT] module =", __name__)
+print("[REGISTRY INIT] sys.modules key =", [k for k in sys.modules.keys() if "registry" in k])

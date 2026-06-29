@@ -1,5 +1,4 @@
 from typing import Dict, Any
-import json
 
 from lentra.scenarios.registry import scenario_registry
 from lentra.services.intent_normalizer import intent_normalizer
@@ -20,18 +19,21 @@ def safe(obj):
     if hasattr(obj, "__dict__"):
         return obj.__dict__
 
-    try:
-        json.dumps(obj)
-        return obj
-    except Exception:
-        return str(obj)
+    return obj
 
 
 class ScenarioRouter:
     def route(self, intent: Dict[str, Any]) -> str:
         query = (intent.get("query") or "").lower()
 
-        if any(x in query for x in ["studio", "rent", "flat", "apartment", "beach", "cheap"]):
+        if any(word in query for word in (
+            "studio",
+            "rent",
+            "flat",
+            "apartment",
+            "beach",
+            "cheap",
+        )):
             return "rent_scenario_v1"
 
         return "default_scenario_v1"
@@ -42,8 +44,10 @@ class Pipeline:
         self.router = ScenarioRouter()
 
     def execute(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        print("[DEBUG] registry keys:", scenario_registry.dump())
 
-        raw_query = request.get("query", "")
+        # API передает raw_query
+        raw_query = request.get("raw_query", "")
 
         intent = intent_normalizer.build(raw_query)
 
@@ -53,12 +57,22 @@ class Pipeline:
         market_context = market_context_builder.build(property_dict)
         market_dict = safe(market_context)
 
-        # FIXED CONTRACT CALLS
-        price_analysis = safe(price_engine.analyze(intent, market_dict))
-        dedup = safe(dedup_engine.cluster(property_dict))
-        risk = safe(risk_engine.evaluate(property_dict, market_dict))
+        price_analysis = safe(
+            price_engine.analyze(property_dict, market_dict)
+        )
+
+        dedup = safe(
+            dedup_engine.cluster(property_dict)
+        )
+
+        risk = safe(
+            risk_engine.evaluate(property_dict, market_dict)
+        )
 
         scenario_name = self.router.route(intent)
+
+        print("[DEBUG] scenario_name:", scenario_name)
+        print("[DEBUG] registry dump:", scenario_registry.dump())
 
         scenario = scenario_registry.get(scenario_name)
 
@@ -66,17 +80,25 @@ class Pipeline:
             scenario = scenario_registry.get("default_scenario_v1")
 
         if scenario is None:
-            raise RuntimeError("CRITICAL: default_scenario_v1 not registered")
+            return {
+                "entry": "system_fallback",
+                "result": {
+                    "ok": False,
+                    "error": "no_scenario_registered",
+                },
+            }
 
-        result = scenario.execute({
-            "intent": intent,
-            "property": property_dict,
-            "market": market_dict,
-            "price": price_analysis,
-            "dedup": dedup,
-            "risk": risk,
-            "raw_query": raw_query
-        })
+        result = scenario.execute(
+            {
+                "intent": intent,
+                "property": property_dict,
+                "market": market_dict,
+                "price": price_analysis,
+                "dedup": dedup,
+                "risk": risk,
+                "raw_query": raw_query,
+            }
+        )
 
         return {
             "entry": scenario_name,
@@ -86,7 +108,7 @@ class Pipeline:
             "price": price_analysis,
             "dedup": dedup,
             "risk": risk,
-            "result": result
+            "result": result,
         }
 
 

@@ -1,17 +1,15 @@
-from typing import Dict, Any
 from lentra.scenarios.registry import scenario_registry
+
+print("[SCENARIO IMPORT] default_scenario_v1 registry id =", id(scenario_registry))
 
 
 class DefaultScenarioV1:
-    name = "default_scenario_v1"
-
-    def execute(self, request: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, ctx: dict) -> dict:
         return {
-            "scenario": self.name,
+            "scenario": "default_scenario_v1",
             "ok": True,
-            "input": request
+            "input": ctx
         }
 
 
-# auto-register
 scenario_registry.register("default_scenario_v1", DefaultScenarioV1())
