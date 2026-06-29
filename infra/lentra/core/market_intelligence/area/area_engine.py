@@ -1,20 +1,18 @@
 class AreaEngine:
 
-    def score(self, location: str) -> dict:
+    def evaluate(self, listing: dict) -> dict:
 
-        location = (location or "").lower()
+        location = (listing.get("location") or "").lower()
 
-        score = 5.0
+        base = 5.5
 
         if "beach" in location:
-            score += 2.0
-
-        if "center" in location or "downtown" in location:
-            score += 1.0
-
-        if "wifi" in location:
-            score += 0.5
+            base = 8.0
+        elif "center" in location:
+            base = 6.0
+        elif "suburb" in location:
+            base = 4.5
 
         return {
-            "area_quality": min(score, 10.0)
+            "area_quality": base
         }

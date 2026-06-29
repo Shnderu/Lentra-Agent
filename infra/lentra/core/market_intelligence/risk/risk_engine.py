@@ -1,6 +1,15 @@
+from lentra.core.market_intelligence.pricing.market_truth_engine import MarketTruthEngine
+
+
 class RiskEngine:
 
+    def __init__(self):
+        self.market = MarketTruthEngine()
+
     def evaluate(self, listing: dict):
+
+        # register listing into market memory
+        self.market.update(listing)
 
         def safe(v):
             if v is None:
@@ -10,15 +19,23 @@ class RiskEngine:
             except Exception:
                 return 0.5
 
+        price = safe(listing.get("price"))
+        deviation = self.market.price_deviation(listing)
+
         risk = 0.5
 
-        price = safe(listing.get("price"))
-        deviation = safe(listing.get("price_deviation"))
-
-        # market-driven risk
+        # -------------------------
+        # MARKET-BASED RISK (NEW CORE SIGNAL)
+        # -------------------------
         if deviation > 0.25:
             risk += 0.25
 
+        if deviation < -0.25:
+            risk += 0.10  # underpriced can also be suspicious
+
+        # -------------------------
+        # HEURISTICS (EXISTING)
+        # -------------------------
         if price < 150:
             risk += 0.1
 
@@ -28,8 +45,10 @@ class RiskEngine:
         if "urgent" in (listing.get("title") or "").lower():
             risk += 0.1
 
+        # clamp
         risk = max(0.0, min(1.0, risk))
 
         return {
-            "risk": risk
+            "risk": risk,
+            "price_deviation": deviation
         }

@@ -1,74 +1,75 @@
-from copy import deepcopy
-
-from lentra.core.market_intelligence.normalization.listing_normalizer import ListingNormalizer
-from lentra.core.market_intelligence.decision.ranking_engine import RankingEngine
-from lentra.core.market_intelligence.verdict.verdict_engine import VerdictEngine
-from lentra.core.market_intelligence.confidence.confidence_engine import ConfidenceEngine
-
 from lentra.core.market_intelligence.risk.risk_engine import RiskEngine
 from lentra.core.market_intelligence.area.area_engine import AreaEngine
-from lentra.core.market_intelligence.pricing.market_truth_engine import compute_market_truth
+from lentra.core.market_intelligence.area.market_segmentation_engine import MarketSegmentationEngine
+from lentra.core.market_intelligence.area.micro_market_engine import MicroMarketEngine
+from lentra.core.market_intelligence.area.temporal_market_engine import TemporalMarketEngine
+from lentra.core.market_intelligence.decision.market_decision_core import MarketDecisionCore
+from lentra.core.market_intelligence.confidence.confidence_decomposition_engine import ConfidenceDecompositionEngine
+from lentra.core.market_intelligence.explanation.decision_narrative_engine import DecisionNarrativeEngine
+from lentra.core.market_intelligence.ui.market_card_builder import MarketCardBuilder
+from lentra.core.market_intelligence.comparison.market_comparison_engine import MarketComparisonEngine
+from lentra.core.market_intelligence.search.search_engine import MarketSearchEngine
+from lentra.core.market_intelligence.ranking.ranking_engine import MarketRankingEngine
+from lentra.core.market_intelligence.search.nlp.query_parser import QueryParser
 
 
 class MarketIntelligenceEngine:
 
     def __init__(self):
-        self.normalizer = ListingNormalizer()
-        self.ranker = RankingEngine()
-        self.verdict = VerdictEngine()
-        self.confidence = ConfidenceEngine()
-
-        self.risk_engine = RiskEngine()
         self.area_engine = AreaEngine()
+        self.segmenter = MarketSegmentationEngine()
+        self.micro = MicroMarketEngine()
+        self.temporal = TemporalMarketEngine()
+        self.risk_engine = RiskEngine()
+        self.decision = MarketDecisionCore()
+        self.confidence = ConfidenceDecompositionEngine()
+        self.explainer = DecisionNarrativeEngine()
+        self.card_builder = MarketCardBuilder()
+        self.comparison = MarketComparisonEngine()
 
-    def analyze(self, listings: list):
+        self.search_engine = MarketSearchEngine()
+        self.ranking_engine = MarketRankingEngine()
+        self.query_parser = QueryParser()
+
+    def analyze(self, listings, query_text=None):
+
+        if isinstance(listings, dict):
+            listings = [listings]
 
         results = []
 
-        for raw in listings:
+        for listing in listings:
 
-            listing = deepcopy(raw)
+            listing.update(self.area_engine.evaluate(listing))
 
-            listing = self.normalizer.normalize(listing)
+            listing["segment"] = self.segmenter.update(listing)
+            listing["micro_market"] = self.micro.update(listing)
 
-            truth = compute_market_truth(listing)
-            listing["price_deviation"] = truth.get("deviation", 0.0)
-            listing["market_verdict"] = truth.get("verdict", "unknown")
+            listing.update(self.risk_engine.evaluate(listing))
 
-            # AREA FIX (CRITICAL)
-            try:
-                area_result = self.area_engine.score(listing.get("location", ""))
+            listing["market_volatility"] = self.temporal.volatility(listing["micro_market"])
+            listing["market_deviation"] = self.micro.deviation(listing)
 
-                # normalize dict → float
-                if isinstance(area_result, dict):
-                    listing["area_score"] = (
-                        area_result.get("area_quality")
-                        or area_result.get("score")
-                        or area_result.get("value")
-                        or 5.0
-                    )
-                else:
-                    listing["area_score"] = float(area_result)
+            listing = self.decision.decide(listing)
 
-            except Exception:
-                listing["area_score"] = 5.0
+            listing = self.confidence.compute(listing)
 
-            try:
-                risk_result = self.risk_engine.evaluate(listing)
+            listing = self.explainer.explain(listing)
 
-                listing["risk"] = (
-                    risk_result.get("risk")
-                    if isinstance(risk_result, dict)
-                    else float(risk_result)
-                )
-            except Exception:
-                listing["risk"] = 0.5
+            card = self.card_builder.build(listing)
 
-            listing["score"] = self.ranker.score(listing, {})
+            results.append(card)
 
-            listing = self.verdict.run(listing)
-            listing = self.confidence.run(listing)
+        # -------------------------
+        # NATURAL LANGUAGE SEARCH
+        # -------------------------
+        if query_text:
+            query = self.query_parser.parse(query_text)
+            results = self.search_engine.search(results, query)
 
-            results.append(listing.copy())
+        # -------------------------
+        # RANKING
+        # -------------------------
+        results = self.ranking_engine.rank(results)
 
         return results

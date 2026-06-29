@@ -1,25 +1,85 @@
+from collections import defaultdict
+import statistics
 
 
-def compute_market_truth(listing: dict) -> dict:
+class MarketTruthEngine:
+    """
+    Lightweight market distribution tracker (MVP).
 
-    price = listing.get("price", 0)
-    market_avg = listing.get("market_avg", price)
+    Purpose:
+    - build per-area price distribution
+    - compute median / expected market price
+    - provide deviation signal for scoring layer
+    """
 
-    if not market_avg:
-        market_avg = price
+    def __init__(self):
+        # area -> list of prices
+        self.price_map = defaultdict(list)
 
-    deviation = (price - market_avg) / market_avg if market_avg else 0
+    # -----------------------------
+    # ingestion
+    # -----------------------------
+    def update(self, listing: dict):
+        """
+        Register listing into market distribution
+        """
+        area = listing.get("location") or "unknown"
+        price = listing.get("price")
 
-    if deviation < -0.1:
-        verdict = "undervalued"
-    elif deviation > 0.1:
-        verdict = "overpriced"
-    else:
-        verdict = "market aligned"
+        if price is None:
+            return
 
-    return {
-        "price": price,
-        "market_avg": market_avg,
-        "deviation": round(deviation, 4),
-        "verdict": verdict
-    }
+        try:
+            price = float(price)
+        except Exception:
+            return
+
+        self.price_map[area].append(price)
+
+    # -----------------------------
+    # market estimation
+    # -----------------------------
+    def get_market_price(self, listing: dict) -> float:
+        """
+        Returns median market price for area
+        fallback → global median or fixed anchor
+        """
+
+        area = listing.get("location") or "unknown"
+
+        prices = self.price_map.get(area, [])
+
+        if len(prices) >= 3:
+            return float(statistics.median(prices))
+
+        # fallback stage (cold start)
+        all_prices = []
+        for v in self.price_map.values():
+            all_prices.extend(v)
+
+        if len(all_prices) >= 5:
+            return float(statistics.median(all_prices))
+
+        # global anchor (bootstrapping)
+        return 500.0
+
+    # -----------------------------
+    # deviation signal
+    # -----------------------------
+    def price_deviation(self, listing: dict) -> float:
+        """
+        Normalized deviation from market price
+        """
+
+        price = listing.get("price") or 0
+        try:
+            price = float(price)
+        except Exception:
+            return 0.0
+
+        market = self.get_market_price(listing)
+
+        if market <= 0:
+            return 0.0
+
+        return (price - market) / market

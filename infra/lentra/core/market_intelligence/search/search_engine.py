@@ -1,31 +1,34 @@
-from typing import Any, List, Dict
-
-from lentra.core.market_intelligence.search.filters.filter import apply_filters
-from lentra.core.market_intelligence.search.rankers.scorer import score_listing
-
-
-class SearchEngine:
+class MarketSearchEngine:
     """
-    MVP Search Engine:
-    - in-memory flow
-    - no parser dependency (inline query handling)
+    Filters UI cards using structured query.
     """
 
-    def search(self, listings: List[Any], query: Dict[str, Any]) -> List[Any]:
+    def search(self, cards: list, query: dict):
 
-        if listings is None:
-            return []
+        results = cards
 
-        # 1. FILTER STEP
-        filtered = apply_filters(listings, query)
+        # PRICE FILTER
+        if query.get("min_price") is not None:
+            results = [c for c in results if (c.get("price") or 0) >= query["min_price"]]
 
-        # 2. RANK STEP
-        scored = []
-        for item in filtered:
-            score = score_listing(item, query)
-            scored.append((score, item))
+        if query.get("max_price") is not None:
+            results = [c for c in results if (c.get("price") or 0) <= query["max_price"]]
 
-        # 3. SORT BY SCORE DESC
-        scored.sort(key=lambda x: x[0], reverse=True)
+        # LOCATION FILTER
+        if query.get("location"):
+            loc = query["location"]
+            results = [
+                c for c in results
+                if loc in str(c.get("location", {})).lower()
+                or loc in str(c.get("segment", "")).lower()
+                or loc in str(c.get("micro_market", "")).lower()
+            ]
 
-        return [x[1] for x in scored]
+        # RISK FILTER
+        if query.get("max_risk") is not None:
+            results = [
+                c for c in results
+                if (c.get("risk") or 0.5) <= query["max_risk"]
+            ]
+
+        return results
