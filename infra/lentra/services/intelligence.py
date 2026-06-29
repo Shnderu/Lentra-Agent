@@ -1,25 +1,17 @@
 from lentra.services.pipeline_definition import pipeline
-from lentra.core.contract.intent_normalizer import normalize_intent
 
 
-def handle_request(payload: dict):
+def handle_request(intent: dict):
+    """
+    Единая точка входа для search API
+    """
 
-    intent = payload.get("intent")
-
-    if not intent:
-        intent = {
-            "name": "unknown",
-            "confidence": 0.3,
-            "payload": payload,
-            "scenarios": ["default_scenario_v1"]
-        }
-
-    intent = normalize_intent(intent)
+    # защита от неправильной инъекции pipeline
+    if not hasattr(pipeline, "execute"):
+        raise RuntimeError(
+            f"[INTELLIGENCE ERROR] pipeline is invalid: {type(pipeline)}"
+        )
 
     result = pipeline.execute(intent)
 
-    return {
-        "intent": intent["name"],
-        "scenario": "ok",
-        "result": result
-    }
+    return result

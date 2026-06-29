@@ -1,8 +1,6 @@
-from lentra.scenarios.registry import scenario_registry
+# Lentra scenarios package
+# IMPORTANT: no eager imports to avoid circular dependencies
 
-# ⚠️ forced registration side-effects
-import lentra.scenarios.rent_scenario_v1  # noqa: F401
-import lentra.scenarios.pricing_scenario_v1  # noqa: F401
-import lentra.scenarios.default_scenario_v1  # noqa: F401
+from .registry import scenario_registry
 
 __all__ = ["scenario_registry"]

@@ -1,22 +1,16 @@
 from lentra.scenarios.registry import scenario_registry
 
 
-def default_scenario_v1(state: dict):
-    """
-    Fallback сценарий для неизвестных intent.
-    Должен всегда возвращать валидный state.
-    """
+class DefaultScenarioV1:
+    name = "default_v1"
 
-    return {
-        "intent": state.get("intent", {"name": "unknown"}),
-        "result": {
-            "type": "fallback",
-            "message": "No matching scenario found",
-            "data": state.get("data", {})
-        },
-        "next": None
-    }
+    def execute(self, payload: dict):
+        return {
+            "scenario": self.name,
+            "input": payload,
+            "status": "ok"
+        }
 
 
-# регистрация сценария
-scenario_registry.register("default_scenario_v1", default_scenario_v1)
+# register on import (safe now because registry is clean singleton)
+scenario_registry.register("default_v1", DefaultScenarioV1())

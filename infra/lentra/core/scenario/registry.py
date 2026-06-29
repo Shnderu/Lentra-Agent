@@ -1,34 +1,27 @@
-from typing import Callable, Dict, Any
-
-
 class ScenarioRegistry:
-    def __init__(self):
-        self._scenarios: Dict[str, Any] = {}
+    _instance = None
 
-    def register(self, name: str, handler: Callable):
-        """
-        Registry stores execution-compatible handlers.
-        If plain function is passed — wrap it into .execute() adapter.
-        """
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._scenarios = {}
+        return cls._instance
 
-        if hasattr(handler, "execute"):
-            self._scenarios[name] = handler
-            return
+    @classmethod
+    def instance(cls):
+        return cls()
 
-        class FunctionAdapter:
-            def __init__(self, fn):
-                self.fn = fn
+    def register(self, name, handler):
+        self._scenarios[name] = handler
 
-            def execute(self, state: dict):
-                return self.fn(state)
-
-        self._scenarios[name] = FunctionAdapter(handler)
-
-    def get(self, name: str):
+    def get(self, name):
         return self._scenarios.get(name)
 
+    def has(self, name):
+        return name in self._scenarios
+
+    def exists(self, name):
+        return self.has(name)
+
     def all(self):
-        return self._scenarios
-
-
-scenario_registry = ScenarioRegistry()
+        return dict(self._scenarios)

@@ -150,4 +150,7 @@ class StateGraphRuntimeV1:
         }
 
 
+# ВАЖНО: алиас под старый импорт
+StateGraphRuntime = StateGraphRuntimeV1
+
 state_graph_runtime = StateGraphRuntimeV1()
