@@ -1,6 +1,6 @@
 import os
 
-BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+BOT_TOKEN = os.getenv("LENTRA_BOT_TOKEN", "")
 
 if not BOT_TOKEN:
-    raise RuntimeError("BOT_TOKEN is not set in environment")
+    raise RuntimeError("LENTRA_BOT_TOKEN is not set")

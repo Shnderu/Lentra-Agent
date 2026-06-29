@@ -1,58 +1,33 @@
-from lentra.core.market_intelligence.decision.market_contrast_engine import MarketContrastEngine
+from lentra.core.market_intelligence.negotiation.negotiation_engine import NegotiationEngine
+from lentra.core.market_intelligence.affordability.affordability_engine import AffordabilityEngine
+from lentra.core.market_intelligence.expat.expat_score_engine import ExpatScoreEngine
 
 
 class MarketDecisionCore:
 
     def __init__(self):
-        self.contrast = MarketContrastEngine()
+        self.negotiation = NegotiationEngine()
+        self.affordability = AffordabilityEngine()
+        self.expat = ExpatScoreEngine()
 
     def decide(self, listing: dict):
 
-        deviation = listing.get("market_deviation") or 0.0
-        adjusted = listing.get("market_adjusted")
-        if adjusted is None:
-            adjusted = deviation
+        negotiation = self.negotiation.evaluate(listing)
+        affordability = self.affordability.evaluate(listing)
+        expat = self.expat.score(listing)
 
-        risk = listing.get("risk") or 0.5
-        volatility = listing.get("market_volatility") or 0.5
-        segment = listing.get("segment") or "unknown"
+        listing["negotiation"] = negotiation.__dict__
+        listing.update(affordability)
+        listing.update(expat)
 
-        # -------------------------
-        # BASE PRESSURE
-        # -------------------------
-        market_pressure = adjusted - risk * 0.25
+        # FINAL HUMAN DECISION LAYER
+        if expat["expat_score"] > 0.75 and affordability["affordability_level"] == "safe":
+            listing["final_verdict"] = "STRONG_BUY"
 
-        # -------------------------
-        # CONTRAST
-        # -------------------------
-        market_pressure = self.contrast.apply(market_pressure, volatility)
+        elif expat["expat_score"] > 0.5:
+            listing["final_verdict"] = "CONSIDER"
 
-        # -------------------------
-        # VERDICT
-        # -------------------------
-        if market_pressure > 0.18:
-            verdict = "overpriced"
-        elif market_pressure < -0.18:
-            verdict = "cheap"
         else:
-            verdict = "fair"
-
-        # -------------------------
-        # FIXED CONFIDENCE MODEL (IMPORTANT)
-        # -------------------------
-        # confidence is based on stability, NOT magnitude
-
-        stability = 1.0 - volatility
-
-        signal_strength = max(0.0, 1.0 - abs(market_pressure) / 2.5)
-
-        confidence = stability * signal_strength
-
-        # clamp
-        confidence = max(0.05, min(1.0, confidence))
-
-        listing["verdict"] = verdict
-        listing["confidence"] = float(confidence)
-        listing["market_pressure"] = float(market_pressure)
+            listing["final_verdict"] = "AVOID"
 
         return listing

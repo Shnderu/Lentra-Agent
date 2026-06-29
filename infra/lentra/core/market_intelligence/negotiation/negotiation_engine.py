@@ -1,54 +1,44 @@
+from dataclasses import dataclass
 
-from lentra.core.market_intelligence.models.market_object import MarketObject
+
+@dataclass
+class NegotiationResult:
+    can_negotiate: bool
+    suggested_offer: float
+    expected_discount_pct: float
+    reasoning: str
 
 
 class NegotiationEngine:
+    """
+    Determines negotiation potential for rental listings.
+    """
 
-    def run(self, obj: MarketObject) -> MarketObject:
+    def evaluate(self, listing: dict) -> NegotiationResult:
 
-        # default strategy
-        strategy = "low_room_for_negotiation"
-        target_discount = 0.03
+        price = listing.get("price") or 0
+        risk = listing.get("risk") or 0.5
+        deviation = listing.get("deviation") or 0
 
-        # risk-based adjustment
-        if obj.risk > 0.7:
+        # HIGH RISK → stronger negotiation leverage
+        base_discount = 0.05 + (risk * 0.25)
 
-            strategy = "high_room_for_negotiation"
-            target_discount = 0.08
+        # overpriced → more aggressive negotiation
+        if deviation > 20:
+            base_discount += 0.10
 
-        elif obj.risk < 0.3:
+        # low demand segments (coastal premium volatility)
+        segment = listing.get("location", {}).get("segment", "")
+        if "coastal" in segment:
+            base_discount += 0.05
 
-            strategy = "firm_price"
-            target_discount = 0.01
+        base_discount = min(base_discount, 0.35)
 
-        # price deviation influence
-        if obj.price_deviation:
+        suggested_offer = price * (1 - base_discount)
 
-            if obj.price_deviation > 0.1:
-
-                target_discount += 0.03
-
-            elif obj.price_deviation < -0.1:
-
-                target_discount -= 0.01
-
-        # area quality influence
-        if obj.area_score:
-
-            if obj.area_score > 7:
-
-                target_discount -= 0.01
-
-            elif obj.area_score < 4:
-
-                target_discount += 0.02
-
-        # clamp
-        target_discount = max(0.01, min(0.15, target_discount))
-
-        obj.negotiation = {
-            "strategy": strategy,
-            "target_discount": round(target_discount, 3)
-        }
-
-        return obj
+        return NegotiationResult(
+            can_negotiate=base_discount > 0.08,
+            suggested_offer=round(suggested_offer, 2),
+            expected_discount_pct=round(base_discount * 100, 2),
+            reasoning="Negotiation based on risk + market deviation + segment volatility"
+        )
