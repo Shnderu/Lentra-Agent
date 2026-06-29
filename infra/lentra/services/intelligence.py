@@ -1,17 +1,28 @@
-from lentra.services.pipeline_definition import pipeline
+from typing import Dict, Any
 
 
-def handle_request(intent: dict):
+class MarketIntelligenceService:
     """
-    Единая точка входа для search API
+    V2 CLEAN CONTRACT:
+    ONLY signal extraction.
+    NO scoring, NO pricing, NO verdicts.
     """
 
-    # защита от неправильной инъекции pipeline
-    if not hasattr(pipeline, "execute"):
-        raise RuntimeError(
-            f"[INTELLIGENCE ERROR] pipeline is invalid: {type(pipeline)}"
-        )
+    def analyze(self, query: str, intent: Dict[str, Any]) -> Dict[str, Any]:
+        q = (query or "").lower()
 
-    result = pipeline.execute(intent)
+        location = intent.get("location")
+        budget = intent.get("budget_max")
 
-    return result
+        return {
+            "location": location or "unknown",
+            "budget": budget,
+            "signals": {
+                "beach": any(x in q for x in ["beach", "sea", "ocean"]),
+                "cheap": any(x in q for x in ["cheap", "budget", "low"]),
+                "central": any(x in q for x in ["center", "downtown"]),
+            }
+        }
+
+
+intelligence_service = MarketIntelligenceService()

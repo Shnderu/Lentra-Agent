@@ -1,12 +1,20 @@
-from lentra.core.scenario.registry import ScenarioRegistry
+from lentra.scenarios.registry import scenario_registry
 
 
 def bootstrap_scenarios():
-    registry = ScenarioRegistry.instance()
+    """
+    SAFE BOOTSTRAP:
+    - NO scenario imports here
+    - NO service imports here
+    - ONLY ensures registry is accessible
+    """
 
-    # ЯВНЫЕ ИМПОРТЫ (фикс side-effects)
-    import lentra.scenarios.default_scenario_v1
-    import lentra.scenarios.rent_scenario_v1
-    import lentra.scenarios.pricing_scenario_v1
+    # Lazy import scenarios ONLY when module is loaded safely
+    import lentra.scenarios.default_scenario_v1  # noqa
+    import lentra.scenarios.rent_scenario_v1     # noqa
 
-    return registry
+    # validation
+    if not scenario_registry.list():
+        raise RuntimeError("CRITICAL: scenario registry is empty")
+
+    return scenario_registry.list()

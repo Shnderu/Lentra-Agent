@@ -1,9 +1,4 @@
 class ScenarioRegistry:
-    """
-    Minimal stable registry.
-    Avoid circular imports. No scenario auto-loading here.
-    """
-
     def __init__(self):
         self._scenarios = {}
 
@@ -17,5 +12,5 @@ class ScenarioRegistry:
         return list(self._scenarios.keys())
 
 
-# single instance (IMPORTANT: no function factory, no DI recursion)
+# SINGLETON REGISTRY (critical fix)
 scenario_registry = ScenarioRegistry()

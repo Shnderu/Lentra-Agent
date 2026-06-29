@@ -1,18 +1,26 @@
+from lentra.core.bootstrap_env import *
+
 from fastapi import FastAPI
-from lentra.services.intelligence import handle_request
+from lentra.core.scenario.bootstrap import bootstrap_scenarios
+from lentra.services.pipeline_definition import pipeline
 
 app = FastAPI()
 
+
+@app.on_event("startup")
+def startup():
+    bootstrap_scenarios()
+
+
+@app.get("/health")
+def health():
+    return {"ok": True}
+
+
 @app.post("/search")
 def search(payload: dict):
-    print("[SEARCH INPUT]", payload)
+    query = payload.get("query", "")
 
-    try:
-        result = handle_request(payload)
-        print("[SEARCH OUTPUT]", result)
-        return result
-    except Exception as e:
-        print("[SEARCH ERROR]", repr(e))
-        return {
-            "error": str(e)
-        }
+    return pipeline.execute({
+        "raw_query": query
+    })

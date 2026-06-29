@@ -1,6 +1,6 @@
-# Lentra scenarios package
-# IMPORTANT: no eager imports to avoid circular dependencies
+# CLEAN PACKAGE INIT
+# DO NOT EXECUTE BOOTSTRAP HERE (BREAKS UVICORN IMPORT FLOW)
 
-from .registry import scenario_registry
+from lentra.scenarios.registry import scenario_registry
 
 __all__ = ["scenario_registry"]
