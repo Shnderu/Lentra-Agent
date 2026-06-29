@@ -1,20 +1,31 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
-
-from lentra.services.pipeline_definition import pipeline
+from fastapi import FastAPI, Request
 
 app = FastAPI()
 
 
-class SearchRequest(BaseModel):
-    query: str
+# =========================
+# HEALTH CHECK
+# =========================
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 
-@app.post("/search")
-def search(req: SearchRequest):
+# =========================
+# TELEGRAM WEBHOOK ENTRY
+# =========================
+@app.post("/webhook")
+async def telegram_webhook(request: Request):
+    data = await request.json()
 
-    payload = {
-        "query": req.query
+    # минимальный safe-лог
+    print("[TELEGRAM UPDATE]", data)
+
+    # TODO: сюда позже подключим:
+    # - intent router
+    # - market intelligence engine
+    # - response generator
+
+    return {
+        "ok": True
     }
-
-    return pipeline.execute(payload)

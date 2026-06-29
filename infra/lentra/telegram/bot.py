@@ -1,29 +1,30 @@
-import asyncio
+from lentra.telegram.router.intent_router import IntentRouter
+from lentra.telegram.handlers.search_handler import SearchHandler
+from lentra.telegram.renderers.card_renderer import CardRenderer
 
-from lentra.telegram.ux.router import build_router
+class LentraBot:
 
+    def __init__(self, engine):
+        self.engine = engine
+        self.router = IntentRouter()
+        self.search_handler = SearchHandler(engine)
+        self.renderer = CardRenderer()
 
-class BotRuntime:
-    def __init__(self):
-        self.router = build_router()
+    def handle(self, update: dict):
 
-    async def run(self):
-        print("[BOOT] RUN LOOP STARTED")
+        text = update.get("text", "")
 
-        # имитация event loop
-        while True:
-            await asyncio.sleep(5)
+        intent = self.router.detect(text)
 
+        if intent == "search":
+            results = self.search_handler.handle(text)
+            return self.renderer.render_list(results)
 
-def main():
-    print("[BOOT] ENTER MAIN")
+        if intent == "compare":
+            results = self.search_handler.handle(text)
+            return self.renderer.render_compare(results)
 
-    bot = BotRuntime()
+        if intent == "explain":
+            return self.renderer.render_explanation(text)
 
-    print("[BOOT] SERVICE READY")
-
-    asyncio.run(bot.run())
-
-
-if __name__ == "__main__":
-    main()
+        return "Unsupported query"

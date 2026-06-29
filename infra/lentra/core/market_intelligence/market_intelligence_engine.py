@@ -1,3 +1,4 @@
+from lentra.core.market_intelligence.geo.vietnam_geo_engine import VietnamGeoEngine
 from lentra.core.market_intelligence.risk.risk_engine import RiskEngine
 from lentra.core.market_intelligence.area.area_engine import AreaEngine
 from lentra.core.market_intelligence.area.market_segmentation_engine import MarketSegmentationEngine
@@ -16,6 +17,8 @@ from lentra.core.market_intelligence.search.nlp.query_parser import QueryParser
 class MarketIntelligenceEngine:
 
     def __init__(self):
+        self.geo = VietnamGeoEngine()
+
         self.area_engine = AreaEngine()
         self.segmenter = MarketSegmentationEngine()
         self.micro = MicroMarketEngine()
@@ -40,6 +43,11 @@ class MarketIntelligenceEngine:
 
         for listing in listings:
 
+            # -------------------------
+            # GEO LAYER (NEW CORE)
+            # -------------------------
+            listing = self.geo.normalize(listing)
+
             listing.update(self.area_engine.evaluate(listing))
 
             listing["segment"] = self.segmenter.update(listing)
@@ -60,16 +68,10 @@ class MarketIntelligenceEngine:
 
             results.append(card)
 
-        # -------------------------
-        # NATURAL LANGUAGE SEARCH
-        # -------------------------
         if query_text:
             query = self.query_parser.parse(query_text)
             results = self.search_engine.search(results, query)
 
-        # -------------------------
-        # RANKING
-        # -------------------------
         results = self.ranking_engine.rank(results)
 
         return results
