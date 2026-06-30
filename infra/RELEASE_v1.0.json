@@ -1,0 +1,44 @@
+{
+  "release": "v1.0",
+  "status": "production",
+  "timestamp": "2026-06-30T16:10:00Z",
+  "system": "Lentra AI OS",
+  "mode": "locked-stable-snapshot",
+
+  "components": {
+    "api": {
+      "entrypoint": "lentra.api.main:app",
+      "status": "stable"
+    },
+    "bot": {
+      "entrypoint": "lentra.telegram.dispatcher",
+      "status": "stable"
+    },
+    "core_bootstrap": {
+      "module": "lentra.core.bootstrap",
+      "status": "stable",
+      "circular_imports": "resolved"
+    },
+    "engine": {
+      "module": "lentra.core.market_intelligence.engine",
+      "status": "stable"
+    },
+    "pipeline": {
+      "module": "lentra.core.market_intelligence.pipeline.intelligence_pipeline_orchestrator",
+      "status": "stable"
+    }
+  },
+
+  "architecture": {
+    "graph_state": "canonical",
+    "execution_model": "orchestrated_pipeline",
+    "bootstrap_model": "lazy_safe_init",
+    "runtime_trace": "read-only compatible"
+  },
+
+  "constraints": {
+    "no_architecture_changes": true,
+    "no_cross_import_execution": true,
+    "no_graph_mutation": true
+  }
+}

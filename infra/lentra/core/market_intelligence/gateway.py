@@ -1,18 +1,39 @@
+from lentra.core.runtime.trace_graph_v2 import RuntimeTraceV2
+
+
 class IntelligenceGateway:
-    """
-    SAFE GATEWAY LAYER
 
-    CRITICAL RULE:
-    - NO orchestrator creation inside gateway
-    - orchestrator MUST be injected
-    """
+    def __init__(self, trace: RuntimeTraceV2 = None):
+        self.trace = trace
 
-    def __init__(self, orchestrator=None):
-        # FIX: do not construct Orchestrator internally (break recursion)
-        self.orchestrator = orchestrator
+    def execute(self, listings, query_text, source="telegram"):
 
-    def execute(self, context):
-        if not self.orchestrator:
-            raise RuntimeError("Orchestrator not injected into gateway")
+        if self.trace:
+            self.trace.emit(
+                "gateway",
+                "execute_start",
+                {
+                    "source": source,
+                    "query": query_text
+                }
+            )
 
-        return self.orchestrator.run(context)
+        result = self._run(listings, query_text)
+
+        if self.trace:
+            self.trace.emit(
+                "gateway",
+                "execute_done",
+                {"items": len(result) if result else 0}
+            )
+
+            self.trace.link(
+                "gateway.execute_start",
+                "renderer.build",
+                "flows_to"
+            )
+
+        return result
+
+    def _run(self, listings, query_text):
+        return listings

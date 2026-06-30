@@ -1,29 +1,26 @@
-class Bot:
-    def __init__(self, graph):
-        self.graph = graph
+from lentra.telegram.runtime import TelegramRuntime
+from lentra.telegram.connectors.telegram_event_listener import TelegramEventListener
+from lentra.core.router.intent_router import IntentRouter
+from lentra.core.trace.trace_validator import TraceValidator
 
-    async def run(self, router):
-        self.graph.add("bot", "run_start")
 
-        # hook входа в runtime
-        async for update in self._fake_stream(router):
-            pass
+def create_bot():
+    router = IntentRouter()
+    trace = None
 
-    async def _fake_stream(self, router):
-        self.graph.add("bot", "router_received")
+    listener = TelegramEventListener(
+        router=router,
+        trace=trace
+    )
 
-        # просто запускаем router один раз для трассировки
-        try:
-            result = router.handle_test_trace()
-            self.graph.add("router", "handled", result)
-        except Exception as e:
-            self.graph.add("router", "error", {"err": str(e)})
+    runtime = TelegramRuntime(
+        listener=listener,
+        router=router,
+        trace=trace
+    )
 
-        self.graph.dump()
+    # 🔒 IMMUTABLE GATE
+    validator = TraceValidator()
+    validator.validate(router, listener, trace)
 
-        import asyncio
-        await asyncio.sleep(999999)
-        yield
-
-def build_bot(graph):
-    return Bot(graph)
+    return runtime

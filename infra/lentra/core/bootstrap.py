@@ -1,23 +1,24 @@
+try:
+    from lentra.core.runtime.trace.runtime_trace_layer import RuntimeTraceLayer
+    _TRACE = RuntimeTraceLayer()
+except Exception:
+    _TRACE = None
+
 """
 BOOTSTRAP ENTRYPOINT (CLEAN)
 
 RULE:
-- ONLY ONE graph build path
-- NO indirect orchestrator creation
+- NO business logic imports
+- ONLY wiring layer
+- NO orchestrator dependency
 """
 
 from lentra.core.market_intelligence.build import build_intelligence_gateway
-from lentra.core.intelligence.orchestrator import Orchestrator
 
 
-def bootstrap():
-    orchestrator = Orchestrator()
-
-    gateway = build_intelligence_gateway(orchestrator=orchestrator)
-
-    return gateway
-
-
-if __name__ == "__main__":
-    app = bootstrap()
-    print("[BOOTSTRAP] Intelligence Graph OS initialized safely")
+def get_gateway(orchestrator=None):
+    """
+    Pure entrypoint factory.
+    Does NOT import orchestrator or pipeline.
+    """
+    return build_intelligence_gateway(orchestrator=orchestrator)

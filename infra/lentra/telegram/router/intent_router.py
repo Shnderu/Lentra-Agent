@@ -1,19 +1,30 @@
+from lentra.bot.handlers.instrumentation import HandlerTraceWrapper
+
+
 class IntentRouter:
 
-    def detect(self, text: str) -> str:
+    def __init__(self, trace=None):
+        self.trace = trace
+        self.instrument = HandlerTraceWrapper(trace) if trace else None
+
+    def detect(self, text: str):
+
+        if self.instrument:
+            return self.instrument.wrap("intent_router.detect", self._detect_impl)(text)
+
+        return self._detect_impl(text)
+
+    def _detect_impl(self, text: str):
 
         text = (text or "").lower()
 
         if "compare" in text:
             return "compare"
 
-        if "why" in text or "explain" in text:
+        if "price" in text or "rent" in text:
+            return "search"
+
+        if "explain" in text:
             return "explain"
 
-        if "alert" in text or "notify" in text:
-            return "alert"
-
-        if "area" in text or "district" in text:
-            return "area"
-
-        return "search"
+        return "unknown"

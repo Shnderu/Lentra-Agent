@@ -14,3 +14,9 @@ class Orchestrator:
 
     def run(self, context):
         return self.pipeline.execute(context)
+
+from lentra.core.execution.trace_layer import TraceLayer
+
+_trace = TraceLayer()
+_trace.emit("orchestrator.init")
+
