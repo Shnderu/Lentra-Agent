@@ -1,20 +1,14 @@
-from dataclasses import dataclass
-from typing import Dict, Any
+from typing import TypedDict, Optional
 
 
-@dataclass
-class MarketObject:
+class MarketObject(TypedDict, total=False):
+    title: str
     price: float
-    location: Dict[str, Any]
+    city: Optional[str]
+    location: Optional[str]
 
-    risk: float
-    confidence: float
-
-    market_price: float = 0.0
-    deviation: float = 0.0
-
-    segment: str = "unknown"
-    micro_market: str = "unknown"
-
-    features: Dict[str, Any] = None
-    signals: Dict[str, Any] = None
+    risk_score: float
+    dedup_id: str
+    geo_score: float
+    expat_score: float
+    rank_score: float

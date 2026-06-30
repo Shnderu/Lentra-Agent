@@ -1,35 +1,22 @@
 class VerdictEngine:
 
-    def run(self, obj: dict):
+    def evaluate(self, item: dict, market_truth: dict):
 
-        market_verdict = obj.get("market_verdict")
+        price = item.get("price")
+        median = market_truth.get("median_price")
 
-        score = obj.get("score") or 0
-        risk = obj.get("risk") or 0
-        confidence = obj.get("market_confidence") or obj.get("confidence") or 0.5
+        if not price or not median:
+            return "unknown"
 
-        # -------------------------
-        # PRIMARY DECISION IS MARKET-DRIVEN
-        # -------------------------
-        if market_verdict == "overpriced":
-            verdict = "overpriced"
-        elif market_verdict == "cheap":
-            verdict = "good_deal"
-        else:
-            verdict = "fair"
+        deviation = (price - median) / median
 
-        # -------------------------
-        # RISK OVERRIDE
-        # -------------------------
-        if risk > 0.85:
-            verdict = "avoid"
+        if deviation < -0.2:
+            return "cheap_deal"
 
-        # -------------------------
-        # FINAL CONFIDENCE MIX
-        # -------------------------
-        final_confidence = (confidence * 0.7) + ((1 - risk) * 0.3)
+        if -0.2 <= deviation <= 0.15:
+            return "fair_value"
 
-        obj["verdict"] = verdict
-        obj["confidence"] = float(final_confidence)
+        if deviation > 0.15:
+            return "overpriced"
 
-        return obj
+        return "neutral"

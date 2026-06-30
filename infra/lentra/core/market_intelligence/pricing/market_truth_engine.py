@@ -1,85 +1,56 @@
-from collections import defaultdict
 import statistics
 
 
 class MarketTruthEngine:
-    """
-    Lightweight market distribution tracker (MVP).
-
-    Purpose:
-    - build per-area price distribution
-    - compute median / expected market price
-    - provide deviation signal for scoring layer
-    """
 
     def __init__(self):
-        # area -> list of prices
-        self.price_map = defaultdict(list)
+        pass
 
-    # -----------------------------
-    # ingestion
-    # -----------------------------
-    def update(self, listing: dict):
-        """
-        Register listing into market distribution
-        """
-        area = listing.get("location") or "unknown"
-        price = listing.get("price")
+    def stabilize(self, listings: list) -> dict:
 
-        if price is None:
-            return
+        prices = [l.get("price") for l in listings if l.get("price")]
 
-        try:
-            price = float(price)
-        except Exception:
-            return
+        if not prices:
+            return {
+                "median_price": None,
+                "mean_price": None,
+                "outliers_removed": 0,
+                "clean_listings": listings
+            }
 
-        self.price_map[area].append(price)
+        median = statistics.median(prices)
 
-    # -----------------------------
-    # market estimation
-    # -----------------------------
-    def get_market_price(self, listing: dict) -> float:
-        """
-        Returns median market price for area
-        fallback → global median or fixed anchor
-        """
+        # robust bounds (IQR-lite approximation)
+        sorted_prices = sorted(prices)
+        q1 = sorted_prices[len(sorted_prices)//4]
+        q3 = sorted_prices[(len(sorted_prices)*3)//4]
 
-        area = listing.get("location") or "unknown"
+        iqr = q3 - q1
+        low = q1 - 1.5 * iqr
+        high = q3 + 1.5 * iqr
 
-        prices = self.price_map.get(area, [])
+        clean = []
+        outliers = 0
 
-        if len(prices) >= 3:
-            return float(statistics.median(prices))
+        for l in listings:
+            p = l.get("price")
 
-        # fallback stage (cold start)
-        all_prices = []
-        for v in self.price_map.values():
-            all_prices.extend(v)
+            if p is None:
+                continue
 
-        if len(all_prices) >= 5:
-            return float(statistics.median(all_prices))
+            if p < low or p > high:
+                l["anomaly_flag"] = True
+                l["risk_score_boost"] = 0.2
+                outliers += 1
+            else:
+                l["anomaly_flag"] = False
 
-        # global anchor (bootstrapping)
-        return 500.0
+            clean.append(l)
 
-    # -----------------------------
-    # deviation signal
-    # -----------------------------
-    def price_deviation(self, listing: dict) -> float:
-        """
-        Normalized deviation from market price
-        """
-
-        price = listing.get("price") or 0
-        try:
-            price = float(price)
-        except Exception:
-            return 0.0
-
-        market = self.get_market_price(listing)
-
-        if market <= 0:
-            return 0.0
-
-        return (price - market) / market
+        return {
+            "median_price": median,
+            "q1": q1,
+            "q3": q3,
+            "outliers_removed": outliers,
+            "clean_listings": clean
+        }

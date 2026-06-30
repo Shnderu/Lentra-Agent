@@ -1,22 +1,21 @@
-from lentra.core.market_intelligence.dedup.dedup_v2 import DedupV2Engine
-from lentra.core.market_intelligence.duplicate.duplicate_engine import DuplicateEngine
+from typing import Dict, Any
 
 
 class UnifiedDedupEngine:
     """
-    SINGLE ENTRY POINT for all dedup logic.
-    Safe wrapper over legacy systems.
+    Contract-compliant dedup engine
     """
 
     def __init__(self):
-        self.v2 = DedupV2Engine()
-        self.legacy = DuplicateEngine()
+        pass
 
-    def process(self, listings: list):
-        # Step 1: modern dedup
-        listings = self.v2.process(listings)
+    def analyze(self, item: Dict[str, Any]) -> Dict[str, Any]:
+        title = item.get("title", "")
+        price = item.get("price", 0)
 
-        # Step 2: legacy compatibility cleanup
-        listings = self.legacy.clean(listings)
+        signature = f"{title.lower()}::{price}"
 
-        return listings
+        item["dedup_signature"] = signature
+        item["is_duplicate"] = False
+
+        return item

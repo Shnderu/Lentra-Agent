@@ -1,24 +1,20 @@
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 
 class EngineRegistry:
+    """
+    CENTRAL ENGINE REGISTRY
+    prevents direct cross-import chaos
+    """
 
     def __init__(self):
+        self._engines: Dict[str, Any] = {}
 
-        self.engines = []
+    def register(self, name: str, engine: Any):
+        self._engines[name] = engine
 
-    def register(self, engine):
+    def get(self, name: str):
+        return self._engines.get(name)
 
-        self.engines.append(engine)
-
-    def run(self, listing: dict) -> dict:
-
-        for engine in self.engines:
-
-            listing = engine.process(listing)
-
-        return listing
-
-    def run_all(self, listings: List[dict]) -> List[dict]:
-
-        return [self.run(l) for l in listings]
+    def all(self):
+        return self._engines

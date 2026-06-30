@@ -6,5 +6,5 @@ class IntelligenceAdapter:
     def __init__(self):
         self.engine = MarketIntelligenceEngine()
 
-    def analyze(self, listings: list) -> list:
+    def analyze(self, listings):
         return self.engine.analyze(listings)

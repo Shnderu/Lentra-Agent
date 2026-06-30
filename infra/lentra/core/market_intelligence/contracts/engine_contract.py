@@ -1,8 +1,15 @@
-from typing import Protocol, Dict, Any
-from lentra.core.market_intelligence.contracts.market_object_contract import MarketObjectContract
+from typing import List, Optional
+from lentra.core.market_intelligence.contracts.pipeline_contract import Listing, EnrichedListing
 
 
-class EngineContract(Protocol):
+class EngineContract:
+    """
+    SINGLE SOURCE OF TRUTH CONTRACT FOR AI OS ENGINE
+    """
 
-    def process(self, listing: MarketObjectContract) -> MarketObjectContract:
-        ...
+    def analyze(
+        self,
+        listings: List[Listing],
+        query_text: Optional[str] = None
+    ) -> List[EnrichedListing]:
+        raise NotImplementedError

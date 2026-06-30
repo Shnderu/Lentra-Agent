@@ -1,36 +1,31 @@
-from lentra.core.market_intelligence.intelligence.intelligence_pipeline_v2 import IntelligencePipelineV2
-from lentra.core.market_intelligence.contracts.engine_registry import EngineRegistry
-
-from lentra.core.market_intelligence.risk.risk_engine_v2 import RiskEngineV2
-from lentra.core.market_intelligence.expat.expat_engine_v2 import ExpatEngineV2
-from lentra.core.market_intelligence.comparison.comparison_engine_v2 import ComparisonEngineV2
+from lentra.core.market_intelligence._import_safety import ImportGuard
 
 
 class MarketIntelligenceEngine:
 
-    def __init__(self):
+    def __init__(self, config=None):
+        with ImportGuard("MarketIntelligenceEngine"):
+            self.config = config or {}
 
-        # ARCHAELOGY LAYER (MANDATORY PREPROCESS)
-        self.intel = IntelligencePipelineV2()
+            # lazy attach only
+            self._ranking = None
+            self._dedup = None
+            self._risk = None
 
-        # ENGINE LAYER (DETERMINISTIC CHAIN)
-        self.registry = EngineRegistry()
+    def ranking(self):
+        if self._ranking is None:
+            from lentra.core.market_intelligence.ranking.unified_ranking_engine import UnifiedRankingEngine
+            self._ranking = UnifiedRankingEngine()
+        return self._ranking
 
-        # register canonical engines only
-        self.registry.register(RiskEngineV2())
-        self.registry.register(ExpatEngineV2())
-        self.registry.register(ComparisonEngineV2())
+    def dedup(self):
+        if self._dedup is None:
+            from lentra.core.market_intelligence.dedup.unified_dedup_engine import UnifiedDedupEngine
+            self._dedup = UnifiedDedupEngine()
+        return self._dedup
 
-    def analyze(self, listings, query_text=None):
-
-        # =========================
-        # STEP 1: INTELLIGENCE LAYER (MANDATORY)
-        # =========================
-        listings = self.intel.process(listings)
-
-        # =========================
-        # STEP 2: ENGINE REGISTRY (MANDATORY)
-        # =========================
-        listings = self.registry.run_all(listings)
-
-        return listings
+    def risk(self):
+        if self._risk is None:
+            from lentra.core.market_intelligence.risk.risk_engine_v2 import RiskEngineV2
+            self._risk = RiskEngineV2()
+        return self._risk

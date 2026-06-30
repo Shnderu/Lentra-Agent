@@ -1,7 +1,16 @@
-from typing import Protocol, Dict, Any
+from typing import Any
 
 
-class BaseEngine(Protocol):
+class BaseEngine:
+    """
+    SAFE WRAPPER FOR ALL ENGINES
+    """
 
-    def process(self, listing: dict) -> dict:
-        ...
+    def safe_execute(self, fn, *args, **kwargs) -> Any:
+        try:
+            return fn(*args, **kwargs)
+        except Exception as e:
+            return {
+                "error": str(e),
+                "engine": self.__class__.__name__
+            }

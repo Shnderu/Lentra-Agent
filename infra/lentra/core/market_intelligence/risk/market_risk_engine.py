@@ -1,37 +1,18 @@
-
-from lentra.core.market_intelligence.models.market_object import MarketObject
-
-
 class MarketRiskEngine:
 
-    def run(self, obj: MarketObject) -> MarketObject:
+    def score(self, listing: dict):
 
-        risk = 0.5  # baseline
+        score = 0.0
 
-        # 1. Price anomaly
-        if obj.price_deviation is not None:
+        if listing.get("anomaly_flag"):
+            score += 0.4
 
-            risk += abs(obj.price_deviation) * 0.3
+        if listing.get("price") and listing.get("market_median"):
+            deviation = abs(listing["price"] - listing["market_median"]) / listing["market_median"]
 
-        # 2. Listing count signal
-        if obj.listing_count == 1:
-            risk += 0.2
+            if deviation > 0.3:
+                score += 0.3
 
-        elif obj.listing_count >= 4:
-            risk -= 0.1
+        listing["market_risk_score"] = min(score, 1.0)
 
-        # 3. Source diversity
-        sources = len(obj.sources)
-
-        if sources == 1:
-            risk += 0.15
-
-        elif sources >= 3:
-            risk -= 0.1
-
-        # clamp
-        risk = max(0.0, min(1.0, risk))
-
-        obj.risk = risk
-
-        return obj
+        return listing

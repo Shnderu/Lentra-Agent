@@ -1,33 +1,20 @@
-from typing import Dict, Any
-
-from lentra.services.market_intelligence_v2 import MarketIntelligenceV2
-from lentra.services.price_engine import PriceEngine
-from lentra.services.dedup_engine import DedupEngine
-from lentra.services.risk_engine import RiskEngine
+from lentra.core.market_intelligence.pipeline.intelligence_pipeline_orchestrator import IntelligencePipelineOrchestrator
 
 
-class MarketIntelligenceOrchestrator:
-
+class IntelligenceOrchestrator:
     def __init__(self):
-        self.market = MarketIntelligenceV2()
-        self.price = PriceEngine()
-        self.dedup = DedupEngine()
-        self.risk = RiskEngine()
+        self.pipeline = IntelligencePipelineOrchestrator(self)
 
-    def analyze(self, intent: Dict[str, Any]) -> Dict[str, Any]:
+    def analyze(self, intent, trace=None):
+        if trace:
+            trace.log("orchestrator_input", intent)
 
-        query = intent.get("query", "")
+        listings = intent.get("listings", [])
+        query_text = intent.get("query_text", "")
 
-        market = self.market.analyze(intent)
-        price = self.price.evaluate(intent, market)
-        dedup = self.dedup.cluster(intent, market, price)
-        risk = self.risk.score(intent, market, price, dedup)
+        result = self.pipeline.run(listings, query_text, trace)
 
-        return {
-            "version": "v2_orchestrated",
-            "query": query,
-            "market": market,
-            "price": price,
-            "dedup": dedup,
-            "risk": risk
-        }
+        if trace:
+            trace.log("orchestrator_output", result)
+
+        return result

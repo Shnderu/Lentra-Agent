@@ -1,37 +1,18 @@
-from typing import Any, Dict
+from typing import List, Dict, Any
 
 
 class SafeNormalizer:
 
-    @staticmethod
-    def normalize_location(location: Any) -> Dict[str, str]:
-
-        if isinstance(location, dict):
-            return {
-                "segment": location.get("segment", "unknown"),
-                "micro_market": location.get("micro_market", "unknown")
-            }
-
-        if isinstance(location, str):
-            return {
-                "segment": location,
-                "micro_market": "unknown"
-            }
-
+    def normalize_listing(self, listing: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        GUARANTEES BASE STRUCTURE
+        """
         return {
-            "segment": "unknown",
-            "micro_market": "unknown"
+            "title": listing.get("title", ""),
+            "price": listing.get("price", 0),
+            "city": listing.get("city"),
+            "location": listing.get("location")
         }
 
-    @staticmethod
-    def normalize_listing(listing: dict) -> dict:
-
-        location = listing.get("location", "unknown")
-
-        listing["location"] = SafeNormalizer.normalize_location(location)
-
-        listing.setdefault("price", 0.0)
-        listing.setdefault("risk", 0.5)
-        listing.setdefault("confidence", 0.5)
-
-        return listing
+    def normalize_batch(self, listings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        return [self.normalize_listing(l) for l in listings]

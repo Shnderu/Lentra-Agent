@@ -1,0 +1,10 @@
+from typing import Optional
+
+from lentra.core.market_intelligence.gateway import IntelligenceGateway
+
+
+def build_intelligence_gateway(orchestrator: Optional[dict] = None):
+    if orchestrator is None:
+        orchestrator = {}
+
+    return IntelligenceGateway(orchestrator=orchestrator)

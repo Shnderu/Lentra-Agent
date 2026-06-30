@@ -1,33 +1,13 @@
-import asyncio
-from aiogram import Bot, Dispatcher, types
-from aiogram.types import Message
+from lentra.services.intelligence_gateway import IntelligenceGateway
 
-from lentra.telegram.config import BOT_TOKEN
-from lentra.telegram.bot import LentraBot
-from lentra.core.market_intelligence.market_intelligence_engine import MarketIntelligenceEngine
-
-engine = MarketIntelligenceEngine()
-core_bot = LentraBot(engine)
-
-bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher()
-
-@dp.message()
-async def handle_message(message: Message):
-
-    update = {"text": message.text}
-
-    result = core_bot.handle(update)
-
-    if isinstance(result, list):
-        for r in result:
-            await message.answer(r)
-    else:
-        await message.answer(str(result))
+gateway = IntelligenceGateway()
 
 
-async def main():
-    await dp.start_polling(bot)
+class TelegramRuntime:
 
-if __name__ == "__main__":
-    asyncio.run(main())
+    def process(self, listings, text=None):
+        return gateway.execute(
+            listings=listings,
+            query_text=text,
+            source="telegram"
+        )
