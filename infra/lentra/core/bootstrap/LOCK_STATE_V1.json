@@ -1,0 +1,41 @@
+{
+  "version": "v1.0.0",
+  "status": "production_frozen",
+  "release_type": "stable_runtime",
+
+  "entrypoints": {
+    "api": "lentra.api.main:app",
+    "bot": "python3 -m lentra.connectors.telegram_event_listener"
+  },
+
+  "runtime_model": {
+    "execution_mode": "event_driven",
+    "bot_runtime": "connector_based",
+    "api_runtime": "uvicorn_fastapi"
+  },
+
+  "core_graph_root": "lentra.core.bootstrap",
+  "pipeline_root": "lentra.core.market_intelligence.pipeline.intelligence_pipeline_orchestrator",
+  "engine_root": "lentra.core.market_intelligence.engine",
+
+  "sealed_layers": [
+    "lentra.core",
+    "lentra.core.market_intelligence",
+    "lentra.core.runtime_trace_audit"
+  ],
+
+  "rules": {
+    "no_cross_bootstrap_imports": true,
+    "no_runtime_injection_into_bootstrap": true,
+    "pipeline_is_leaf_orchestrated": true,
+    "connectors_are_entrypoints": true,
+    "telegram_runtime_is_event_source_only": true
+  },
+
+  "stability_contract": {
+    "graph_mutation_allowed": false,
+    "pipeline_mutation_allowed": false,
+    "router_mutation_allowed": true,
+    "ui_mutation_allowed": true
+  }
+}
