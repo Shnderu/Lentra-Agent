@@ -1,8 +1,11 @@
 import asyncio
 import socket
-from lentra.core.di.container import build_container
+
+from lentra.runtime.bootstrap.container import build_container
+from lentra.runtime.intelligence_gateway import interpret
 
 WORKER_ID = socket.gethostname()
+
 
 async def run_worker():
     container = build_container()
@@ -25,16 +28,35 @@ async def run_worker():
             repo.mark_processing(task_id, WORKER_ID)
 
             flow = task["flow"]
-            flow_glue.run(flow)
 
-            repo.mark_done(task_id)
+            # --------------------------------------------
+            # 1. NORMAL EXECUTION (FLOW GLUE)
+            # --------------------------------------------
+            raw_result = flow_glue.run(flow)
+
+            # --------------------------------------------
+            # 2. INTELLIGENCE POST-PROCESSING LAYER
+            # --------------------------------------------
+            enriched = interpret({
+                "task": flow.get("type", "unknown"),
+                "input": flow,
+                "output": raw_result,
+                "worker_id": WORKER_ID
+            })
+
+            # --------------------------------------------
+            # 3. FINALIZE TASK
+            # --------------------------------------------
+            repo.mark_done(task_id, result=enriched)
 
         except Exception as e:
-            print("[ERROR]", e)
+            print("[WORKER ERROR]", e)
             repo.mark_failed(task_id)
+
 
 async def main():
     await run_worker()
+
 
 if __name__ == "__main__":
     asyncio.run(main())
