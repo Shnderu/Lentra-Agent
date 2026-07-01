@@ -1,21 +1,7 @@
-from lentra.core.intelligence.binding import load_intelligence
+from typing import Any, Dict
+from lentra.core.market_intelligence.market_intelligence_engine import MarketIntelligenceEngine
 
-_engine = None
+_engine = MarketIntelligenceEngine()
 
-
-def get_engine():
-    global _engine
-    if _engine is None:
-        _engine = load_intelligence()
-    return _engine
-
-
-def interpret(payload: dict):
-    """
-    Единственный вход в интеллект.
-    Никаких query типов (price_check, risk_score и т.д.)
-
-    payload = нормализованный объект рынка
-    """
-    engine = get_engine()
-    return engine.interpret(payload)
+def interpret(payload: Dict[str, Any]) -> Dict[str, Any]:
+    return _engine.analyze(payload)
