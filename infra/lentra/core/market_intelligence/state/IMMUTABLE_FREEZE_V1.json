@@ -1,0 +1,7 @@
+{
+  "status": "frozen",
+  "engine": "MarketIntelligenceEngine",
+  "graph": "flatten-v4",
+  "legacy_removed": true,
+  "contract_locked": true
+}

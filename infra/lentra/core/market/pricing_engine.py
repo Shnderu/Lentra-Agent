@@ -50,7 +50,7 @@ class PricingEngine:
 
         return result
 
-    def evaluate(self, item: Dict[str, Any], market_stats: Dict[str, Any]) -> Dict[str, Any]:
+    def score(self, item: Dict[str, Any], market_stats: Dict[str, Any]) -> Dict[str, Any]:
         key = self._market_key(item)
         price = item.get("price_vnd") or 0
 
@@ -89,3 +89,7 @@ class PricingEngine:
             return (arr[mid - 1] + arr[mid]) / 2
 
         return arr[mid]
+
+
+    def evaluate(self, payload):
+        return self.score(payload)
