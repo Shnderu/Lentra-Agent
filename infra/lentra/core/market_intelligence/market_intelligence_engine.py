@@ -1,40 +1,47 @@
-from typing import Any, Dict
+from typing import Dict, Any
 
-from lentra.core.market_intelligence.output.assembler import MarketIntelligenceOutputAssembler
+from lentra.core.market_intelligence.output import MarketIntelligenceOutputFacade
+from lentra.core.market_intelligence.decision.integrated_signal_decision import IntegratedSignalDecision
 
 
 class MarketIntelligenceEngine:
     """
-    PURE INTELLIGENCE CORE
-    НЕ ЗНАЕТ ПРО FACADE
+    Canonical Market Intelligence Engine (LOCKED V1)
+
+    Flow:
+        input → enrich → signals → decision → output contract
     """
 
     def __init__(self):
-        self.assembler = MarketIntelligenceOutputAssembler()
+        self.output_facade = MarketIntelligenceOutputFacade()
+        self.decision = IntegratedSignalDecision()
 
     def analyze(self, payload: Dict[str, Any]):
-        raw = self._run_pipeline(payload)
-        return self.assembler.assemble(raw)
+        enriched = self._enrich(payload)
+        decision = self.decision.build(enriched)
 
-    def interpret(self, payload: Dict[str, Any]):
-        return self.analyze(payload)
+        final_context = {
+            **enriched,
+            "signals": decision["signals"],
+            "dominant_signal": decision["dominant_signal"],
+            "decision_flags": decision["decision_flags"],
+            "authority_score": decision["authority_score"],
+        }
 
-    def _run_pipeline(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        # временная стабилизированная модель (MVP intelligence core)
-        price = payload.get("price", 0)
-        market_price = 650
+        return self.output_facade.analyze(final_context)
 
+    def _enrich(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         return {
-            "price": price,
-            "market_price": market_price,
-            "deviation_pct": ((price - market_price) / market_price) * 100 if market_price else 0,
-            "risk": {"level": "medium"},
-            "duplicates": 3,
-            "verdict": "ok",
-            "normalized": payload,
-            "signals": {},
-            "scores": {},
-            "trace_id": "core-v1",
-            "source_count": 1,
-            "confidence": 0.72,
+            "price": payload.get("price"),
+            "market_price": payload.get("market_price", 650),
+            "deviation_pct": payload.get("deviation_pct", 0.07),
+            "risk_score": payload.get("risk_score", 0.5),
+            "duplicates": payload.get("duplicates", 0),
+            "staleness": payload.get("staleness", 0.2),
+            "price_trend": payload.get("price_trend", 0.0),
+            "area": payload.get("area", {
+                "internet": 7.5,
+                "noise": 5.0,
+                "expat_density": 6.5
+            }),
         }

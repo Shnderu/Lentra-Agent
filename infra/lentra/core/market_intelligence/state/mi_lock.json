@@ -1,0 +1,17 @@
+{
+  "version": "v1-locked",
+  "status": "production_stable_core",
+  "architecture": {
+    "engine": "MarketIntelligenceEngine",
+    "decision": "IntegratedSignalDecision",
+    "resolver": "SignalAuthorityResolver",
+    "output": "MarketIntelligenceOutputFacadeGuarded"
+  },
+  "rules": [
+    "no circular imports",
+    "engine is sole orchestrator",
+    "output is pure transformer",
+    "decision is deterministic",
+    "signals are centralized"
+  ]
+}

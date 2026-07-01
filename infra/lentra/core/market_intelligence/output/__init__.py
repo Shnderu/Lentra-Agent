@@ -1,0 +1,4 @@
+from lentra.core.market_intelligence.output.facade_guarded import MarketIntelligenceOutputFacadeGuarded
+
+# Canonical export (production-safe)
+MarketIntelligenceOutputFacade = MarketIntelligenceOutputFacadeGuarded
