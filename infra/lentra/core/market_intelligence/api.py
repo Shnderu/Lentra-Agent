@@ -1,22 +1,24 @@
-from lentra.runtime.intelligence_gateway import interpret
+from lentra.runtime.intelligence_enforcer import run_intelligence
 
 
 class MarketIntelligence:
     """
-    DEPRECATED LOGIC WRAPPER
-    Всё решение принимает внешний AI engine
+    CANONICAL WRAPPER
+
+    Больше НЕ содержит логики.
+    Только проксирует в AI OS через gateway.
     """
 
     def evaluate_listing(self, listing: dict, market: dict) -> dict:
-        return interpret({
+        return run_intelligence({
+            "task": "evaluate_listing",
             "listing": listing,
-            "market": market,
-            "task": "evaluate_listing"
+            "market": market
         })
 
     def evaluate_batch(self, listings: list, market: dict) -> dict:
-        return interpret({
+        return run_intelligence({
+            "task": "evaluate_batch",
             "listings": listings,
-            "market": market,
-            "task": "evaluate_batch"
+            "market": market
         })
