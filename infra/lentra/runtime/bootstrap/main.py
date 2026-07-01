@@ -1,140 +1,85 @@
-import os
-import sys
 import asyncio
-import logging
-import signal
-from typing import Optional
+
+from lentra.runtime.bootstrap.container import build_container
+from lentra.runtime.bootstrap.import_hook import install_import_hook
+
+from lentra.api.main import create_app
+from lentra.bot.main import create_bot
+
+from lentra.core.contracts.pipeline_lock import PipelineLock
+from lentra.core.graph.compiler.compiler import ArchitectureCompiler
+
+from lentra.core.gateway.execution_entry_v1 import init as gateway_init
+from lentra.bot.core.intent_router import IntentRouter
+from lentra.core.scenario.scenario_engine_v1 import ScenarioEngineV1
+
+from lentra.runtime.intelligence_gateway import get_engine
 
 
-logging.basicConfig(
-    level=os.getenv("LOG_LEVEL", "INFO"),
-    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-)
-
-logger = logging.getLogger("lentra.bootstrap")
-
-
-# ----------------------------
-# MODE RESOLUTION
-# ----------------------------
-
-def get_mode() -> str:
+def bootstrap_runtime():
     """
-    LENTRA_MODE:
-      - api
-      - worker
-      - ingestion
+    Canonical runtime bootstrap:
+    - DI container
+    - Graph compilation
+    - API + Bot init
+    - Intelligence binding
+    - Gateway activation
+    - System freeze
     """
-    return os.getenv("LENTRA_MODE", "api").lower()
 
+    install_import_hook()
 
-# ----------------------------
-# ENTRYPOINTS (lazy imports)
-# ----------------------------
+    # ---------------------------
+    # 1. ARCHITECTURE GRAPH
+    # ---------------------------
+    graph = ArchitectureCompiler.compile()
 
-def run_api():
-    """
-    API bootstrap (FastAPI/Uvicorn entrypoint assumed external)
-    """
-    try:
-        import uvicorn
-        from lentra.runtime.main import app  # expected ASGI app
-    except Exception as e:
-        logger.error(f"[API] failed to import runtime app: {e}")
-        sys.exit(1)
+    # ---------------------------
+    # 2. DEPENDENCY CONTAINER
+    # ---------------------------
+    container = build_container()
 
-    host = os.getenv("LENTRA_API_HOST", "0.0.0.0")
-    port = int(os.getenv("LENTRA_API_PORT", "8000"))
+    # ---------------------------
+    # 3. API + BOT
+    # ---------------------------
+    app = create_app()
+    bot = create_bot()
 
-    logger.info(f"[API] starting on {host}:{port}")
+    container.register("api", app)
+    container.register("bot", bot)
 
-    uvicorn.run(
-        "lentra.runtime.main:app",
-        host=host,
-        port=port,
-        reload=False,
-        log_level=os.getenv("LOG_LEVEL", "info").lower(),
+    # ---------------------------
+    # 4. INTELLIGENCE ENGINE WARMUP
+    # ---------------------------
+    engine = get_engine()
+    container.register("intelligence_engine", engine)
+
+    # ---------------------------
+    # 5. GATEWAY INIT (CORE ROUTING LAYER)
+    # ---------------------------
+    gateway_init(
+        IntentRouter(),
+        ScenarioEngineV1()
     )
 
+    # ---------------------------
+    # 6. SYSTEM FREEZE (NO MORE STRUCTURAL CHANGES)
+    # ---------------------------
+    PipelineLock.lock()
 
-async def run_worker():
+    print("[LENTRA] BOOTSTRAP COMPLETE")
+    print("[LENTRA] GRAPH COMPILED:", bool(graph))
+    print("[LENTRA] INTELLIGENCE READY:", engine is not None)
+
+    return container
+
+
+async def async_bootstrap():
     """
-    Generic worker loop entrypoint
+    Async wrapper (for future worker integration)
     """
-    logger.info("[WORKER] starting event loop")
-
-    stop_event = asyncio.Event()
-
-    def _stop(*_):
-        logger.info("[WORKER] shutdown signal received")
-        stop_event.set()
-
-    signal.signal(signal.SIGTERM, _stop)
-    signal.signal(signal.SIGINT, _stop)
-
-    # lazy import to avoid heavy init before fork
-    try:
-        from lentra.worker.loop import run_loop
-    except Exception as e:
-        logger.error(f"[WORKER] failed to import loop: {e}")
-        sys.exit(1)
-
-    task = asyncio.create_task(run_loop())
-
-    await stop_event.wait()
-
-    task.cancel()
-    try:
-        await task
-    except Exception:
-        pass
-
-    logger.info("[WORKER] stopped cleanly")
-
-
-def run_ingestion():
-    """
-    Batch ingestion / collectors bootstrap
-    """
-    logger.info("[INGESTION] starting")
-
-    try:
-        from lentra.data.ingest import run_ingest_pipeline
-    except Exception as e:
-        logger.error(f"[INGESTION] import failed: {e}")
-        sys.exit(1)
-
-    try:
-        run_ingest_pipeline()
-    except Exception as e:
-        logger.error(f"[INGESTION] execution failed: {e}")
-        sys.exit(1)
-
-    logger.info("[INGESTION] finished")
-
-
-# ----------------------------
-# MAIN
-# ----------------------------
-
-def main():
-    mode = get_mode()
-
-    logger.info(f"[BOOTSTRAP] mode={mode}")
-
-    if mode == "api":
-        run_api()
-
-    elif mode == "worker":
-        asyncio.run(run_worker())
-
-    elif mode == "ingestion":
-        run_ingestion()
-
-    else:
-        logger.error(f"[BOOTSTRAP] unknown mode: {mode}")
-        sys.exit(1)
+    return bootstrap_runtime()
 
 
 if __name__ == "__main__":
-    main()
+    bootstrap_runtime()

@@ -1,7 +1,12 @@
+"""
+DEPRECATED ENTRYPOINT
+Canonical entrypoint moved to:
+lentra.runtime.bootstrap.main
+"""
 
-from lentra.core.data_layer.scrapers.ingestion_worker import IngestionWorker
-
+import os
+from lentra.runtime.bootstrap.main import main
 
 if __name__ == "__main__":
-    worker = IngestionWorker()
-    worker.run()
+    os.environ["LENTRA_MODE"] = "ingestion"
+    main()

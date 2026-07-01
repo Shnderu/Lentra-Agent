@@ -1,13 +1,13 @@
-import uvicorn
-from lentra.api.main import app
+"""
+DEPRECATED ENTRYPOINT
+Canonical entrypoint moved to:
+lentra.runtime.bootstrap.main
+"""
 
-def main():
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=8000,
-        log_level="info"
-    )
+import os
+import sys
+from lentra.runtime.bootstrap.main import main
 
 if __name__ == "__main__":
+    os.environ["LENTRA_MODE"] = "api"
     main()
