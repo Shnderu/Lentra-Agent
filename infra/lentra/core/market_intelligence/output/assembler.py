@@ -1,15 +1,21 @@
-from typing import Dict, Any
-
-
 class OutputAssembler:
-    """
-    Canonical assembler for Market Intelligence output contract.
-    Converts raw engine output into UI + API + meta contract.
-    """
 
-    def assemble(self, ui: Dict[str, Any], api: Dict[str, Any], meta: Dict[str, Any]) -> Dict[str, Any]:
+    def build(self, context: dict) -> dict:
+
+        ui = context.get("ui", {})
+        api = context.get("api", {})
+        meta = context.get("meta", {})
+
+        # STRICT: no recomputation, no overrides
         return {
-            "ui": ui or {},
-            "api": api or {},
-            "meta": meta or {}
+            "ui": {
+                "price": ui.get("price"),
+                "market_price": ui.get("market_price"),
+                "deviation_pct": ui.get("deviation_pct"),
+                "risk_level": ui.get("risk_level"),
+                "duplicates": ui.get("duplicates"),
+                "verdict": ui.get("verdict"),  # PASS-THROUGH ONLY
+            },
+            "api": api,
+            "meta": meta
         }

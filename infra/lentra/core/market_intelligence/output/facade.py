@@ -1,20 +1,17 @@
-from typing import Any, Dict
-
-from lentra.core.market_intelligence.market_intelligence_engine import MarketIntelligenceEngine
+from lentra.core.market_intelligence.output.assembler import OutputAssembler
+from lentra.core.market_intelligence.output.contract import MarketIntelligenceOutputContract
 
 
 class MarketIntelligenceOutputFacade:
-    """
-    SINGLE ENTRY POINT FOR ALL SYSTEMS
-
-    API / BOT / WORKER / RUNTIME → ONLY HERE
-    """
 
     def __init__(self):
-        self.engine = MarketIntelligenceEngine()
+        self.assembler = OutputAssembler()
 
-    def analyze(self, payload: Dict[str, Any]):
-        return self.engine.analyze(payload)
+    def analyze(self, context: dict) -> MarketIntelligenceOutputContract:
+        assembled = self.assembler.build(context)
 
-    def interpret(self, payload: Dict[str, Any]):
-        return self.engine.analyze(payload)
+        return MarketIntelligenceOutputContract(
+            ui=assembled.get("ui", {}),
+            api=assembled.get("api", {}),
+            meta=assembled.get("meta", {})
+        )

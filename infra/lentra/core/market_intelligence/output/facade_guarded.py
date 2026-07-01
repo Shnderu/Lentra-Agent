@@ -1,19 +1,21 @@
-from typing import Dict, Any
-
 from lentra.core.market_intelligence.output.assembler import OutputAssembler
+from lentra.core.market_intelligence.output.contract import MarketIntelligenceOutputContract
 
 
 class MarketIntelligenceOutputFacadeGuarded:
-    """
-    STRICT OUTPUT LAYER
-
-    IMPORTANT RULE:
-    - NO imports from decision layer
-    - NO imports from engine
-    """
 
     def __init__(self):
         self.assembler = OutputAssembler()
 
-    def analyze(self, context: Dict[str, Any]):
-        return self.assembler.build(context)
+    def analyze(self, context: dict) -> MarketIntelligenceOutputContract:
+        raw = self.assembler.build(context)
+
+        # HARD ENFORCE CONTRACT (CRITICAL FIX)
+        if isinstance(raw, MarketIntelligenceOutputContract):
+            return raw
+
+        return MarketIntelligenceOutputContract(
+            ui=raw.get("ui", {}),
+            api=raw.get("api", {}),
+            meta=raw.get("meta", {})
+        )

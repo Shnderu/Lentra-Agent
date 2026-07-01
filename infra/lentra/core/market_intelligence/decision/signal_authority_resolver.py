@@ -1,122 +1,115 @@
-from typing import Dict, Any, List
+from dataclasses import dataclass
+from typing import Dict, Any, Optional
+
+
+@dataclass
+class SignalAuthorityResult:
+    final_risk_level: str
+    final_verdict: str
+    adjusted_confidence: float
+    authority_trace: Dict[str, Any]
 
 
 class SignalAuthorityResolver:
+
     """
-    Resolves conflicts between market intelligence signals.
-
-    Core purpose:
-    - define priority between competing signals
-    - normalize conflicting outputs from pricing / risk / dedup / area layers
-    - produce deterministic authority-weighted decision basis
-
-    This is NOT ML.
-    This is deterministic policy layer.
+    v1 authority resolver:
+    - resolves conflicts between pricing / risk / dedup / expat
+    - enforces signal hierarchy
     """
 
-    def __init__(self):
-        # Higher index = higher authority
-        self.priority_order = [
-            "fraud_probability",
-            "price_market_deviation",
-            "duplicate_cluster_size",
-            "listing_staleness",
-            "area_expat_density",
-            "area_internet_quality",
-            "price_trend",
-            "area_noise_level",
-        ]
+    # HARD AUTHORITY (can override everything)
+    HARD = {
+        "risk_level",
+        "fraud_score",
+    }
 
-        self.priority_index = {
-            name: i for i, name in enumerate(self.priority_order)
+    # STRUCTURAL (high weight, but not override)
+    STRUCTURAL = {
+        "market_price",
+        "duplicates",
+    }
+
+    # CONTEXTUAL (influence only)
+    CONTEXTUAL = {
+        "area_score",
+        "internet_score",
+        "noise_score",
+        "safety_score",
+    }
+
+    # DERIVED
+    DERIVED = {
+        "deviation_pct",
+        "confidence",
+        "verdict",
+    }
+
+    def resolve(self, ui: Dict[str, Any], api: Dict[str, Any], meta: Dict[str, Any]) -> SignalAuthorityResult:
+
+        trace = {
+            "applied_rules": [],
+            "conflicts": [],
         }
 
-    def resolve(self, signals: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Takes raw signals from all subsystems and resolves conflicts.
+        risk = ui.get("risk_level", "unknown")
+        deviation = ui.get("deviation_pct", 0)
+        duplicates = ui.get("duplicates", 0)
+        verdict = ui.get("verdict", "ok")
 
-        Args:
-            signals: dict of signal_name -> value
+        confidence = meta.get("confidence", 0.72)
 
-        Returns:
-            dict with:
-                - resolved_signals
-                - dominant_signal
-                - authority_score
-        """
+        # -------------------------
+        # RULE 1: RISK OVERRIDE
+        # -------------------------
+        if risk == "high":
+            trace["applied_rules"].append("risk_override_high")
+            verdict = "risk_high"
+            confidence -= 0.2
 
-        if not signals:
-            return {
-                "resolved_signals": {},
-                "dominant_signal": None,
-                "authority_score": 0.0,
-            }
+        # -------------------------
+        # RULE 2: DUPLICATE DOMINANCE
+        # -------------------------
+        if duplicates >= 5:
+            trace["applied_rules"].append("duplicate_override")
+            verdict = "likely_duplicate"
+            confidence -= 0.1
 
-        # Filter known signals only
-        filtered = {
-            k: v for k, v in signals.items()
-            if k in self.priority_index
-        }
+        # -------------------------
+        # RULE 3: PRICE DEVIATION BIAS
+        # -------------------------
+        if deviation > 25:
+            trace["applied_rules"].append("overprice_strong_signal")
+            if risk != "high":
+                verdict = "overpriced"
+            confidence -= 0.1
 
-        if not filtered:
-            return {
-                "resolved_signals": {},
-                "dominant_signal": None,
-                "authority_score": 0.0,
-            }
+        if deviation < -20:
+            trace["applied_rules"].append("underprice_signal")
+            verdict = "underpriced"
+            confidence -= 0.05
 
-        # Determine dominant signal by priority + intensity
-        dominant = None
-        best_score = -1
+        # -------------------------
+        # RULE 4: CONTEXT BOOST / PENALTY
+        # -------------------------
+        area_score = api.get("signals", {}).get("area_score", 0)
 
-        for name, value in filtered.items():
-            priority = self.priority_index[name]
+        if area_score < 0.4:
+            trace["applied_rules"].append("low_area_penalty")
+            confidence -= 0.05
 
-            # normalize value to numeric weight if possible
-            numeric = self._to_float(value)
+        if area_score > 0.8:
+            trace["applied_rules"].append("high_area_boost")
+            confidence += 0.03
 
-            # authority score = priority dominance + signal magnitude
-            score = (priority * 10.0) + numeric
+        # -------------------------
+        # NORMALIZATION
+        # -------------------------
+        confidence = max(0.1, min(0.95, confidence))
 
-            if score > best_score:
-                best_score = score
-                dominant = name
-
-        return {
-            "resolved_signals": filtered,
-            "dominant_signal": dominant,
-            "authority_score": best_score,
-        }
-
-    def _to_float(self, value: Any) -> float:
-        """
-        Safe numeric normalization for heterogeneous signal types.
-        """
-
-        if value is None:
-            return 0.0
-
-        if isinstance(value, bool):
-            return 1.0 if value else 0.0
-
-        if isinstance(value, (int, float)):
-            return float(value)
-
-        if isinstance(value, str):
-            try:
-                return float(value)
-            except Exception:
-                return 0.0
-
-        if isinstance(value, dict):
-            # try common patterns
-            for key in ("score", "value", "probability", "risk"):
-                if key in value:
-                    return self._to_float(value[key])
-            return 0.0
-
-        if isinstance(value, list) and value:
-            # take strongest element
-            return max(self._to_float(v) for v in value)
-
-        return 0.0
+        return SignalAuthorityResult(
+            final_risk_level=risk,
+            final_verdict=verdict,
+            adjusted_confidence=confidence,
+            authority_trace=trace
+        )
