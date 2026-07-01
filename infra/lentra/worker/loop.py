@@ -1,8 +1,7 @@
 import asyncio
 import socket
-
-from lentra.runtime.bootstrap.container import build_container
 from lentra.runtime.intelligence_gateway import interpret
+from lentra.core.di.container import build_container
 
 WORKER_ID = socket.gethostname()
 
@@ -29,28 +28,15 @@ async def run_worker():
 
             flow = task["flow"]
 
-            # --------------------------------------------
-            # 1. NORMAL EXECUTION (FLOW GLUE)
-            # --------------------------------------------
-            raw_result = flow_glue.run(flow)
+            # CANONICAL AI CALL
+            enriched = interpret(flow)
 
-            # --------------------------------------------
-            # 2. INTELLIGENCE POST-PROCESSING LAYER
-            # --------------------------------------------
-            enriched = interpret({
-                "task": flow.get("type", "unknown"),
-                "input": flow,
-                "output": raw_result,
-                "worker_id": WORKER_ID
-            })
+            flow_glue.run(enriched)
 
-            # --------------------------------------------
-            # 3. FINALIZE TASK
-            # --------------------------------------------
-            repo.mark_done(task_id, result=enriched)
+            repo.mark_done(task_id)
 
         except Exception as e:
-            print("[WORKER ERROR]", e)
+            print("[ERROR]", e)
             repo.mark_failed(task_id)
 
 
