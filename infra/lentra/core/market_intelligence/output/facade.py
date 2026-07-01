@@ -7,12 +7,6 @@ from lentra.core.market_intelligence.output.assembler import MarketIntelligenceO
 class MarketIntelligenceOutputFacade:
     """
     ЕДИНАЯ ТОЧКА ВЫХОДА ИНТЕЛЛЕКТА
-
-    ВСЕ должно проходить через неё:
-    - API
-    - bot
-    - worker
-    - runtime
     """
 
     def __init__(self):
