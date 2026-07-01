@@ -1,11 +1,11 @@
 from typing import Dict, Any
 
 from lentra.core.market_intelligence.output import MarketIntelligenceOutputFacadeGuarded
-
 from lentra.core.market.pricing_engine import PricingEngine
 from lentra.core.market_intelligence.pricing.pricing_adapter import PricingAdapter
 
 from lentra.core.market_intelligence.dedup.unified_dedup_engine import UnifiedDedupEngine
+
 from lentra.core.market_intelligence.risk.risk_engine import RiskEngine
 from lentra.core.market_intelligence.expat.expat_engine_v2 import ExpatEngineV2
 
@@ -18,11 +18,19 @@ from lentra.core.market_intelligence.governance.governance_lock import Governanc
 class MarketIntelligenceEngine:
 
     def __init__(self):
+
         self.output_facade = MarketIntelligenceOutputFacadeGuarded()
 
+        # pricing
         self.pricing_engine = PricingAdapter(PricingEngine())
+
+        # dedup (SINGLE SOURCE OF TRUTH)
         self.dedup_engine = UnifiedDedupEngine()
+
+        # risk
         self.risk_engine = RiskEngine()
+
+        # expat
         self.expat_engine = ExpatEngineV2()
 
     def analyze(self, payload: Dict[str, Any]):
@@ -38,12 +46,17 @@ class MarketIntelligenceEngine:
 
         deviation = ((price - market_price) / market_price * 100) if market_price else 0.0
 
-        dedup = self.dedup_engine.analyze(payload)
-        risk = self.risk_engine.evaluate(payload)
-        expat_raw = self.expat_engine.process(payload)
+        # DEDUP (flattened)
+        dedup = self.dedup_engine.deduplicate([payload])
 
+        # RISK
+        risk = self.risk_engine.evaluate(payload)
+
+        # EXPAT
+        expat_raw = self.expat_engine.process(payload)
         signals = SignalNormalizer.normalize(expat_raw)
 
+        # CONSISTENCY
         consistency = SignalConsistency.evaluate(
             risk=risk,
             expat=signals,
@@ -51,18 +64,21 @@ class MarketIntelligenceEngine:
             market_price=market_price
         )
 
+        # DECISION
         verdict = resolve_verdict(
             deviation=deviation,
             risk_level=risk.get("risk_level", "unknown")
         )
 
         base_meta = {
-            "trace_id": "reconstruction-v5",
-            "confidence": 0.72,
+            "trace_id": "flatten-v1",
+            "confidence": 0.75,
             "regime": consistency.get("regime", {"regime": "stable"})
         }
 
         governance = GovernanceLock.stabilize(base_meta)
+
+        dedup_result = dedup.get("items", [])
 
         return {
             "ui": {
@@ -76,7 +92,7 @@ class MarketIntelligenceEngine:
             "api": {
                 "normalized": {"price": price},
                 "signals": signals,
-                "scores": {},
+                "scores": {}
             },
             "meta": {
                 **base_meta,
