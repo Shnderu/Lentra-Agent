@@ -1,0 +1,33 @@
+name: Lentra Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /opt/lentra/infra
+
+            git pull origin main
+
+            systemctl restart lentra-api
+            systemctl restart lentra-bot
+
+            sleep 2
+
+            systemctl status lentra-api --no-pager
+            systemctl status lentra-bot --no-pager
