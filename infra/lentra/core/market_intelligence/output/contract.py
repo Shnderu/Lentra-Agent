@@ -1,50 +1,48 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import Any, Dict, List, Optional
 
 
 @dataclass
-class UIBlock:
-    price: Optional[float]
-    market_price: Optional[float]
-    deviation_pct: Optional[float]
-    risk_level: Optional[str]
-    duplicates: int
-    verdict: str
+class MarketIntelligenceOutputContract:
+    ui: Dict[str, Any]
+    api: Dict[str, Any]
+    meta: Dict[str, Any]
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
 
 
 @dataclass
-class APIBlock:
+class MarketIntelligenceUIBlock:
+    price: float
+    market_price: float
+    deviation_pct: float
+    risk_level: str
+    duplicates: int
+    verdict: str
+
+    # NEW: area intelligence (exposed, not computed here)
+    area: Optional[Dict[str, Any]] = None
+
+    # NEW: explanation layer
+    explanation: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class MarketIntelligenceAPIBlock:
     normalized: Dict[str, Any]
     signals: Dict[str, Any]
     scores: Dict[str, Any]
 
+    # NEW: market dynamics exposure
+    dynamics: Optional[Dict[str, Any]] = None
+
 
 @dataclass
-class MarketIntelligenceOutputContract:
-    """
-    ЕДИНЫЙ ФИНАЛЬНЫЙ КОНТРАКТ ВЫХОДА СИСТЕМЫ
+class MarketIntelligenceMeta:
+    trace_id: str
+    source_count: int
+    confidence: float
 
-    Используется:
-    - API response
-    - Telegram bot rendering
-    - UI cards
-    """
-
-    ui: UIBlock
-    api: APIBlock
-
-    # мета
-    trace_id: Optional[str] = None
-    source_count: int = 0
-    confidence: float = 0.0
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "ui": self.ui.__dict__,
-            "api": self.api.__dict__,
-            "meta": {
-                "trace_id": self.trace_id,
-                "source_count": self.source_count,
-                "confidence": self.confidence,
-            },
-        }
+    # NEW: breakdown visibility
+    confidence_breakdown: Optional[Dict[str, float]] = None

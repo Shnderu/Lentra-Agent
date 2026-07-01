@@ -1,4 +1,7 @@
-from lentra.runtime.intelligence_gateway import interpret
+from lentra.core.market_intelligence.output.facade import MarketIntelligenceOutputFacade
 
-def enforce(payload):
-    return interpret(payload)
+_facade = MarketIntelligenceOutputFacade()
+
+
+def interpret(payload: dict):
+    return _facade.analyze(payload)

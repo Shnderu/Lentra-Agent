@@ -1,38 +1,43 @@
-from typing import Any, Dict
-
 from lentra.core.market_intelligence.output.contract import (
     MarketIntelligenceOutputContract,
-    UIBlock,
-    APIBlock,
+    MarketIntelligenceUIBlock,
+    MarketIntelligenceAPIBlock,
+    MarketIntelligenceMeta,
 )
 
 
 class MarketIntelligenceOutputAssembler:
-    """
-    Собирает финальный UI/API контракт из сырого результата engine.
-    """
 
-    def assemble(self, raw: Dict[str, Any]) -> MarketIntelligenceOutputContract:
+    def assemble(self, engine_result: dict) -> MarketIntelligenceOutputContract:
 
-        ui = UIBlock(
-            price=raw.get("price"),
-            market_price=raw.get("market_price"),
-            deviation_pct=raw.get("deviation_pct"),
-            risk_level=raw.get("risk", {}).get("level"),
-            duplicates=raw.get("duplicates", 0),
-            verdict=raw.get("verdict", "unknown"),
+        ui = MarketIntelligenceUIBlock(
+            price=engine_result.get("price", 0),
+            market_price=engine_result.get("market_price", 0),
+            deviation_pct=engine_result.get("deviation_pct", 0),
+            risk_level=engine_result.get("risk_level", "unknown"),
+            duplicates=engine_result.get("duplicates", 0),
+            verdict=engine_result.get("verdict", "unknown"),
+
+            area=engine_result.get("area"),
+            explanation=engine_result.get("explanation"),
         )
 
-        api = APIBlock(
-            normalized=raw.get("normalized", {}),
-            signals=raw.get("signals", {}),
-            scores=raw.get("scores", {}),
+        api = MarketIntelligenceAPIBlock(
+            normalized=engine_result.get("normalized", {}),
+            signals=engine_result.get("signals", {}),
+            scores=engine_result.get("scores", {}),
+            dynamics=engine_result.get("dynamics"),
+        )
+
+        meta = MarketIntelligenceMeta(
+            trace_id=engine_result.get("trace_id", "unknown"),
+            source_count=engine_result.get("source_count", 0),
+            confidence=engine_result.get("confidence", 0.0),
+            confidence_breakdown=engine_result.get("confidence_breakdown"),
         )
 
         return MarketIntelligenceOutputContract(
-            ui=ui,
-            api=api,
-            trace_id=raw.get("trace_id"),
-            source_count=raw.get("source_count", 0),
-            confidence=raw.get("confidence", 0.0),
+            ui=ui.__dict__,
+            api=api.__dict__,
+            meta=meta.__dict__,
         )

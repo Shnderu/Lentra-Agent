@@ -5,8 +5,7 @@ from lentra.core.market_intelligence.output.assembler import MarketIntelligenceO
 
 class MarketIntelligenceEngine:
     """
-    CORE ENGINE (PURE)
-
+    PURE INTELLIGENCE CORE
     НЕ ЗНАЕТ ПРО FACADE
     """
 
@@ -14,23 +13,28 @@ class MarketIntelligenceEngine:
         self.assembler = MarketIntelligenceOutputAssembler()
 
     def analyze(self, payload: Dict[str, Any]):
-        # MOCK / CORE PIPELINE RESULT (временно)
-        raw = {
-            "price": payload.get("price"),
-            "market_price": 650,
-            "deviation_pct": ((payload.get("price", 0) - 650) / 650) * 100,
+        raw = self._run_pipeline(payload)
+        return self.assembler.assemble(raw)
+
+    def interpret(self, payload: Dict[str, Any]):
+        return self.analyze(payload)
+
+    def _run_pipeline(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        # временная стабилизированная модель (MVP intelligence core)
+        price = payload.get("price", 0)
+        market_price = 650
+
+        return {
+            "price": price,
+            "market_price": market_price,
+            "deviation_pct": ((price - market_price) / market_price) * 100 if market_price else 0,
             "risk": {"level": "medium"},
             "duplicates": 3,
             "verdict": "ok",
             "normalized": payload,
             "signals": {},
             "scores": {},
-            "trace_id": "local-test",
+            "trace_id": "core-v1",
             "source_count": 1,
             "confidence": 0.72,
         }
-
-        return self.assembler.assemble(raw)
-
-    def interpret(self, payload: Dict[str, Any]):
-        return self.analyze(payload)

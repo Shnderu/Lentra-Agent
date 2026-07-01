@@ -1,7 +1,7 @@
-from typing import Any, Dict
-from lentra.core.market_intelligence.market_intelligence_engine import MarketIntelligenceEngine
+from lentra.core.market_intelligence.output.facade import MarketIntelligenceOutputFacade
 
-_engine = MarketIntelligenceEngine()
+_facade = MarketIntelligenceOutputFacade()
 
-def interpret(payload: Dict[str, Any]) -> Dict[str, Any]:
-    return _engine.analyze(payload)
+
+def interpret(payload: dict):
+    return _facade.analyze(payload)
