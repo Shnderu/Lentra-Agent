@@ -1,13 +1,11 @@
 """
-STEP 6 FIX:
-Decision layer is deprecated.
+DEPRECATED: ALL LOGIC MOVED TO AI OS
 
-All decision logic is now handled by:
-MarketIntelligenceEngine.analyze()
+This module is kept only for compatibility.
 """
 
-class MarketDecisionCore:
-    def __init__(self):
-        raise RuntimeError(
-            "MarketDecisionCore is deprecated. Use MarketIntelligenceEngine instead."
-        )
+from lentra.runtime.intelligence_gateway import interpret
+
+
+def analyze(payload: dict):
+    return interpret(payload)
