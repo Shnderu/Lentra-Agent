@@ -1,31 +1,31 @@
-from lentra.core.market_intelligence._import_safety import ImportGuard
+"""
+CANONICAL STATE:
+
+MarketIntelligenceEngine больше НЕ содержит собственной логики анализа.
+Он является адаптером доменного API → AI OS gateway.
+"""
+
+from lentra.runtime.intelligence_gateway import interpret
 
 
 class MarketIntelligenceEngine:
 
-    def __init__(self, config=None):
-        with ImportGuard("MarketIntelligenceEngine"):
-            self.config = config or {}
+    def analyze(self, payload: dict) -> dict:
+        """
+        Единственный допустимый путь исполнения.
+        """
+        return interpret(payload)
 
-            # lazy attach only
-            self._ranking = None
-            self._dedup = None
-            self._risk = None
+    def evaluate(self, listing: dict, market: dict) -> dict:
+        return interpret({
+            "task": "evaluate_listing",
+            "listing": listing,
+            "market": market
+        })
 
-    def ranking(self):
-        if self._ranking is None:
-            from lentra.core.market_intelligence.ranking.unified_ranking_engine import UnifiedRankingEngine
-            self._ranking = UnifiedRankingEngine()
-        return self._ranking
-
-    def dedup(self):
-        if self._dedup is None:
-            from lentra.core.market_intelligence.dedup.unified_dedup_engine import UnifiedDedupEngine
-            self._dedup = UnifiedDedupEngine()
-        return self._dedup
-
-    def risk(self):
-        if self._risk is None:
-            from lentra.core.market_intelligence.risk.risk_engine_v2 import RiskEngineV2
-            self._risk = RiskEngineV2()
-        return self._risk
+    def batch(self, listings: list, market: dict) -> dict:
+        return interpret({
+            "task": "evaluate_batch",
+            "listings": listings,
+            "market": market
+        })

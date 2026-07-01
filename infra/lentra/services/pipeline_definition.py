@@ -6,8 +6,8 @@ class PipelineDefinition:
     def __init__(self):
         self.intel = MarketIntelligenceEngine()
 
-    def run(self, property_object):
-        """
-        SINGLE SOURCE OF TRUTH PIPELINE
-        """
-        return self.intel.analyze([property_object])
+    def run(self, listings):
+        return self.intel.analyze({
+            "task": "pipeline",
+            "listings": listings
+        })
