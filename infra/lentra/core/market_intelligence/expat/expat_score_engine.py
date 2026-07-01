@@ -26,7 +26,21 @@ class ExpatScoreEngine:
         if "premium" in segment:
             score += 0.2
 
-        return {
+        result = {
             "expat_score": min(score, 1.0),
             "location": location
+        }
+
+        return result
+
+    def evaluate(self, payload: dict):
+        """
+        Unified Gateway contract.
+        """
+
+        result = self.score(payload)
+
+        return {
+            "area_score": result.get("expat_score", 0.0),
+            **result,
         }

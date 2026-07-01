@@ -19,6 +19,19 @@ class UnifiedDedupEngine:
             "cluster_size": cluster_size,
         }
 
+    def evaluate(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Unified Gateway contract.
+        """
+
+        result = self.analyze(payload)
+
+        return {
+            "duplicates": max(result.get("cluster_size", 1) - 1, 0),
+            "signature": result.get("dedup_signature"),
+            **result,
+        }
+
     def deduplicate(self, items: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
         STEP 3C FINAL: deterministic snapshot clustering
@@ -26,12 +39,10 @@ class UnifiedDedupEngine:
 
         clusters: Dict[str, List[Dict[str, Any]]] = {}
 
-        # 1. build pure clusters (no mutation leakage)
         for item in items:
             sig = self._build_signature(item)
             clusters.setdefault(sig, []).append(item)
 
-        # 2. compute stable result
         enriched = []
         duplicate_count = 0
 
