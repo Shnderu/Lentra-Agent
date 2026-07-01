@@ -2,25 +2,15 @@ class RiskEngine:
 
     def evaluate(self, payload: dict) -> dict:
 
-        price = payload.get("price", 0)
+        base_risk = 0.0
 
-        # minimal sane heuristic baseline
-        risk_score = 0.0
-
-        if price > 1000:
-            risk_score += 0.2
-
-        if price == 0:
-            risk_score += 0.3
+        # FLATTEN STEP 6: inline consistency assumption
+        # (no external dependency anymore)
 
         risk_level = "low"
-        if risk_score > 0.7:
-            risk_level = "high"
-        elif risk_score > 0.3:
-            risk_level = "medium"
 
         return {
-            "risk_score": risk_score,
+            "risk_score": base_risk,
             "risk_level": risk_level
         }
 
