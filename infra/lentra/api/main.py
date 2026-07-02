@@ -1,14 +1,25 @@
 from fastapi import FastAPI
-from lentra.core.bootstrap import get_gateway
-
-gateway = get_gateway()
-
-app = FastAPI(title="Lentra Concierge API")
+from lentra.runtime.bootstrap.main import get_gateway
 
 
-@app.post("/search")
-def search(payload: dict):
+def create_app() -> FastAPI:
     """
-    Entry API endpoint.
+    SAFE ENTRYPOINT (v2)
+    - NO engine imports
+    - NO graph imports
+    - ONLY gateway injection
     """
-    return gateway.run(payload)
+
+    app = FastAPI(title="Lentra API")
+
+    gateway = get_gateway()
+
+    @app.post("/search")
+    async def search(payload: dict):
+        return gateway.handle(payload)
+
+    @app.get("/health")
+    async def health():
+        return {"status": "ok"}
+
+    return app
