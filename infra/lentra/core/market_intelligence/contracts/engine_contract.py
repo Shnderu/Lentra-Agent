@@ -1,15 +1,10 @@
-from typing import List, Optional
-from lentra.core.market_intelligence.contracts.pipeline_contract import Listing, EnrichedListing
-
-
-class EngineContract:
+def assert_engine_contract(result: dict):
     """
-    SINGLE SOURCE OF TRUTH CONTRACT FOR AI OS ENGINE
+    FAIL FAST CONTRACT GUARANTEE
     """
 
-    def analyze(
-        self,
-        listings: List[Listing],
-        query_text: Optional[str] = None
-    ) -> List[EnrichedListing]:
-        raise NotImplementedError
+    if "graph" in result:
+        raise RuntimeError("ENGINE VIOLATION: graph field detected")
+
+
+    return True

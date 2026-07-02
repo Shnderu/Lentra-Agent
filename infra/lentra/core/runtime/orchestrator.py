@@ -1,4 +1,4 @@
-from lentra.core.runtime.trace_graph_v2 import RuntimeTraceV2
+
 from lentra.telegram.router.intent_router import IntentRouter
 from lentra.telegram.connectors.telegram_event_listener import TelegramEventListener
 

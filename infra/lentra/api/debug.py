@@ -1,18 +1,21 @@
-from fastapi import APIRouter
-from lentra.core.market_intelligence.visibility.visibility_layer import VisibilityLayer
+from fastapi import APIRouter, Request
 
 router = APIRouter()
 
-# singleton visibility (важно для runtime)
-viz = VisibilityLayer()
 
+@router.get("/debug/engines")
+async def engines_debug(request: Request):
+    gateway = request.app.state.gateway
 
-@router.get("/debug/events")
-def get_events():
-    return viz.snapshot()
+    # unwrap if needed
+    if hasattr(gateway, "gateway"):
+        gw = gateway.gateway
+    else:
+        gw = gateway
 
+    engines = getattr(gw, "engines", {})
 
-@router.post("/debug/clear")
-def clear():
-    viz.stream.clear()
-    return {"status": "cleared"}
+    return {
+        "engines": list(engines.keys()),
+        "status": "ok"
+    }

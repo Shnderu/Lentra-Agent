@@ -1,6 +1,6 @@
 import asyncio
 
-from lentra.bootstrap.graph_v2_bootstrap import build_graph
+
 
 
 class TelegramRuntime:

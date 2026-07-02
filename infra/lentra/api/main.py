@@ -1,25 +1,29 @@
-from fastapi import FastAPI
-from lentra.runtime.bootstrap.main import get_gateway
+from fastapi import FastAPI, Request
+from lentra.runtime.control_panel.api import router as admin_router
+from lentra.runtime.bootstrap.gateway_v3 import build_gateway_v3
 
 
 def create_app() -> FastAPI:
-    """
-    SAFE ENTRYPOINT (v2)
-    - NO engine imports
-    - NO graph imports
-    - ONLY gateway injection
-    """
+    app = FastAPI()
 
-    app = FastAPI(title="Lentra API")
+    gateway = build_gateway_v3()
 
-    gateway = get_gateway()
+    app.state.gateway = gateway
 
-    @app.post("/search")
-    async def search(payload: dict):
-        return gateway.handle(payload)
+    app.include_router(admin_router)
 
     @app.get("/health")
-    async def health():
-        return {"status": "ok"}
+    def health(request: Request):
+        return request.app.state.gateway.watchdog.health()
+
+    @app.post("/search")
+    async def search(payload: dict, request: Request):
+        gw = request.app.state.gateway
+
+        # V3 SAFE ROUTING
+        if hasattr(gw, "engine_isolator"):
+            return gw.engine_isolator.run_all(payload)
+
+        return gw.handle(payload)
 
     return app

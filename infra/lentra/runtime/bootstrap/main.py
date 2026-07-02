@@ -1,21 +1,16 @@
-import uvicorn
+from lentra.runtime.bootstrap.wiring_safe import build_gateway
+from lentra.api.main import create_app
 
-from lentra.runtime.bootstrap.wiring import build_gateway
+app = None
+gateway = None
 
+def bootstrap():
+    global app, gateway
 
-def main():
     gateway = build_gateway()
+    app = create_app()
+    app.state.gateway = gateway
 
-    # SAFE FALLBACK: gateway MUST expose app OR create it
-    app = gateway.build_app() if hasattr(gateway, "build_app") else gateway
+    return app
 
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=8000,
-        log_level="info"
-    )
-
-
-if __name__ == "__main__":
-    main()
+app = bootstrap()
