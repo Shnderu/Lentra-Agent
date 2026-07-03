@@ -4,17 +4,12 @@ from typing import Dict, Any
 class EngineIsolator:
     """
     Canonical isolation layer for Market Intelligence engines.
-    Responsible ONLY for orchestration, NOT logic.
     """
 
     def __init__(self, engines: Dict[str, Any]):
         self.engines = engines or {}
 
     def run_all(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        SAFE execution pipeline:
-        fetch → normalize → dedup → rank → risk → graph
-        """
 
         engine = self.engines.get("market_intelligence")
         if engine is None:
@@ -24,15 +19,14 @@ class EngineIsolator:
                 "error": "market_intelligence engine not registered"
             }
 
-        result = engine.fetch(payload)
+        data = engine.fetch(payload)
+        data = engine.normalize(data)
+        data = engine.dedup(data)
+        data = engine.rank(data)
+        data = engine.risk(data)
 
-        result = engine.normalize(result)
-        result = engine.dedup(result)
-        result = engine.rank(result)
-        result = engine.risk(result)
+        # NEW SIGNALS LAYER
+        if hasattr(engine, "build"):
+            data = engine.build(data)
 
-        # graph projection (optional safe layer)
-        if hasattr(engine, "graph"):
-            result = engine.graph.build(payload, result)
-
-        return result
+        return data

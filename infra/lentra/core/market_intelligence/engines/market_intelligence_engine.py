@@ -1,13 +1,15 @@
 from typing import Dict, Any
+from lentra.core.market_intelligence.signals.signals_engine_v1 import SignalsEngineV1
 
 
 class MarketIntelligenceEngine:
     """
-    Canonical aggregation engine (MVP safe version)
+    Canonical aggregation engine (MVP + signals layer)
     """
 
     def __init__(self, components: Dict[str, Any]):
         self.components = components or {}
+        self.signals = SignalsEngineV1()
 
     def fetch(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         return payload
@@ -32,5 +34,16 @@ class MarketIntelligenceEngine:
         data["risk"] = {
             "risk_level": min(deviation * 2, 1.0)
         }
+
+        return data
+
+    def build(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        NEW: Signals layer injection
+        """
+
+        signals = self.signals.build(data)
+
+        data["signals"] = signals
 
         return data
