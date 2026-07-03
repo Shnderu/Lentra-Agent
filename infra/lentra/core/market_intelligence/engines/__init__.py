@@ -1,15 +1,17 @@
 from .pricing_engine import PricingEngine
-from .risk import RiskEngine as RiskEngineV3
-from .signals import SignalsEngine as SignalsEngineV3
-from .area import AreaEngine as AreaEngineV3
-from .dedup import DedupEngine as DedupEngineV3
+from .risk_engine import RiskEngine
+from .signals_engine import SignalsEngine
+from .dedup_engine import DedupEngine
+from .area_engine import AreaEngine
+
+from .safe_engine_wrapper import SafeEngineWrapper
 
 
 def build_engines():
     return {
-        "pricing": PricingEngine(),
-        "risk": RiskEngineV3(),
-        "signals": SignalsEngineV3(),
-        "area": AreaEngineV3(),
-        "dedup": DedupEngineV3(),
+        "pricing": SafeEngineWrapper(PricingEngine()),
+        "risk": SafeEngineWrapper(RiskEngine()),
+        "signals": SafeEngineWrapper(SignalsEngine()),
+        "dedup": SafeEngineWrapper(DedupEngine()),
+        "area": SafeEngineWrapper(AreaEngine()),
     }

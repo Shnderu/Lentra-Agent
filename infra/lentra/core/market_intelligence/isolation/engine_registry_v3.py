@@ -1,17 +1,10 @@
 from __future__ import annotations
 
 from typing import Any, Dict
+import inspect
 
 
 class EngineRegistryV3:
-    """
-    FIXED Production Engine Isolation Layer V3
-
-    CHANGE:
-    - removed broken inspect-based ABI detection
-    - replaced with deterministic dual-call strategy
-    """
-
     def __init__(self, engines: Dict[str, Any]):
         self.engines = engines or {}
         self.active = list(self.engines.keys())
@@ -37,17 +30,18 @@ class EngineRegistryV3:
             if fn is None:
                 return {"status": "failed", "error": f"{name}.evaluate not found"}
 
-            # ----------------------------
-            # FIX: NO introspection (broken in bound methods)
-            # ----------------------------
+            sig = inspect.signature(fn)
+            params = list(sig.parameters.keys())
 
-            # try V3 style first (context, result)
-            try:
+            # FIX: unified contract (NO ctx wrapper assumption)
+            if len(params) == 2:
+                # (self, payload)
+                return fn(payload)
+
+            if len(params) >= 3:
+                # (self, payload, result)
                 return fn(payload, {})
-            except TypeError:
-                pass
 
-            # fallback V2 style (payload only OR ctx-like object)
             return fn(payload)
 
         except Exception as e:
@@ -66,10 +60,6 @@ class EngineRegistryV3:
 
             if not isinstance(v, dict):
                 normalized[k] = {"status": "ok", "value": v}
-                continue
-
-            if k in v and isinstance(v[k], dict):
-                normalized[k] = v[k]
                 continue
 
             normalized[k] = v

@@ -1,6 +1,6 @@
 from lentra.core.market_intelligence.engines import build_engines
 from lentra.core.market_intelligence.isolation.engine_registry_v3 import build_registry_v3
-from lentra.core.market_intelligence.graph.intelligence_graph import IntelligenceGraph
+from lentra.core.market_intelligence.fusion.fusion_engine_v2 import build_fusion_engine_v2
 
 
 def build_gateway():
@@ -8,12 +8,12 @@ def build_gateway():
 
     registry = build_registry_v3(engines)
 
-    graph = IntelligenceGraph()
+    fusion = build_fusion_engine_v2()
 
     gateway = {
         "registry": registry,
-        "graph": graph,
-        "handle": lambda payload: registry.evaluate(payload)
+        "fusion": fusion,
+        "handle": lambda payload: fusion.evaluate(registry.evaluate(payload))
     }
 
     return gateway

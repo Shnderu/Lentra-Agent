@@ -2,6 +2,9 @@ from typing import Dict, Any
 
 
 class GraphAdapter:
+    """
+    Minimal stable adapter for graph execution layer.
+    """
 
     def __init__(self, builder):
         self.builder = builder
