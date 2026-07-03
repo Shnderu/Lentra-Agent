@@ -1,24 +1,40 @@
-from typing import Dict, Any
+from dataclasses import dataclass
+from typing import Optional, Dict, Any
 
 
+@dataclass
+class Signal:
+    score: float
+    confidence: float = 1.0
+    source: str = "unknown"
+    meta: Optional[Dict[str, Any]] = None
+
+
+@dataclass
 class SignalContract:
+    """
+    Canonical Market Intelligence signal representation.
 
-    def __init__(self, area_score: float = 0.0, internet_score: float = 0.0, noise_score: float = 0.0):
-        self.area_score = area_score
-        self.internet_score = internet_score
-        self.noise_score = noise_score
+    This becomes the ONLY supported structure across MI layer.
+    """
+
+    pricing: Signal
+    risk: Signal
+    area: Signal
+    dedup: Signal
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "area_score": float(self.area_score),
-            "internet_score": float(self.internet_score),
-            "noise_score": float(self.noise_score),
+            "pricing": self._sig(self.pricing),
+            "risk": self._sig(self.risk),
+            "area": self._sig(self.area),
+            "dedup": self._sig(self.dedup),
         }
 
-    @staticmethod
-    def from_dict(data: Dict[str, Any]) -> "SignalContract":
-        return SignalContract(
-            area_score=data.get("area_score", 0.0),
-            internet_score=data.get("internet_score", 0.0),
-            noise_score=data.get("noise_score", 0.0),
-        )
+    def _sig(self, s: Signal) -> Dict[str, Any]:
+        return {
+            "score": s.score,
+            "confidence": s.confidence,
+            "source": s.source,
+            "meta": s.meta or {},
+        }
