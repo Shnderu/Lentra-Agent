@@ -1,9 +1,10 @@
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 from lentra.core.market_intelligence.signals.providers.pricing_provider import PricingSignalProvider
 from lentra.core.market_intelligence.signals.providers.risk_provider import RiskSignalProvider
 from lentra.core.market_intelligence.signals.providers.area_provider import AreaSignalProvider
 from lentra.core.market_intelligence.signals.providers.dedup_provider import DedupSignalProvider
+from lentra.core.market_intelligence.signals.providers.coupling_provider import CouplingSignalProvider
 
 
 class SignalRegistry:
@@ -17,6 +18,7 @@ class SignalRegistry:
             RiskSignalProvider(),
             AreaSignalProvider(),
             DedupSignalProvider(),
+            CouplingSignalProvider(),
         ]
 
     def build(self, engine_outputs: Dict[str, Any]) -> Dict[str, Any]:

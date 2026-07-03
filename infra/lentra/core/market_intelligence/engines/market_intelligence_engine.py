@@ -1,49 +1,66 @@
-from typing import Dict, Any
 from lentra.core.market_intelligence.signals.signals_engine_v1 import SignalsEngineV1
+from lentra.core.market_intelligence.features.feature_normalizer_v1 import FeatureNormalizerV1
 
 
 class MarketIntelligenceEngine:
-    """
-    Canonical aggregation engine (MVP + signals layer)
-    """
 
-    def __init__(self, components: Dict[str, Any]):
-        self.components = components or {}
+    def __init__(self, config=None):
+        self.config = config or {}
         self.signals = SignalsEngineV1()
+        self.normalizer = FeatureNormalizerV1()
 
-    def fetch(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        return payload
+    # =========================
+    # ISOLATOR COMPATIBILITY
+    # =========================
 
-    def normalize(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def fetch(self, payload: dict) -> dict:
+        return self._compute(payload)
+
+    def normalize(self, data: dict) -> dict:
         return data
 
-    def dedup(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        data["dedup"] = {"score": 1.0}
+    def dedup(self, data: dict) -> dict:
         return data
 
-    def rank(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        data["ranking"] = {"score": 0.7}
+    def rank(self, data: dict) -> dict:
         return data
 
-    def risk(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        price = data.get("price", 0)
-        market = data.get("market_price", 1)
+    def risk(self, data: dict) -> dict:
+        return data
 
-        deviation = abs(price - market) / max(market, 1)
+    def build(self, data: dict) -> dict:
+        return data
 
-        data["risk"] = {
-            "risk_level": min(deviation * 2, 1.0)
+    # =========================
+    # CORE LOGIC
+    # =========================
+
+    def _compute(self, payload: dict) -> dict:
+        signals = self.signals.build(payload)
+        features = self.normalizer.normalize(signals, payload)
+
+        risk = signals.get("risk") or {}
+        dedup = signals.get("dedup") or {}
+        pricing = signals.get("pricing") or {}
+
+        ranking_score = self._safe_ranking(features, risk, pricing)
+
+        return {
+            "dedup": {
+                "score": dedup.get("score", 1.0),
+                "confidence": dedup.get("confidence", 1.0)
+            },
+            "ranking": {
+                "score": float(ranking_score)
+            },
+            "risk": {
+                "risk_level": risk.get("score", 0.0)
+            },
+            "signals": signals,
+            "features": features
         }
 
-        return data
-
-    def build(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        NEW: Signals layer injection
-        """
-
-        signals = self.signals.build(data)
-
-        data["signals"] = signals
-
-        return data
+    def _safe_ranking(self, features, risk, pricing):
+        base = pricing.get("score", 0.5)
+        penalty = risk.get("score", 0.0)
+        return max(0.0, min(1.0, base * (1.0 - penalty)))
