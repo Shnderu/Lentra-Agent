@@ -1,13 +1,30 @@
-from lentra.runtime.bootstrap.wiring_safe import build_gateway
-from lentra.core.market_intelligence.isolation.engine_isolator import EngineIsolatorV3
+from dataclasses import dataclass
+from typing import Dict, Any
 
 
-def build_gateway_v3():
-    gateway = build_gateway()
+@dataclass
+class GatewayV3:
+    engines: Dict[str, Any]
+    engine_isolator: Any = None
 
-    engines = getattr(gateway, "engines", {})
 
-    # FORCE ISOLATION LAYER
+def build_gateway_v3() -> GatewayV3:
+    """
+    Canonical gateway builder.
+    Ensures strict object model (no dict-based gateway).
+    """
+
+    gateway = GatewayV3(engines={})
+
+    engines = getattr(gateway, "engines", None)
+    if engines is None:
+        engines = {}
+
+    gateway.engines = engines
+
+    # isolation layer (safe attach)
+    from lentra.runtime.bootstrap.engine_isolator_v3 import EngineIsolatorV3
+
     gateway.engine_isolator = EngineIsolatorV3(engines)
 
     return gateway
