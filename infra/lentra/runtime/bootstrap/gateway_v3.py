@@ -9,22 +9,16 @@ class GatewayV3:
 
 
 def build_gateway_v3() -> GatewayV3:
-    """
-    Canonical gateway builder.
-    Ensures strict object model (no dict-based gateway).
-    """
-
     gateway = GatewayV3(engines={})
 
-    engines = getattr(gateway, "engines", None)
-    if engines is None:
-        engines = {}
+    # IMPORT ENGINE
+    from lentra.core.market_intelligence.engines.market_intelligence_engine import MarketIntelligenceEngine
 
-    gateway.engines = engines
+    # REGISTER ENGINE
+    gateway.engines["market_intelligence"] = MarketIntelligenceEngine({})
 
-    # isolation layer (safe attach)
-    from lentra.runtime.bootstrap.engine_isolator_v3 import EngineIsolatorV3
-
-    gateway.engine_isolator = EngineIsolatorV3(engines)
+    # ISOLATOR
+    from lentra.runtime.bootstrap.engine_isolator import EngineIsolator
+    gateway.engine_isolator = EngineIsolator(gateway.engines)
 
     return gateway

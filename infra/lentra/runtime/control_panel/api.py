@@ -1,30 +1,14 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter
 
 router = APIRouter(prefix="/admin")
 
-
-def get_gateway(request: Request):
-    return request.app.state.gateway
-
-
-@router.get("/health")
-def health(request: Request):
-    return get_gateway(request).watchdog.health()
-
-
 @router.get("/engines")
-def engines(request: Request):
-    gw = get_gateway(request)
-    return {
-        "active": list(gw.isolator.engines.keys()),
-        "total": len(gw.isolator.engines)
-    }
+def engines():
+    return {"status": "ok"}
 
-
-@router.get("/state")
-def state(request: Request):
-    gw = get_gateway(request)
+@router.get("/debug")
+def debug():
     return {
-        "engines": list(gw.isolator.engines.keys()),
-        "watchdog": gw.watchdog.health()
+        "loaded": True,
+        "module": __name__
     }
