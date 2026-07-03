@@ -11,14 +11,18 @@ class GatewayV3:
 def build_gateway_v3() -> GatewayV3:
     gateway = GatewayV3(engines={})
 
-    # IMPORT ENGINE
     from lentra.core.market_intelligence.engines.market_intelligence_engine import MarketIntelligenceEngine
-
-    # REGISTER ENGINE
     gateway.engines["market_intelligence"] = MarketIntelligenceEngine({})
 
-    # ISOLATOR
-    from lentra.runtime.bootstrap.engine_isolator import EngineIsolator
-    gateway.engine_isolator = EngineIsolator(gateway.engines)
+    # V2 isolator (primary)
+    try:
+        from lentra.runtime.bootstrap.engine_isolator_v2 import EngineIsolatorV2
+        gateway.engine_isolator = EngineIsolatorV2(gateway.engines)
+        gateway._isolator_version = "v2"
+    except Exception:
+        # fallback to v1 if anything breaks
+        from lentra.runtime.bootstrap.engine_isolator import EngineIsolator
+        gateway.engine_isolator = EngineIsolator(gateway.engines)
+        gateway._isolator_version = "v1"
 
     return gateway
