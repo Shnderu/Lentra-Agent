@@ -1,19 +1,20 @@
 from typing import Dict, Any
+from lentra.core.market_intelligence.normalization.signal_normalizer import SignalNormalizer
 
 
 class EngineIsolator:
     """
-    Isolator V2 FIXED CONTRACT LAYER
+    Contract Stabilization Layer v1.2
 
-    Strategy:
-    - single-call execution model
-    - engine.compute(payload) is canonical contract
-    - no pipeline assumptions (fetch/normalize/dedup/rank/risk)
-    - backward-compatible output passthrough
+    PIPELINE ORDER (LOCKED):
+    1. compute()
+    2. normalize signals (v0.9)
+    3. return stable contract
     """
 
     def __init__(self, engines: Dict[str, Any]):
         self.engines = engines or {}
+        self.normalizer = SignalNormalizer()
 
     def run_all(self, payload: Dict[str, Any]) -> Dict[str, Any]:
 
@@ -26,28 +27,27 @@ class EngineIsolator:
                 "error": "market_intelligence engine not registered"
             }
 
-        # =========================
-        # V2 FIXED EXECUTION MODEL
-        # =========================
+        # -------------------------
+        # SINGLE SOURCE OF TRUTH
+        # -------------------------
         if hasattr(engine, "compute"):
-            data = engine.compute(payload)
+            result = engine.compute(payload)
         else:
-            # fallback safety (legacy compatibility)
-            data = self._legacy_fallback(engine, payload)
+            result = engine.fetch(payload)
 
-        return data
+        # -------------------------
+        # SIGNAL NORMALIZATION LAYER v0.9
+        # -------------------------
+        result = self.normalizer.normalize(result)
 
-    def _legacy_fallback(self, engine: Any, payload: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Minimal compatibility layer for old engines (if any remain).
-        """
-        data = engine.fetch(payload)
-        data = engine.normalize(data)
-        data = engine.dedup(data)
-        data = engine.rank(data)
-        data = engine.risk(data)
+        # -------------------------
+        # CONTRACT STABILIZATION
+        # -------------------------
+        if isinstance(result, dict):
+            result.setdefault("dedup", {})
+            result.setdefault("ranking", {})
+            result.setdefault("risk", {})
+            result.setdefault("signals", {})
+            result.setdefault("features", {})
 
-        if hasattr(engine, "build"):
-            data = engine.build(data)
-
-        return data
+        return result
