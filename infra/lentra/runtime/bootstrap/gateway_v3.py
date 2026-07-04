@@ -1,25 +1,21 @@
-from dataclasses import dataclass
-from typing import Dict, Any
+from lentra.core.market_intelligence.engines.market_intelligence_engine import MarketIntelligenceEngine
+from lentra.core.area.area_engine import AreaEngine
+from lentra.runtime.bootstrap.engine_isolator import EngineIsolator
 
 
-@dataclass
-class GatewayV3:
-    engines: Dict[str, Any]
-    engine_isolator: Any = None
+def build_gateway_v3():
 
+    gateway = type("Gateway", (), {})()
 
-def build_gateway_v3() -> GatewayV3:
-    gateway = GatewayV3(engines={})
+    gateway.engines = {}
 
-    # ❌ REMOVE importlib.reload (source of instability)
-    from lentra.core.market_intelligence.engines.market_intelligence_engine import MarketIntelligenceEngine
+    # CORE ENGINE
+    gateway.engines["market_intelligence"] = MarketIntelligenceEngine({})
 
-    # 🔒 deterministic init (no runtime mutation)
-    engine = MarketIntelligenceEngine()
+    # AREA ENGINE (Vietnam geo layer)
+    gateway.engines["area"] = AreaEngine({})
 
-    gateway.engines["market_intelligence"] = engine
-
-    from lentra.runtime.bootstrap.engine_isolator import EngineIsolator
+    # ISOLATOR
     gateway.engine_isolator = EngineIsolator(gateway.engines)
 
     return gateway
