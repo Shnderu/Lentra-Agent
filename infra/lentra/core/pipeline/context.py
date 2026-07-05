@@ -1,22 +1,30 @@
 from dataclasses import dataclass, field
-from typing import List, Any
+from typing import Any, Dict
 
 
-@dataclass
-class Snapshot:
-    objects: List[Any] = field(default_factory=list)
-
-
-@dataclass
+@dataclass(frozen=True)
 class PipelineContext:
-    query: str
-    snapshot: Snapshot
-    meta: dict = field(default_factory=dict)
+    """
+    Immutable state container for all pipeline stages.
+    NO MUTATION ALLOWED.
+    """
 
-    @staticmethod
-    def empty(query: str):
-        return PipelineContext(
-            query=query,
-            snapshot=Snapshot(objects=[]),
-            meta={}
-        )
+    raw: Dict[str, Any]
+
+    pricing: Dict[str, Any] = field(default_factory=dict)
+    area: Dict[str, Any] = field(default_factory=dict)
+    dedup: Dict[str, Any] = field(default_factory=dict)
+
+    coupling: Dict[str, Any] = field(default_factory=dict)
+    risk: Dict[str, Any] = field(default_factory=dict)
+    ranking: Dict[str, Any] = field(default_factory=dict)
+
+    enrichment: Dict[str, Any] = field(default_factory=dict)
+
+    def with_update(self, **kwargs):
+        """
+        Functional update: returns new immutable instance
+        """
+        data = self.__dict__.copy()
+        data.update(kwargs)
+        return PipelineContext(**data)

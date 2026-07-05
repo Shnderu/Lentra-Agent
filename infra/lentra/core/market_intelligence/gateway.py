@@ -1,23 +1,35 @@
-from lentra.core.market_intelligence.signal.signal_layer import SignalLayer
+from lentra.core.pipeline.context import PipelineContext
+from lentra.core.market_intelligence.signals.signals_engine_v2 import SignalsEngineV2
+from lentra.core.market_intelligence.risk.risk_engine import RiskEngine
+from lentra.core.market_intelligence.ranking.ranking_engine import RankingEngine
 
 
 class IntelligenceGateway:
 
-    def __init__(self, orchestrator=None):
-        self.orchestrator = orchestrator
-        self.signal_layer = SignalLayer()
+    def __init__(self):
+        self.signals = SignalsEngineV2()
+        self.risk = RiskEngine()
+        self.ranking = RankingEngine()
 
-    def evaluate(self, engines: dict, payload: dict) -> dict:
+    def compute(self, payload: dict):
 
-        pricing = engines["pricing"].evaluate(payload)
-        risk = engines["risk"].evaluate(payload)
-        dedup = engines["dedup"].evaluate(payload)
+        ctx = PipelineContext(raw=payload)
 
-        signal = self.signal_layer.resolve(pricing, risk, dedup)
+        # STAGE 1
+        ctx = self.signals.compute(ctx)
+
+        # STAGE 2 (risk reads ONLY immutable ctx)
+        ctx = self.risk.compute(ctx)
+
+        # STAGE 3
+        ctx = self.ranking.compute(ctx)
 
         return {
-            "signal": signal.value,
-            "pricing": pricing,
-            "risk": risk,
-            "dedup": dedup
+            "pricing": ctx.pricing,
+            "area": ctx.area,
+            "dedup": ctx.dedup,
+            "coupling": ctx.coupling,
+            "risk": ctx.risk,
+            "ranking": ctx.ranking,
+            "enrichment": ctx.enrichment,
         }
