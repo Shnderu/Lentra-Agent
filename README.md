@@ -1,1 +1,1 @@
-# FlyRum-AI
+# Lentra
