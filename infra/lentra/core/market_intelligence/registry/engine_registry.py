@@ -1,27 +1,46 @@
+from dataclasses import dataclass
 from typing import Dict, Any
 
 
-class EngineRegistryV2:
+@dataclass(frozen=True)
+class EngineSpec:
+    name: str
+    version: str
+    required: bool = True
+
+
+class EngineRegistry:
     """
-    STRICT ENGINE INSTANCE REGISTRY
+    IMMUTABLE ENGINE REGISTRY
 
     RULES:
-    - stores ENGINE OBJECTS only
-    - NEVER stores evaluation results
+    - NO dynamic discovery
+    - NO runtime injection
+    - version-locked execution
     """
 
-    def __init__(self, engines: Dict[str, Any]):
-        self._engines = {}
+    def __init__(self):
+        self._engines = {
+            "signals": EngineSpec(name="signals", version="v1"),
+            "risk": EngineSpec(name="risk", version="v1"),
+            "ranking": EngineSpec(name="ranking", version="v2"),
+            "enrichment": EngineSpec(name="enrichment", version="v2"),
+        }
 
-        for name, engine in engines.items():
-            if hasattr(engine, "evaluate"):
-                self._engines[name] = engine
+    def get(self, name: str) -> EngineSpec:
+        if name not in self._engines:
+            raise ValueError(f"Engine not registered: {name}")
+        return self._engines[name]
 
-    def get(self, name: str):
-        return self._engines.get(name)
+    def list(self):
+        return {
+            k: {
+                "name": v.name,
+                "version": v.version,
+                "required": v.required
+            }
+            for k, v in self._engines.items()
+        }
 
-    def all(self):
-        return self._engines
-
-    def names(self):
+    def keys(self):
         return list(self._engines.keys())

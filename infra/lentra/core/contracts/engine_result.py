@@ -1,18 +1,17 @@
-from typing import Any, Dict, Optional
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
+from typing import Dict, Any, Optional
 
 
 @dataclass
 class EngineResult:
     """
-    Unified contract across ALL market intelligence engines.
-    This is the ONLY valid output shape downstream.
+    Standardized engine output contract
+
+    IMPORTANT:
+    - every engine MUST return this structure (future enforcement)
     """
 
-    score: float = 0.0
-    deviation: float = 0.0
-    signal: str = "hold"
-    raw: Optional[Dict[str, Any]] = None
-
-    def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
+    engine_name: str
+    data: Dict[str, Any]
+    latency_ms: float = 0.0
+    trace: Optional[Dict[str, Any]] = None
