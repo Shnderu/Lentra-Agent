@@ -9,3 +9,5 @@ venv/
 pgdata/
 *.log
 .aider*
+venv-bot/
+infra/venv-bot/
