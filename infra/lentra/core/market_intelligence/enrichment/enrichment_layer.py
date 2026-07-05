@@ -3,59 +3,43 @@ from typing import Dict, Any
 
 class EnrichmentLayer:
     """
-    ENRICHMENT LAYER v1
+    V2 Enrichment Layer
 
     PURPOSE:
-    - НЕ участвует в decision
-    - НЕ влияет на scoring
-    - только добавляет контекст поверх результата pipeline
-    - MUST NEVER break API
+    - DO NOT recompute signals
+    - ONLY add semantic interpretation layer
     """
 
-    def compute(self, result: Dict[str, Any]) -> Dict[str, Any]:
+    def compute(self, signals: Dict[str, Any]) -> Dict[str, Any]:
 
-        try:
-            enriched = dict(result)
+        pricing = signals.get("pricing", {})
+        risk = signals.get("risk", {})
+        ranking = signals.get("ranking", {})
 
-            signals = enriched.get("signals", {})
-            pricing = signals.get("pricing", {})
+        market_context = self._market_context(pricing, risk)
+        recommendation = self._recommendation(risk, ranking)
 
-            # ----------------------------
-            # enrichment signals (non-critical)
-            # ----------------------------
-
-            enriched["enrichment"] = {
-                "market_context": self._market_context(pricing),
-                "recommendation_hint": self._hint(pricing),
-                "meta": {
-                    "layer": "enrichment_v1",
-                    "safe": True
-                }
+        return {
+            "market_context": market_context,
+            "recommendation_hint": recommendation,
+            "meta": {
+                "layer": "enrichment_v2",
+                "safe": True
             }
+        }
 
-            return enriched
+    def _market_context(self, pricing, risk):
+        if pricing.get("score", 0) > 0.8:
+            return "extreme_overpriced"
+        if pricing.get("direction") == "over":
+            return "overpriced"
+        return "fair"
 
-        except Exception as e:
-            # CRITICAL: enrichment NEVER breaks pipeline
-            return {
-                **result,
-                "enrichment_error": str(e)
-            }
+    def _recommendation(self, risk, ranking):
+        risk_score = risk.get("score", 0)
 
-    def _market_context(self, pricing: Dict[str, Any]) -> str:
-        score = pricing.get("score", 0)
-
-        if score > 0.85:
-            return "strong_value"
-        if score > 0.7:
-            return "fair_value"
-        return "overpriced"
-
-    def _hint(self, pricing: Dict[str, Any]) -> str:
-        direction = pricing.get("direction", "unknown")
-
-        if direction == "over":
-            return "negotiate_down"
-        if direction == "under":
-            return "good_deal"
+        if risk_score > 0.7:
+            return "avoid"
+        if risk_score > 0.3:
+            return "caution"
         return "neutral"

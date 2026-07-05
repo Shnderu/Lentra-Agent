@@ -8,5 +8,5 @@ router = APIRouter(prefix="/admin")
 def list_engines():
     pipeline = get_pipeline()
     return {
-        "engines": ["signals", "risk", "ranking"]
+        "engines": pipeline["gateway"].get_engine_keys()
     }

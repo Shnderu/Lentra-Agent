@@ -4,14 +4,6 @@ from lentra.api.pipeline import get_pipeline
 router = APIRouter()
 
 
-def _safe_engine_keys(gateway):
-    # SAFE MODE: no isolator dependency
-    try:
-        return list(getattr(gateway, "signals_engine", {}).keys()) if hasattr(gateway, "signals_engine") else []
-    except Exception:
-        return []
-
-
 @router.post("/search")
 def search(payload: dict):
     pipeline = get_pipeline()
@@ -20,15 +12,18 @@ def search(payload: dict):
     try:
         result = gateway.compute(payload)
 
-        return {
+        response = {
             "status": "ok",
-            "engine_keys": ["signals", "risk", "ranking"],
+            "engine_keys": gateway.get_engine_keys(),
             **result
         }
+
+        # HARD GUARANTEE: single JSON response only
+        return response
 
     except Exception as e:
         return {
             "status": "error",
             "error": str(e),
-            "engine_keys": ["signals", "risk", "ranking"]
+            "engine_keys": gateway.get_engine_keys()
         }

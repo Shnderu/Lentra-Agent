@@ -1,23 +1,7 @@
-from typing import Any, Optional
+import logging
+
+logger = logging.getLogger(__name__)
 
 
-def try_load_graph_engine() -> Optional[Any]:
-    """
-    SAFE PLUGIN LOADER
-
-    Graph layer is OPTIONAL.
-    Never breaks bootstrap.
-    """
-
-    try:
-        from lentra.core.market_intelligence.graph.intelligence_graph_runtime import (
-            IntelligenceGraphRuntime
-        )
-
-        return IntelligenceGraphRuntime()
-
-    except Exception as e:
-        # SAFE FALLBACK
-        # graph is non-critical enrichment layer
-        print(f"[GRAPH][WARN] disabled due to: {e}")
-        return None
+def warn_graph_disabled(e: Exception):
+    logger.warning("[GRAPH][WARN] disabled due to: %s", str(e))
