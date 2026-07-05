@@ -10,43 +10,25 @@ class MarketIntelligenceEngine:
 
         deviation = abs(price - market) / market if market else 0
 
-        # -----------------------
-        # CORE SIGNALS
-        # -----------------------
         pricing_score = 1 - deviation
-
         area_score = 0.8
-
-        dedup = {
-            "score": 1.0,
-            "confidence": 1.0
-        }
 
         risk_level = min(1.0, deviation + 0.1)
 
-        # -----------------------
-        # COUPLING (bounded)
-        # -----------------------
         entropy = deviation
         entropy_dampener = 1 - entropy
 
         coupling_raw = (
             (pricing_score * 0.55) +
             (area_score * 0.25) +
-            (dedup["confidence"] * 0.20)
+            (1.0 * 0.20)
         )
 
         coupling_score = coupling_raw * entropy_dampener
         coupling_score = max(0.25, min(0.75, coupling_score))
 
-        # -----------------------
-        # RANKING
-        # -----------------------
         ranking_score = pricing_score
 
-        # -----------------------
-        # DECISION LAYER (EMBEDDED)
-        # -----------------------
         final_score = (
             ranking_score * 0.45 +
             coupling_score * 0.25 +
@@ -63,7 +45,7 @@ class MarketIntelligenceEngine:
         confidence = min(pricing_score, 1 - risk_level)
 
         return {
-            "dedup": dedup,
+            "dedup": {"score": 1.0, "confidence": 1.0},
             "ranking": {
                 "score": ranking_score,
                 "version": "ranking_v3_norm_v0.9"
@@ -78,12 +60,6 @@ class MarketIntelligenceEngine:
                     "deviation": round(deviation, 4),
                     "confidence": pricing_score
                 },
-                "area": {
-                    "score": area_score,
-                    "note": "vietnam_area_model",
-                    "country": "Vietnam"
-                },
-                "dedup": dedup,
                 "coupling": {
                     "score": coupling_score,
                     "factors": {

@@ -1,13 +1,3 @@
-from lentra.core.market_intelligence.build import build_intelligence_gateway
+from .bootstrap_intelligence_system import bootstrap_intelligence_system
 
-
-def get_gateway():
-    """
-    V2 LOCKED CONTRACT
-    - no routing_map
-    - no injection config
-    - no dynamic wiring
-    """
-
-    gateway, engines = build_intelligence_gateway()
-    return gateway, engines
+__all__ = ["bootstrap_intelligence_system"]

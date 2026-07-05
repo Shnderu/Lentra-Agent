@@ -15,6 +15,10 @@ class SignalsEngineV1:
         self.coupling_provider = CouplingSignalProvider()
         self.ranking_provider = RankingSignalProvider()
 
+    # 🔥 FIX: compatibility alias
+    def compute(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        return self.build(data)
+
     def build(self, data: Dict[str, Any]) -> Dict[str, Any]:
 
         pricing = self._pricing_signal(data)

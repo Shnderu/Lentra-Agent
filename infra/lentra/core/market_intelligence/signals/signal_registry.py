@@ -28,3 +28,15 @@ class SignalRegistry:
             result[p.name] = p.compute(engine_outputs)
 
         return result
+
+# --- MVP EXTENSIONS ---
+from lentra.core.market_intelligence.signals.providers.area_v2_provider import AreaProviderV2
+from lentra.core.market_intelligence.signals.providers.expat_provider import ExpatProvider
+
+
+def register_mvp_extensions(registry):
+
+    registry.append(AreaProviderV2())
+    registry.append(ExpatProvider())
+
+    return registry

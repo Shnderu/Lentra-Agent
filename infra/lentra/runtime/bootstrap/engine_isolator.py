@@ -1,71 +1,71 @@
-from typing import Dict, Any
-
-
 class EngineIsolator:
     """
-    Contract Stabilization Layer v2
+    PHASED ARCHITECTURE CONTRACT:
 
-    PRINCIPLE:
-    - compute() is single source of truth
-    - isolator is ONLY orchestration layer
-    - AreaEngine is externalized (SEA expansion)
+    - engines MUST NOT be called directly
+    - all access goes through this adapter
     """
 
-    def __init__(self, engines: Dict[str, Any]):
-        self.engines = engines or {}
+    def __init__(self, engines: dict):
+        self.engines = engines
 
-    def run_all(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+    # -------------------------
+    # PHASE 1: normalization
+    # -------------------------
+    def normalize_signals(self, payload: dict) -> dict:
+        normalizer = self.engines.get("signal_normalizer")
+        if normalizer:
+            return normalizer.normalize(payload)
 
-        engine = self.engines.get("market_intelligence")
+        # fallback passthrough
+        return payload
 
-        if engine is None:
-            return {
-                "dedup": {},
-                "ranking": {},
-                "risk": {},
-                "signals": {},
-                "features": {},
-                "decision": {
-                    "decision": "NO_ENGINE"
-                }
+    # -------------------------
+    # ENGINE EXECUTION LAYER
+    # -------------------------
+    def run_all(self, payload: dict) -> dict:
+        result = {}
+
+        for name, engine in self.engines.items():
+
+            # skip non-engine utilities
+            if name in ["signal_normalizer", "decision_policy"]:
+                continue
+
+            # FIX: unified contract
+            if hasattr(engine, "run"):
+                result[name] = engine.run(payload)
+                continue
+
+            if callable(engine):
+                result[name] = engine(payload)
+                continue
+
+            result[name] = {
+                "error": f"{engine.__class__.__name__} is not callable",
+                "fallback": True,
             }
 
-        # =========================
-        # CORE MI ENGINE
-        # =========================
-        result = engine.compute(payload)
-
-        # =========================
-        # AREA ENGINE (SEA ISOLATION LAYER)
-        # =========================
-        area_engine = self.engines.get("area")
-
-        if area_engine is not None:
-            try:
-                area_result = area_engine.compute(payload)
-
-                if "signals" not in result:
-                    result["signals"] = {}
-
-                result["signals"]["area"] = area_result
-
-                # lightweight coupling boost from geography
-                if "coupling" in result.get("signals", {}):
-                    result["signals"]["coupling"]["area_boost"] = area_result.get("score", 0.5)
-
-            except Exception:
-                # fail-safe: area never breaks pipeline
-                pass
-
-        # =========================
-        # CONTRACT FREEZE LAYER
-        # =========================
-        if isinstance(result, dict):
-            result.setdefault("dedup", {})
-            result.setdefault("ranking", {})
-            result.setdefault("risk", {})
-            result.setdefault("signals", {})
-            result.setdefault("features", {})
-            result.setdefault("decision", {})
-
         return result
+
+    # -------------------------
+    # TEMP DECISION (will be extracted in PHASE 2)
+    # -------------------------
+    def apply_decision(self, engine_outputs: dict) -> dict:
+        decision_engine = self.engines.get("decision_policy")
+
+        if decision_engine and hasattr(decision_engine, "evaluate"):
+            return decision_engine.evaluate(engine_outputs)
+
+        # fallback rule
+        return {
+            "decision": "AVOID",
+            "final_score": 0.3,
+            "confidence": 0.5,
+            "explanation": {
+                "ranking_contribution": 0.0,
+                "coupling_contribution": 0.0,
+                "risk_penalty": 0.0,
+                "final_score": 0.3,
+            },
+        }

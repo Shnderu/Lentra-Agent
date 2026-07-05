@@ -3,12 +3,12 @@ from typing import Dict, Any
 
 class DecisionPolicyEngine:
     """
-    Decision Policy Engine v1
-
-    PURPOSE:
-    - extract decision logic OUT of MarketIntelligenceEngine
-    - make decision layer replaceable (A/B testing ready)
-    - keep engine purely signal-based
+    v2 POLICY:
+    включает:
+    - ranking
+    - coupling
+    - risk
+    - expat_score (НОВЫЙ СИЛЬНЫЙ ФАКТОР)
     """
 
     def compute(self, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -17,60 +17,64 @@ class DecisionPolicyEngine:
         ranking = data.get("ranking", {})
         risk = data.get("risk", {})
 
-        # ------------------------
-        # INPUTS
-        # ------------------------
-        pricing_score = signals.get("pricing", {}).get("score", 0.0)
-        area_score = signals.get("area", {}).get("score", 0.5)
-        coupling_score = signals.get("coupling", {}).get("score", 0.0)
-        risk_level = risk.get("risk_level", 0.0)
-
-        ranking_score = ranking.get("score", 0.0)
+        expat = signals.get("expat", {}) or {}
+        expat_score = expat.get("score", 0.5)
 
         # ------------------------
-        # CORE DECISION MODEL v1
+        # BASE INPUTS
         # ------------------------
+        ranking_score = ranking.get("score", 0.5)
+        risk_level = risk.get("risk_level", 0.5)
 
-        # weighted market score
-        market_score = (
-            pricing_score * 0.45 +
-            area_score * 0.25 +
-            coupling_score * 0.20 +
-            ranking_score * 0.10
+        coupling = signals.get("coupling", {})
+        coupling_score = coupling.get("score", 0.5)
+
+        # ------------------------
+        # EXPAT BOOST LAYER (NEW REAL SIGNAL)
+        # ------------------------
+        # логика:
+        # expat усиливает BUY если рынок "живой"
+        # и снижает если район слабый
+
+        expat_boost = (expat_score - 0.5) * 0.3
+
+        # ------------------------
+        # FINAL SCORE
+        # ------------------------
+        final_score = (
+            ranking_score * 0.40 +
+            coupling_score * 0.25 +
+            (1 - risk_level) * 0.25 +
+            expat_boost
         )
 
-        # risk penalty
-        adjusted_score = market_score - (risk_level * 0.6)
+        final_score = max(0.0, min(1.0, final_score))
 
         # ------------------------
         # DECISION RULES
         # ------------------------
-        if adjusted_score >= 0.75:
+        if final_score >= 0.75:
             decision = "BUY"
-        elif adjusted_score >= 0.55:
+        elif final_score >= 0.55:
             decision = "HOLD"
         else:
             decision = "AVOID"
 
-        # ------------------------
-        # CONFIDENCE MODEL
-        # ------------------------
         confidence = min(
-            1.0,
-            (pricing_score + area_score + coupling_score) / 3.0
+            ranking_score,
+            (1 - risk_level),
+            max(0.5, expat_score)
         )
 
         return {
             "decision": decision,
-            "final_score": round(adjusted_score, 4),
+            "final_score": round(final_score, 4),
             "confidence": round(confidence, 4),
             "explanation": {
-                "pricing": pricing_score,
-                "area": area_score,
+                "ranking": ranking_score,
                 "coupling": coupling_score,
                 "risk": risk_level,
-                "ranking": ranking_score,
-                "market_score": round(market_score, 4),
-                "adjusted_score": round(adjusted_score, 4)
+                "expat": expat_score,
+                "expat_boost": round(expat_boost, 4)
             }
         }

@@ -1,21 +1,43 @@
-from lentra.core.market_intelligence.engines.market_intelligence_engine import MarketIntelligenceEngine
-from lentra.core.area.area_engine import AreaEngine
-from lentra.runtime.bootstrap.engine_isolator import EngineIsolator
+from typing import Dict, Any
+
+from lentra.core.engines.engine_wrapper import EngineWrapper
+from lentra.core.engines.area_engine import AreaEngine
+from lentra.core.engines.market_intelligence_engine import MarketIntelligenceEngine
 
 
-def build_gateway_v3():
+class GatewayV3:
+    """
+    Clean Gateway abstraction for Lentra AI OS.
+    Responsibility:
+      - engine orchestration only
+      - NO business logic
+    """
 
-    gateway = type("Gateway", (), {})()
+    def __init__(self):
+        self.engines: Dict[str, Any] = {}
 
-    gateway.engines = {}
+    def register(self, name: str, engine: Any):
+        self.engines[name] = EngineWrapper(engine)
+        return self
 
-    # CORE ENGINE
-    gateway.engines["market_intelligence"] = MarketIntelligenceEngine({})
+    def run_engine(self, name: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        if name not in self.engines:
+            return {
+                "error": f"engine_not_found:{name}",
+                "fallback": True
+            }
 
-    # AREA ENGINE (Vietnam geo layer)
-    gateway.engines["area"] = AreaEngine({})
+        return self.engines[name](context)
 
-    # ISOLATOR
-    gateway.engine_isolator = EngineIsolator(gateway.engines)
+
+def build_gateway_v3() -> GatewayV3:
+    gateway = GatewayV3()
+
+    # IMPORTANT:
+    # FIX: NO engine(config) construction
+    # engines are pure classes now
+
+    gateway.register("area", AreaEngine)
+    gateway.register("market_intelligence", MarketIntelligenceEngine)
 
     return gateway

@@ -1,9 +1,12 @@
-# IMPORTANT: API must NOT construct graph
+from lentra.core.bootstrap.bootstrap_intelligence_system import bootstrap_intelligence_system
 
-from lentra.core.bootstrap import bootstrap_intelligence_system
-
-pipeline = bootstrap_intelligence_system()
+_pipeline_instance = None
 
 
 def get_pipeline():
-    return pipeline
+    global _pipeline_instance
+
+    if _pipeline_instance is None:
+        _pipeline_instance = bootstrap_intelligence_system()
+
+    return _pipeline_instance
