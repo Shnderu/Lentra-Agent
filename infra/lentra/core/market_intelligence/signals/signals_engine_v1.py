@@ -1,5 +1,4 @@
 from typing import Dict, Any
-
 from lentra.core.market_intelligence.signals.providers.coupling_provider import CouplingSignalProvider
 from lentra.core.market_intelligence.signals.providers.risk_provider import RiskSignalProvider
 from lentra.core.market_intelligence.signals.providers.ranking_provider import RankingSignalProvider
@@ -7,7 +6,7 @@ from lentra.core.market_intelligence.signals.providers.ranking_provider import R
 
 class SignalsEngineV1:
     """
-    Deterministic signal extraction layer (with ranking v2)
+    Deterministic signal extraction layer (immutable compatible)
     """
 
     def __init__(self):
@@ -15,11 +14,7 @@ class SignalsEngineV1:
         self.coupling_provider = CouplingSignalProvider()
         self.ranking_provider = RankingSignalProvider()
 
-    # 🔥 FIX: compatibility alias
     def compute(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        return self.build(data)
-
-    def build(self, data: Dict[str, Any]) -> Dict[str, Any]:
 
         pricing = self._pricing_signal(data)
         area = self._area_signal(data)
@@ -35,11 +30,7 @@ class SignalsEngineV1:
         }
 
         coupling = self.coupling_provider.compute(base_inputs)
-        base_inputs["coupling"] = coupling
-
         risk = self.risk_provider.compute(base_inputs)
-        base_inputs["risk"] = risk
-
         ranking = self.ranking_provider.compute(base_inputs)
 
         return {

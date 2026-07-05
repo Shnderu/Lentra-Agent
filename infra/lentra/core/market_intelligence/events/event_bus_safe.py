@@ -1,7 +1,8 @@
-import logging
+class EventBusSafe:
 
-logger = logging.getLogger(__name__)
+    def publish(self, event):
+        # NO SIDE EFFECT OUTPUT ALLOWED
+        return event
 
-
-def safe_event_bus_error(e: Exception):
-    logger.error("[EVENT BUS ERROR] %s", str(e))
+    def emit(self, event):
+        return event
