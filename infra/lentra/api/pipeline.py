@@ -1,21 +1,21 @@
-from lentra.core.bootstrap.bootstrap_intelligence_system import bootstrap_intelligence_system
+from typing import Any, Dict
 
-_pipeline_instance = None
+from lentra.core.observability.replay_engine import ReplayEngine
+from lentra.api.pipeline_bootstrap import build_orchestrator
 
 
-def get_pipeline():
-    """
-    Immutable pipeline singleton (v2 safe mode)
+replay_engine = ReplayEngine()
+_orchestrator = build_orchestrator()
 
-    IMPORTANT:
-    - ALWAYS rebuild if None
-    - NO stale engine caching
-    - NO partial bootstrap reuse
-    """
 
-    global _pipeline_instance
+def run_pipeline(request: Dict[str, Any]) -> Dict[str, Any]:
+    try:
+        replay_engine.replay(request)
+    except Exception:
+        pass
 
-    if _pipeline_instance is None:
-        _pipeline_instance = bootstrap_intelligence_system()
+    return _orchestrator.execute(request)
 
-    return _pipeline_instance
+
+def get_pipeline() -> Any:
+    return _orchestrator

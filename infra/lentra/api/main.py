@@ -4,7 +4,7 @@ from lentra.api.routes.search import router as search_router
 from lentra.api.routes.admin import router as admin_router
 
 
-def create_app() -> FastAPI:
+def create_app():
     app = FastAPI()
 
     app.include_router(search_router)
@@ -17,8 +17,8 @@ def create_app() -> FastAPI:
     return app
 
 
-# =========================
-# CRITICAL FIX: ASGI ENTRYPOINT
-# =========================
+# -----------------------------
+# CRITICAL: uvicorn entrypoint
+# -----------------------------
 
 app = create_app()
