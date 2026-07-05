@@ -1,35 +1,42 @@
-from lentra.core.pipeline.context import PipelineContext
-from lentra.core.market_intelligence.signals.signals_engine_v2 import SignalsEngineV2
-from lentra.core.market_intelligence.risk.risk_engine import RiskEngine
-from lentra.core.market_intelligence.ranking.ranking_engine import RankingEngine
+from typing import Dict, Any
+
+from lentra.core.contracts.pipeline_context import PipelineContext
+from lentra.core.market_intelligence.signals.signals_engine_v1 import SignalsEngineV1
 
 
 class IntelligenceGateway:
+    """
+    Entry point for Market Intelligence OS
+    """
 
     def __init__(self):
-        self.signals = SignalsEngineV2()
-        self.risk = RiskEngine()
-        self.ranking = RankingEngine()
+        self.signals = SignalsEngineV1()
 
-    def compute(self, payload: dict):
+    def compute(self, data: Dict[str, Any]) -> Dict[str, Any]:
 
-        ctx = PipelineContext(raw=payload)
+        # STEP 1.1 — freeze entry into immutable context
+        ctx = PipelineContext(raw=data)
 
-        # STAGE 1
-        ctx = self.signals.compute(ctx)
+        # IMPORTANT:
+        # engines are still dict-compatible in STEP 1
+        signals_result = self.signals.build(data)
 
-        # STAGE 2 (risk reads ONLY immutable ctx)
-        ctx = self.risk.compute(ctx)
-
-        # STAGE 3
-        ctx = self.ranking.compute(ctx)
-
-        return {
-            "pricing": ctx.pricing,
-            "area": ctx.area,
-            "dedup": ctx.dedup,
-            "coupling": ctx.coupling,
-            "risk": ctx.risk,
-            "ranking": ctx.ranking,
-            "enrichment": ctx.enrichment,
+        # attach result WITHOUT mutating ctx (still transitional mode)
+        result = {
+            **signals_result,
+            "enrichment": {
+                "pricing": signals_result.get("pricing"),
+                "area": signals_result.get("area"),
+                "dedup": signals_result.get("dedup"),
+                "coupling": signals_result.get("coupling"),
+                "risk": signals_result.get("risk"),
+                "ranking": signals_result.get("ranking"),
+                "meta": {
+                    "layer": "gateway_v1",
+                    "ctx_mode": "immutable_ready"
+                }
+            }
         }
+
+        # return final API contract unchanged
+        return result

@@ -4,7 +4,7 @@ from lentra.api.routes.search import router as search_router
 from lentra.api.routes.admin import router as admin_router
 
 
-def create_app():
+def create_app() -> FastAPI:
     app = FastAPI()
 
     app.include_router(search_router)
@@ -15,3 +15,10 @@ def create_app():
         return {"status": "ok"}
 
     return app
+
+
+# =========================
+# CRITICAL FIX: ASGI ENTRYPOINT
+# =========================
+
+app = create_app()

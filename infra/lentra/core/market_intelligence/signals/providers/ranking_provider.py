@@ -29,9 +29,6 @@ class RankingSignalProvider:
 
         dedup_conf = dedup.get("confidence", dedup.get("score", 1.0))
 
-        # -------------------------
-        # CORE RANKING FORMULA
-        # -------------------------
         ranking = (
             price_quality *
             area_quality *
@@ -40,7 +37,6 @@ class RankingSignalProvider:
             dedup_conf
         )
 
-        # soft normalization
         ranking = self._soft_clip(ranking)
 
         return {
@@ -56,11 +52,16 @@ class RankingSignalProvider:
         }
 
     def _invert(self, x: float) -> float:
-        # lower signal score = better quality
         return max(0.0, 1.0 - x)
 
     def _soft_clip(self, x: float) -> float:
-        # prevents collapse to zero in noisy environments
         if x < 0.05:
             return 0.05
         return min(x, 1.0)
+
+
+# -------------------------
+# COMPAT LAYER (CRITICAL)
+# -------------------------
+
+RankingProvider = RankingSignalProvider

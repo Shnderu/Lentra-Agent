@@ -1,16 +1,28 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Body
+import traceback
+
 from lentra.api.pipeline import get_pipeline
-from lentra.api.response_builder import ResponseBuilder
 
 router = APIRouter()
 
 
 @router.post("/search")
-def search(payload: dict):
+def search(payload: dict = Body(...)):
     pipeline = get_pipeline()
     gateway = pipeline["gateway"]
 
-    result = gateway.compute(payload)
+    try:
+        result = gateway.compute(payload)
 
-    # HARD ENFORCEMENT: ONLY ONE RETURN PATH
-    return ResponseBuilder.build(result)
+        return {
+            "status": "ok",
+            "engine_keys": pipeline["gateway"]._engine_keys if hasattr(pipeline["gateway"], "_engine_keys") else [],
+            "result": result
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "trace": traceback.format_exc()
+        }

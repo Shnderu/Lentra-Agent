@@ -1,12 +1,17 @@
-from lentra.core.market_intelligence.build import build_intelligence_gateway
+from lentra.core.market_intelligence.gateway.intelligence_gateway import IntelligenceGateway
 
 
 def bootstrap_intelligence_system():
-    try:
-        gateway = build_intelligence_gateway()
-    except Exception:
-        from lentra.core.market_intelligence.gateway.intelligence_gateway import IntelligenceGateway
-        gateway = IntelligenceGateway()
+    """
+    SAFE BOOTSTRAP v2
+
+    RULES:
+    - NO kwargs injection into Gateway
+    - NO external engine registry injection
+    - SINGLETON safe init
+    """
+
+    gateway = IntelligenceGateway()
 
     return {
         "gateway": gateway

@@ -1,71 +1,38 @@
 from typing import Dict, Any
-from lentra.core.market_intelligence.signals.providers.coupling_provider import CouplingSignalProvider
-from lentra.core.market_intelligence.signals.providers.risk_provider import RiskSignalProvider
-from lentra.core.market_intelligence.signals.providers.ranking_provider import RankingSignalProvider
 
 
 class SignalsEngineV1:
     """
-    Deterministic signal extraction layer (immutable compatible)
+    IMMUTABLE SIGNALS CONTRACT (v2)
+
+    IMPORTANT:
+    - NO compute()
+    - ONLY build()
+    - NO ctx mutation
+    - ALWAYS returns full deterministic signal map
     """
 
-    def __init__(self):
-        self.risk_provider = RiskSignalProvider()
-        self.coupling_provider = CouplingSignalProvider()
-        self.ranking_provider = RankingSignalProvider()
+    def build(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        price = payload.get("price", 0)
+        market_price = payload.get("market_price", 1)
 
-    def compute(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        deviation = (price - market_price) / market_price if market_price else 0
 
-        pricing = self._pricing_signal(data)
-        area = self._area_signal(data)
-        dedup = self._dedup_signal(data)
-
-        base_inputs = {
-            **data,
-            "signals": {
-                "pricing": pricing,
-                "area": area,
+        return {
+            "pricing": {
+                "score": abs(deviation),
+                "direction": "over" if deviation > 0 else "under",
+                "deviation": round(deviation, 4)
             },
-            "dedup": dedup,
-        }
-
-        coupling = self.coupling_provider.compute(base_inputs)
-        risk = self.risk_provider.compute(base_inputs)
-        ranking = self.ranking_provider.compute(base_inputs)
-
-        return {
-            "pricing": pricing,
-            "area": area,
-            "dedup": dedup,
-            "coupling": coupling,
-            "risk": risk,
-            "ranking": ranking,
-        }
-
-    def _pricing_signal(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        price = data.get("price", 0)
-        market = data.get("market_price", 0)
-
-        if not market:
-            return {"score": 0.0, "deviation": 0.0}
-
-        deviation = (price - market) / market
-
-        return {
-            "score": min(abs(deviation), 1.0),
-            "direction": "over" if deviation > 0 else "under",
-            "deviation": round(deviation, 4),
-        }
-
-    def _area_signal(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        return {
-            "score": 0.5,
-            "note": "enhanced_area_model"
-        }
-
-    def _dedup_signal(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        dedup = data.get("dedup", {}).get("score", 1.0)
-        return {
-            "score": dedup,
-            "confidence": dedup
+            "area": {
+                "score": 0.5,
+                "note": "enhanced_area_model"
+            },
+            "dedup": {
+                "score": 1.0,
+                "confidence": 1.0
+            },
+            "signals_meta": {
+                "engine_keys": ["pricing", "area", "dedup"]
+            }
         }

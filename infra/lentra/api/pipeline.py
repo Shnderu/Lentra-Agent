@@ -4,6 +4,15 @@ _pipeline_instance = None
 
 
 def get_pipeline():
+    """
+    Immutable pipeline singleton (v2 safe mode)
+
+    IMPORTANT:
+    - ALWAYS rebuild if None
+    - NO stale engine caching
+    - NO partial bootstrap reuse
+    """
+
     global _pipeline_instance
 
     if _pipeline_instance is None:
