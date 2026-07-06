@@ -2,6 +2,15 @@ from lentra.bot.state.state_store import StateStore
 from lentra.bot.core.state_machine import StateMachine
 from lentra.bot.services.ux_state import UXStateAdapter
 
+# AI CONTROL LAYER (soft dependency)
+try:
+    from lentra.ai_control.telegram_ai_bridge import TelegramAIBridge
+    AI_ENABLED = True
+    ai_bridge = TelegramAIBridge()
+except Exception:
+    AI_ENABLED = False
+    ai_bridge = None
+
 
 class InteractionRouter:
 
@@ -13,6 +22,34 @@ class InteractionRouter:
     async def handle(self, user_id: int, action: str, payload: str = None):
 
         state = self.store.load(user_id)
+
+        # ----------------------------
+        # AI CONTROL LAYER HOOK
+        # ----------------------------
+        if AI_ENABLED and action == "message":
+            try:
+                ai_result = await ai_bridge.handle_message(
+                    user_id=user_id,
+                    text=payload or ""
+                )
+
+                # AI can override routing
+                if ai_result and ai_result.get("override"):
+                    self.store.save(state)
+                    return ai_result["response"]
+
+                # AI can enrich state
+                if ai_result and ai_result.get("state_patch"):
+                    patch = ai_result["state_patch"]
+                    for k, v in patch.items():
+                        setattr(state, k, v)
+
+            except Exception:
+                pass  # fallback to legacy flow
+
+        # ----------------------------
+        # LEGACY FLOW
+        # ----------------------------
 
         if action == "next":
             state.page += 1
