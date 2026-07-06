@@ -19,26 +19,26 @@ class AiderExecutor:
 
         raise Exception("aider binary not found")
 
-    def _run(self, cmd: list) -> str:
-        full_cmd = [
+    def _run(self, args: list) -> str:
+        cmd = [
             self.aider_path,
-            "--yes",              # автосогласие (critical)
-            "--no-git",           # отключает git-interaction (если поддерживается)
-            *cmd
+            "--yes",
+            "--message", args[0],   # <-- КЛЮЧЕВОЕ ИЗМЕНЕНИЕ
         ]
 
         env = os.environ.copy()
 
-        # FORCE non-interactive behavior
-        env["PYTHONUNBUFFERED"] = "1"
-        env["AIDER_NON_INTERACTIVE"] = "1"
-        env["TERM"] = "dumb"
-        env["COLORTERM"] = "0"
-        env["GIT_PAGER"] = "cat"
-        env["PAGER"] = "cat"
+        env.update({
+            "PYTHONUNBUFFERED": "1",
+            "TERM": "dumb",
+            "COLORTERM": "0",
+            "PAGER": "cat",
+            "GIT_PAGER": "cat",
+            "AIDER_NON_INTERACTIVE": "1",
+        })
 
         process = subprocess.run(
-            full_cmd,
+            cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             env=env,
