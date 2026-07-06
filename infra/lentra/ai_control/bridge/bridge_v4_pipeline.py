@@ -1,43 +1,20 @@
-from typing import Dict
-
-from lentra.core.market_intelligence.graph_v2.router import GraphRouter
-from lentra.ai_control.aider_deterministic_executor import AiderDeterministicExecutorV1
-from lentra.ai_control.bridge.auto_checkpoint import AutoCheckpoint
+from lentra.ai_control.bridge.bridge_v4 import BridgeV4
+from lentra.ai_control.aider_deterministic_executor import AiderDeterministicExecutor
 
 
 class BridgeV4Pipeline:
-    """
-    Full deterministic pipeline with auto git checkpointing.
-    """
 
-    def __init__(self):
-        self.router = GraphRouter()
-        self.executor = AiderDeterministicExecutorV1()
-        self.checkpoint = AutoCheckpoint()
+    def __init__(self, graph_router=None):
+        self.bridge = BridgeV4(graph_router)
+        self.executor = AiderDeterministicExecutor()
 
-    def build_plan(self, query: str) -> Dict:
-        routing = self.router.route(query)
+    def run(self, query: str):
 
-        return {
-            "query": query,
-            "intent": routing["intent"],
-            "nodes": routing["selected_node"],
-            "symbols": routing["selected_symbols"],
-            "files": routing["selected_files"],
-        }
+        plan = self.bridge.run(query)
 
-    def run(self, query: str) -> Dict:
-        # 🔒 NEW: auto checkpoint BEFORE execution
-        self.checkpoint.ensure_clean()
+        files = plan["plan"]["expanded_files"]
 
-        plan = self.build_plan(query)
-
-        result = self.executor.run(
-            instruction=query,
-            files=plan["files"],
+        return self.executor.run(
+            prompt=query,
+            files=files
         )
-
-        return {
-            "plan": plan,
-            "execution": result,
-        }

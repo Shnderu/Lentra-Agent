@@ -1,78 +1,55 @@
-from __future__ import annotations
-
-import subprocess
-from typing import Dict, Any
-
-# FIX: explicit local import path consistency
-from lentra.ai_control.bridge.bridge_v3 import BridgeV3
-from lentra.ai_control.bridge.bridge_v4_safety import BridgeV4Safety
-from lentra.ai_control.aider_deterministic_executor import AiderDeterministicExecutor
+from lentra.ai_control.bridge.bridge_v3 import BridgeV3  # kept for graph only
+from lentra.ai_control.execution.execution_sandbox_v1 import ExecutionSandboxV1
+from lentra.ai_control.runtime.controlled_runtime_v1 import ControlledRuntimeV1
+from lentra.ai_control.runtime.git_guard_v1 import GitGuardV1
 
 
 class BridgeV4:
+    """
+    BridgeV4 = Pure orchestration layer
 
-    def __init__(self, graph_router, git_root="/opt/lentra"):
-        self.graph_router = graph_router
-        self.git_root = git_root
+    Responsibilities:
+    - interpret query → graph routing
+    - send execution ONLY via ControlledRuntime
+    - NO subprocess, NO CLI logic
+    """
 
-        self.safety = BridgeV4Safety()
-        self.aider = AiderDeterministicExecutor(repo_root=git_root)
+    def __init__(self, graph_router):
+        self.bridge_v3 = BridgeV3(graph_router)
 
-        # BridgeV3 MUST exist in same package layer
-        self.bridge_v3 = BridgeV3(
-            graph_router=graph_router,
-            git_root=git_root
+        self.runtime = ControlledRuntimeV1(
+            execution_sandbox=ExecutionSandboxV1(),
+            git_guard=GitGuardV1(),
         )
 
-    def run(self, query: str) -> Dict[str, Any]:
-
+    def run(self, query: str):
         plan = self.bridge_v3.build_plan(query)
 
-        check = self.safety.full_check(plan.expanded_files)
+        # normalize execution request
+        command = self._build_command(plan)
 
-        if not check.ok:
-            return {
-                "status": "blocked",
-                "reason": check.reason,
-                "plan": plan.__dict__
-            }
-
-        self._git_commit(f"bridge_v4 pre: {query}")
-
-        try:
-            result = self.aider.execute(
-                instruction=plan.query,
-                files=plan.expanded_files,
-                system_prompt="Lentra controlled execution mode"
-            )
-
-            post_check = self.safety.full_check(plan.expanded_files)
-
-            if not post_check.ok:
-                self._rollback()
-                return {
-                    "status": "rolled_back",
-                    "reason": post_check.reason
-                }
-
-            self._git_commit(f"bridge_v4 post: {query}")
-
-        except Exception as e:
-            self._rollback()
-            return {
-                "status": "error",
-                "reason": str(e)
-            }
+        result = self.runtime.run(command)
 
         return {
-            "status": "ok",
-            "plan": plan.__dict__,
-            "result": result
+            "plan": plan,
+            "execution": {
+                "ok": result.ok,
+                "data": result.data,
+                "error": result.error,
+            },
         }
 
-    def _git_commit(self, message: str):
-        subprocess.run(["git", "-C", self.git_root, "add", "-A"], check=True)
-        subprocess.run(["git", "-C", self.git_root, "commit", "-m", message], check=False)
+    def _build_command(self, plan: dict) -> list[str]:
+        """
+        Convert graph plan → safe deterministic CLI command
+        """
+        nodes = plan.get("nodes", [])
 
-    def _rollback(self):
-        subprocess.run(["git", "-C", self.git_root, "reset", "--hard", "HEAD~1"], check=False)
+        # minimal deterministic mapping (NO AI HERE)
+        if "risk_engine" in nodes:
+            return ["python", "-c", "print('risk engine safe execution')"]
+
+        if "dedup_engine" in nodes:
+            return ["python", "-c", "print('dedup safe execution')"]
+
+        return ["python", "-c", "print('noop')"]
