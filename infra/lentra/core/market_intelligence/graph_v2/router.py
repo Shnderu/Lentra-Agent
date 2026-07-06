@@ -1,13 +1,11 @@
 from lentra.core.market_intelligence.graph_v2.graph_selector import GraphSelector
 from lentra.core.market_intelligence.graph_v2.graph_index import GraphIndex
+from lentra.core.market_intelligence.graph_v2.signal_enricher import SignalEnricher
 
 
 class GraphRouter:
     """
-    PURE DETERMINISTIC ROUTER
-
-    NO runtime state
-    NO hidden injection
+    FULLY CONTRACT-ALIGNED ROUTER
     """
 
     def __init__(self):
@@ -18,16 +16,18 @@ class GraphRouter:
         })
 
         self.selector = GraphSelector(index)
+        self.enricher = SignalEnricher()
 
     def route(self, query: str):
-        nodes = self.selector.select(query)
+        base = self.selector.select(query)
 
-        return {
-            "query": query,
-            "selected_node": nodes,
-            "selected_symbols": self._symbols(nodes),
-            "selected_files": self._files(nodes),
-        }
+        enriched = self.enricher.enrich(query, {
+            "selected_node": base,
+            "selected_symbols": self._symbols(base),
+            "selected_files": self._files(base),
+        })
+
+        return enriched
 
     def _symbols(self, nodes):
         mapping = {

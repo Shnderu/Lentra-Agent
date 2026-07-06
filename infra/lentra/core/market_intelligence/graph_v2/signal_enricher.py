@@ -1,92 +1,73 @@
-from dataclasses import dataclass
-from typing import Dict, List, Any
+from lentra.core.market_intelligence.graph_v2.signal_enricher_contract import EnrichmentResult
 
 
-@dataclass
-class EnrichedSignal:
-    query: str
-    intent: str
-    nodes: List[str]
-    symbols: List[str]
-    files: List[str]
-
-
-class SignalEnricherV1:
+class SignalEnricher:
     """
-    Deterministic enrichment layer between GraphRouter and Bridge.
-    Adds fallback semantic signal expansion for sparse GraphV2 outputs.
+    STRICT CONTRACT ENRICHER
+
+    Rules:
+    - ALWAYS accepts dict OR list input safely
+    - NEVER assumes structure of graph output
+    - NEVER uses .get() on unknown types
     """
 
-    def __init__(self):
-        self.intent_map = {
-            "risk": {
-                "keywords": ["risk", "scam", "fraud", "fake", "danger"],
-                "nodes": ["risk_engine"],
-                "symbols": ["RiskModule", "RiskModule.run", "RiskModule.__init__"],
-                "files": [
-                    "infra/lentra/core/market_intelligence/risk/risk_engine.py",
-                    "infra/lentra/core/market_intelligence/risk/risk_engine_adapter.py",
-                ],
-            },
-            "pricing": {
-                "keywords": ["price", "cost", "cheap", "expensive", "budget"],
-                "nodes": ["pricing_engine"],
-                "symbols": ["PricingEngine", "PricingEngine.run"],
-                "files": [
-                    "infra/lentra/core/market_intelligence/layers/pricing/pricing.py",
-                    "infra/lentra/core/market_intelligence/engines/pricing_engine.py",
-                ],
-            },
-            "area": {
-                "keywords": ["area", "location", "beach", "district", "neighborhood"],
-                "nodes": ["area_engine"],
-                "symbols": ["AreaEngine", "AreaScoreEngine"],
-                "files": [
-                    "infra/lentra/core/market_intelligence/area/area_engine.py",
-                    "infra/lentra/core/market_intelligence/area/area_score_engine.py",
-                ],
-            },
-            "dedup": {
-                "keywords": ["duplicate", "same", "repeat", "copy"],
-                "nodes": ["dedup_engine"],
-                "symbols": ["DedupEngine", "ClusterMergeEngine"],
-                "files": [
-                    "infra/lentra/core/market_intelligence/dedup/dedup_engine.py",
-                    "infra/lentra/core/market_intelligence/dedup/cluster_merge_engine.py",
-                ],
-            },
-        }
+    def enrich(self, query: str, graph_result):
+        normalized = self._normalize(graph_result)
 
-    def _detect_intent(self, query: str) -> str:
-        q = query.lower()
+        nodes = normalized.get("selected_node", [])
+        symbols = normalized.get("selected_symbols", [])
+        files = normalized.get("selected_files", [])
 
-        for intent, cfg in self.intent_map.items():
-            if any(k in q for k in cfg["keywords"]):
-                return intent
+        intent = self._infer_intent(nodes)
 
-        return "generic"
-
-    def enrich(self, query: str, graph_result: Dict[str, Any]) -> EnrichedSignal:
-        intent = self._detect_intent(query)
-
-        nodes = list(graph_result.get("selected_node", []))
-        symbols = list(graph_result.get("selected_symbols", []))
-        files = list(graph_result.get("files", []))
-
-        # Fallback enrichment if GraphV2 is empty
-        if intent != "generic" and not nodes:
-            nodes = self.intent_map[intent]["nodes"]
-
-        if intent != "generic" and not symbols:
-            symbols = self.intent_map[intent]["symbols"]
-
-        if intent != "generic" and not files:
-            files = self.intent_map[intent]["files"]
-
-        return EnrichedSignal(
+        return EnrichmentResult(
             query=query,
-            intent=intent,
             nodes=nodes,
             symbols=symbols,
             files=files,
-        )
+            intent=intent,
+            metadata={
+                "raw_type": type(graph_result).__name__
+            }
+        ).__dict__
+
+    def _normalize(self, graph_result):
+        """
+        HARD FIX:
+        GraphRouter may return:
+        - dict (normal)
+        - list (broken legacy path)
+        """
+
+        if isinstance(graph_result, dict):
+            return graph_result
+
+        if isinstance(graph_result, list):
+            # legacy fallback normalization
+            return {
+                "selected_node": graph_result,
+                "selected_symbols": [],
+                "selected_files": []
+            }
+
+        # absolute safety fallback
+        return {
+            "selected_node": [],
+            "selected_symbols": [],
+            "selected_files": []
+        }
+
+    def _infer_intent(self, nodes):
+        if not nodes:
+            return None
+
+        if "risk_engine" in nodes:
+            return "risk"
+
+        if "dedup_engine" in nodes:
+            return "dedup"
+
+        if "area_engine" in nodes:
+            return "area"
+
+        return "unknown"
