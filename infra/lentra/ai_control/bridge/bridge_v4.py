@@ -6,7 +6,7 @@ from lentra.ai_control.runtime.git_guard_v1 import GitGuardV1
 
 class BridgeV4:
     """
-    BridgeV4 = Graph-only + Policy-controlled runtime
+    FULL TRACEABLE DETEMINISTIC PIPELINE
     """
 
     def __init__(self, graph_router):
@@ -22,31 +22,28 @@ class BridgeV4:
 
         command = self._build_deterministic_command(plan)
 
-        result = self.runtime.run(command)
+        result = self.runtime.run(
+            command=command,
+            query=query,
+            plan=plan
+        )
 
         return {
             "plan": plan,
-            "execution": {
-                "ok": result.ok,
-                "data": result.data,
-                "error": result.error,
-            },
+            "execution": result.data,
+            "error": result.error,
         }
 
     def _build_deterministic_command(self, plan: dict) -> list[str]:
-        """
-        NO AI LOGIC. PURE RULE MAPPING.
-        """
-
         nodes = plan.get("nodes", [])
 
         if "risk_engine" in nodes:
-            return ["python", "-c", "print('risk_engine_ok')"]
+            return ["python", "-c", "print('risk_ok')"]
 
         if "dedup_engine" in nodes:
             return ["python", "-c", "print('dedup_ok')"]
 
-        if "area" in nodes:
+        if "area_engine" in nodes:
             return ["python", "-c", "print('area_ok')"]
 
         return ["echo", "noop"]
