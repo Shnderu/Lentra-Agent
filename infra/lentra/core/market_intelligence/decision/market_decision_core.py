@@ -1,11 +1,20 @@
 """
-DEPRECATED: ALL LOGIC MOVED TO AI OS
+CORE DECISION ENGINE (PURE)
 
-This module is kept only for compatibility.
+RULE:
+- no runtime imports
+- no interpret()
+- returns raw decision signals only
 """
 
-from lentra.runtime.intelligence_gateway import interpret
+def market_decision_core(data: dict) -> dict:
 
+    risk = data.get("risk", 0)
+    price = data.get("price", 0)
 
-def analyze(payload: dict):
-    return interpret(payload)
+    score = (1 - risk) * 0.7 + (price / 1000) * 0.3
+
+    return {
+        "score": score,
+        "raw_signal": "OK" if score > 0.5 else "LOW"
+    }

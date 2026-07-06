@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "enforced": true,
+
+  "rules": [
+    {
+      "from": "lentra.core",
+      "deny": ["lentra.runtime", "fastapi", "uvicorn"]
+    },
+    {
+      "from": "lentra.runtime",
+      "deny": ["lentra.core.bootstrap"]
+    },
+    {
+      "from": "lentra.api",
+      "deny": ["lentra.runtime.execution"]
+    }
+  ]
+}

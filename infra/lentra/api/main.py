@@ -1,24 +1,23 @@
+import uvicorn
 from fastapi import FastAPI
 
-from lentra.api.routes.search import router as search_router
-from lentra.api.routes.admin import router as admin_router
+app = FastAPI()
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 
-def create_app():
-    app = FastAPI()
+def main():
+    print("[API] starting uvicorn")
 
-    app.include_router(search_router)
-    app.include_router(admin_router)
-
-    @app.get("/health")
-    def health():
-        return {"status": "ok"}
-
-    return app
+    uvicorn.run(
+        "lentra.api.main:app",
+        host="0.0.0.0",
+        port=8000,
+        log_level="info",
+    )
 
 
-# -----------------------------
-# CRITICAL: uvicorn entrypoint
-# -----------------------------
-
-app = create_app()
+if __name__ == "__main__":
+    main()

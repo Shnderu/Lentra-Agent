@@ -1,12 +1,18 @@
-import httpx
+class BotClient:
+    def __init__(self):
+        pass
 
+    async def start(self):
+        print("BOT STARTED (UI LAYER ONLY)")
 
-class APIClient:
-    def __init__(self, base_url: str):
-        self.base_url = base_url.rstrip("/")
+        while True:
+            await self._poll()
 
-    async def post(self, path: str, payload: dict):
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.post(f"{self.base_url}{path}", json=payload)
-            resp.raise_for_status()
-            return resp.json()
+    async def _poll(self):
+        import asyncio
+        await asyncio.sleep(1)
+
+        # simulated event
+        trace_id = "ui-" + str(__import__("uuid").uuid4())
+
+        print(f"[BOT TRACE] {trace_id} | polling events")

@@ -2,6 +2,8 @@ from lentra.telegram.connectors.telegram_event_listener import TelegramEventList
 from lentra.core.router.intent_router import IntentRouter
 from lentra.core.trace.trace import Trace
 
+
+def build_graph():
     trace = Trace()
 
     router = IntentRouter(

@@ -1,11 +1,9 @@
-class GraphToggle:
+def is_graph_enabled(context: dict = None) -> bool:
     """
-    SAFE OS Graph v2 activation policy
-    - controls graph layer execution per request
+    Feature toggle for graph_v2 system
     """
 
-    def __init__(self, enabled: bool = True):
-        self.enabled = enabled
+    context = context or {}
 
-    def is_enabled(self, payload: dict) -> bool:
-        # future: can be request-level routing
+    # future: can be request-level routing
+    return bool(context.get("graph_enabled", True))

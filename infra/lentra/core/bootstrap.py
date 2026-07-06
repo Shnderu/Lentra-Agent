@@ -1,24 +1,16 @@
-try:
-    from lentra.core.runtime.trace.runtime_trace_layer import RuntimeTraceLayer
-    _TRACE = RuntimeTraceLayer()
-except Exception:
-    _TRACE = None
-
 """
-BOOTSTRAP ENTRYPOINT (CLEAN)
+CORE BOOTSTRAP (CLEAN)
 
 RULE:
-- NO business logic imports
-- ONLY wiring layer
-- NO orchestrator dependency
+- NO runtime imports
+- NO observability imports
+- only pure initialization hooks
 """
 
-from lentra.core.market_intelligence.build import build_intelligence_gateway
-
-
-def get_gateway(orchestrator=None):
+def init_core():
     """
-    Pure entrypoint factory.
-    Does NOT import orchestrator or pipeline.
+    Initializes pure domain layer only
     """
-    return build_intelligence_gateway(orchestrator=orchestrator)
+    from .executor import Executor
+
+    return Executor()

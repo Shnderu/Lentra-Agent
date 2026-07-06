@@ -1,16 +1,12 @@
+# LEGACY DTO BRIDGE (temporary shim)
+# will be removed after full migration to runtime/contracts
+
 import time
-import json
 import hashlib
+import json
 
 
 class ExecutionEnvelope:
-    """
-    Canonical task wrapper:
-    - idempotency key
-    - retry counter
-    - execution metadata
-    """
-
     def build(self, task: dict) -> dict:
         payload = task.get("payload", {})
 

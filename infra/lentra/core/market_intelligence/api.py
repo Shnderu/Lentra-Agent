@@ -1,24 +1,19 @@
-from lentra.runtime.intelligence_enforcer import run_intelligence
+"""
+CORE MARKET INTELLIGENCE API
 
+RULE:
+- pure logic only
+- no runtime imports
+- no enforcement calls
+"""
 
-class MarketIntelligence:
-    """
-    CANONICAL WRAPPER
+class MarketIntelligenceAPI:
 
-    Больше НЕ содержит логики.
-    Только проксирует в AI OS через gateway.
-    """
+    def calculate_price(self, data: dict):
+        return {"price": data.get("price", 0)}
 
-    def evaluate_listing(self, listing: dict, market: dict) -> dict:
-        return run_intelligence({
-            "task": "evaluate_listing",
-            "listing": listing,
-            "market": market
-        })
+    def calculate_risk(self, data: dict):
+        return {"risk": 0.5}
 
-    def evaluate_batch(self, listings: list, market: dict) -> dict:
-        return run_intelligence({
-            "task": "evaluate_batch",
-            "listings": listings,
-            "market": market
-        })
+    def rank(self, items: list):
+        return sorted(items, key=lambda x: x.get("score", 0), reverse=True)

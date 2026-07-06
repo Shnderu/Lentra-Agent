@@ -1,23 +1,19 @@
-import redis
-from core.reliability.atomic_queue import AtomicQueue
-from core.queue.streams import STREAM_TASKS
-
-r = redis.Redis(host="redis", port=6379, decode_responses=True)
-
-queue = AtomicQueue(r)
+import uuid
 
 
-def create_task(task_id: str, payload: dict):
-    idem_key = f"idem:task:{task_id}"
+class TaskService:
 
-    ok = queue.push_task(
-        STREAM_TASKS,
-        idem_key,
-        task_id,
-        payload
-    )
+    def create_task(self, task_type: str, payload: dict) -> dict:
+        """
+        Task ingestion layer (API)
+        """
 
-    if not ok:
-        return {"status": "duplicate"}
+        task_id = str(uuid.uuid4())
+        trace_id = str(uuid.uuid4())
 
-    return {"status": "queued", "task_id": task_id}
+        return {
+            "task_id": task_id,
+            "type": task_type,
+            "payload": payload,
+            "trace_id": trace_id
+        }

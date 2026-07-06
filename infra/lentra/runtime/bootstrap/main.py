@@ -1,16 +1,19 @@
-from lentra.runtime.bootstrap.wiring_safe import build_gateway
-from lentra.api.main import create_app
+"""
+Runtime bootstrap layer (ARCH LOCK SAFE)
+DO NOT import core.bootstrap
+"""
 
-app = None
-gateway = None
+from lentra.core.market_intelligence.build import build_intelligence_gateway
 
-def bootstrap():
-    global app, gateway
 
-    gateway = build_gateway()
-    app = create_app()
-    app.state.gateway = gateway
+def main():
+    # runtime entry must NOT depend on core.bootstrap
+    gateway = build_intelligence_gateway()
 
-    return app
+    return {
+        "gateway": gateway
+    }
 
-app = bootstrap()
+
+if __name__ == "__main__":
+    main()

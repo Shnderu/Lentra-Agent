@@ -1,21 +1,11 @@
-from lentra.core.market_intelligence.graph.intelligence_graph_runtime import IntelligenceGraphRuntime
+"""
+CORE HOOK = DECLARATIVE ONLY
+"""
 
-_graph = IntelligenceGraphRuntime()
+class GraphHook:
 
-
-def attach_graph_layer(response: dict, engines: dict, payload: dict) -> dict:
-    """
-    SAFE NON-BREAKING HOOK
-
-    если падает → игнорируем
-    """
-
-    try:
-        if not _graph.enabled:
-            return response
-
-        return _graph.run(response, payload)
-
-    except Exception:
-        # CRITICAL: never break API
-        return response
+    def meta(self):
+        return {
+            "hook": "core_only",
+            "runtime": False
+        }

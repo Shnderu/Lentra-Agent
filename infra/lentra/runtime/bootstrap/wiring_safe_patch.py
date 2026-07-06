@@ -1,13 +1,6 @@
+from lentra.core.market_intelligence.graph.graph_v2_builder import GraphV2Builder
 
 
+def build_safe_graph():
     builder = GraphV2Builder()
-    hook = GraphV2EnrichmentHook(builder)
-
-    original_handle = gateway.handle
-
-    def wrapped(payload):
-        result = original_handle(payload)
-        return hook.apply(result, payload)
-
-    gateway.handle = wrapped
-    return gateway
+    return builder.build()

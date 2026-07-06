@@ -1,14 +1,17 @@
-from fastapi import APIRouter
+"""
+CONTROL PANEL (runtime safe version)
 
-router = APIRouter(prefix="/admin")
+NO FRAMEWORKS ALLOWED HERE
+NO FASTAPI
+NO HTTP
+"""
 
-@router.get("/engines")
-def engines():
-    return {"status": "ok"}
-
-@router.get("/debug")
-def debug():
+def get_control_state():
     return {
-        "loaded": True,
-        "module": __name__
+        "status": "ok",
+        "layer": "runtime-control-panel"
     }
+
+
+def health():
+    return {"status": "healthy"}

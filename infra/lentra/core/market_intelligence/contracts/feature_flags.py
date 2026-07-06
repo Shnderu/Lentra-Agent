@@ -1,9 +1,6 @@
-import os
+def is_enabled(flag: str, context: dict = None) -> bool:
+    context = context or {}
 
+    flags = context.get("flags", {})
 
-class FeatureFlags:
-
-    @staticmethod
-        return bool(
-            os.getenv("GRAPH_V2_ENABLED", "0") == "1"
-        )
+    return bool(flags.get(flag, False))
