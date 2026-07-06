@@ -1,44 +1,30 @@
-from lentra.runtime.arch_lock.arch_lock_runner import run_arch_lock
-from lentra.runtime.arch_lock.seal_engine import SealEngine
-from lentra.runtime.arch_lock.freezer import GraphFreezer
+from lentra.runtime.arch_lock.firewall import Firewall
+from lentra.runtime.arch_lock.policy_engine import PolicyEngine
 
 
 class ArchGovernor:
     """
-    Central enforcement brain for architecture rules.
+    ARCH LOCK v1.6 Governor
+    single decision point
     """
 
     def __init__(self):
-        self.seal = SealEngine()
-        self.freeze = GraphFreezer()
+        self.rules = [
+            ("lentra.core", "lentra.runtime.intelligence_gateway"),
+            ("lentra.core.market_intelligence", "lentra.runtime"),
+            ("lentra.runtime", "lentra.core.bootstrap"),
+        ]
 
-    def evaluate_boot(self):
-        """
-        Full system evaluation before runtime start.
-        """
+        self.firewall = Firewall(self.rules)
+        self.policy = PolicyEngine([])
 
-        print("[GOVERNOR] starting evaluation...")
+    def hard_gate(self, project_root="/opt/lentra/infra"):
+        violations = self.firewall.scan(project_root)
+        result = self.policy.evaluate(violations)
 
-        # 1. syntax + DAG + policy
-        run_arch_lock()
+        print("[GOVERNOR] result:", result)
 
-        # 2. freeze snapshot validation
-        snapshot = self.freeze.scan("/opt/lentra/infra/lentra")
-        print("[GOVERNOR] freeze snapshot size:", len(snapshot))
+        if result["status"] != "OK":
+            raise RuntimeError("[ARCH LOCK v1.6] BLOCKED")
 
-        # 3. seal validation
-        try:
-            self.seal.validate()
-        except Exception:
-            print("[GOVERNOR] seal not initialized → creating baseline")
-            self.seal.save_snapshot()
-
-        print("[GOVERNOR] system APPROVED")
-
-    def hard_gate(self):
-        """
-        Used by systemd ExecStartPre.
-        Blocks boot if architecture invalid.
-        """
-
-        self.evaluate_boot()
+        return result

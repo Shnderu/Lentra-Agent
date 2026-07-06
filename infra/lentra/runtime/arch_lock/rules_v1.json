@@ -1,0 +1,29 @@
+{
+  "version": "v1.2",
+  "rules": [
+    {
+      "id": "NO_RUNTIME_IMPORT_IN_CORE",
+      "type": "import_block",
+      "deny_prefixes": [
+        "lentra.runtime."
+      ],
+      "scope": [
+        "lentra.core."
+      ]
+    },
+    {
+      "id": "NO_CROSS_MARKET_INTELLIGENCE_TO_RUNTIME",
+      "type": "import_block",
+      "deny_edges": [
+        "lentra.core.market_intelligence -> lentra.runtime"
+      ]
+    },
+    {
+      "id": "NO_API_TO_CORE_BACKFLOW",
+      "type": "import_block",
+      "deny_edges": [
+        "lentra.api -> lentra.core"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+[ARCH FREEZE v1] snapshot size: 1205
+/opt/lentra/infra/lentra/load_v3.py => 2f5efba9ad4b71f54728cc50815a7417f61568aad03c74d70c35cbfa9aaf296d
+/opt/lentra/infra/lentra/main.py => 51ae9a24cfae980f28fcdc0cba56cdcb4e322e996f07372e38af4499cb82a717
+/opt/lentra/infra/lentra/load_auto.py => de7b586d2afb029f3657ce8a262f2b20d3f3533ca84db027a83622de84ec3ad2
+/opt/lentra/infra/lentra/load_v2.py => fb5b2c90a13b83be71cf5c2c6c8249705bdd258871af9d1abba79efcb599b0c9
+/opt/lentra/infra/lentra/__init__.py => 301c37c9d66548eb720d70cee7eb999208b8fc1a156585a28e3eda87cd3644e8
