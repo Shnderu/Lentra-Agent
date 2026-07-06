@@ -1,55 +1,49 @@
+import os
 import subprocess
-from datetime import datetime
 
 
 class AiderExecutor:
 
-    def __init__(self, repo_path="/opt/lentra/infra"):
-        self.repo_path = repo_path
-        self.python_bin = "/opt/lentra/infra/venv-bot/bin/python"
-        self.aider_bin = "/opt/lentra/infra/venv-bot/bin/aider"
+    def __init__(self):
+        self.working_dir = "/opt/lentra"
 
     def _run(self, cmd: str):
-        result = subprocess.run(
+        process = subprocess.Popen(
             cmd,
+            cwd=self.working_dir,
             shell=True,
-            cwd=self.repo_path,
             executable="/bin/bash",
-            capture_output=True,
-            text=True
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=self._env()
         )
 
-        if result.returncode != 0:
-            raise Exception(result.stderr)
+        stdout, stderr = process.communicate()
 
-        return result.stdout
+        if process.returncode != 0:
+            raise Exception(stderr.decode("utf-8", errors="ignore"))
 
-    def git_checkpoint(self, message: str):
-        ts = datetime.utcnow().isoformat()
+        return stdout.decode("utf-8", errors="ignore")
 
-        self._run("git add .")
-        self._run(f'git commit -m "aider-checkpoint [{ts}] {message}"')
+    def _env(self):
+        env = os.environ.copy()
 
-        return f"checkpoint: {message}"
+        # FIX: normalize Anthropic proxy auth for aider compatibility
+        if "ANTHROPIC_AUTH_TOKEN" in env and "ANTHROPIC_API_KEY" not in env:
+            env["ANTHROPIC_API_KEY"] = env["ANTHROPIC_AUTH_TOKEN"]
+
+        # required for proxy routing
+        if "ANTHROPIC_BASE_URL" in env:
+            env["ANTHROPIC_BASE_URL"] = env["ANTHROPIC_BASE_URL"]
+
+        # model routing
+        env["ANTHROPIC_MODEL"] = env.get("ANTHROPIC_MODEL", "claude-opus-4-8")
+
+        return env
 
     def run_aider(self, instruction: str):
-
-        cmd = f'''
-        {self.aider_bin} --message "{instruction}" --yes
-        '''
-
+        cmd = f"aider --yes --message \"{instruction}\""
         return self._run(cmd)
 
     def full_cycle(self, instruction: str):
-
-        pre = self.git_checkpoint("pre-aider: " + instruction)
-
-        result = self.run_aider(instruction)
-
-        post = self.git_checkpoint("post-aider: " + instruction)
-
-        return {
-            "pre": pre,
-            "result": result,
-            "post": post
-        }
+        return self.run_aider(instruction)
