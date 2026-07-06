@@ -1,7 +1,7 @@
 import sys
 
 from lentra.ai_control.aider_executor import AiderExecutor
-from lentra.core.market_intelligence.graph_v2.graph_builder import GraphV2Builder
+from lentra.core.market_intelligence.graph_v2.graph_selector import build_default_selector
 
 
 def main():
@@ -11,15 +11,14 @@ def main():
 
     instruction = " ".join(sys.argv[1:])
 
-    # AI-controlled file selection via graph_v2
-    graph = GraphV2Builder()
-    selected_files = graph.select_files(instruction)
+    selector = build_default_selector()
+    files = selector.select(instruction)
 
     executor = AiderExecutor()
 
     result = executor.full_cycle(
         instruction=instruction,
-        files=selected_files
+        files=files
     )
 
     print(result)

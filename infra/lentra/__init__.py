@@ -1,1 +1,3 @@
-# Lentra core package
+
+# Lentra root package
+
