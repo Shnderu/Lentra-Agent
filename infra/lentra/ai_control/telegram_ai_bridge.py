@@ -1,36 +1,35 @@
-"""
-Telegram → AI Control Layer bridge
-Все сообщения переводятся в TaskRouter.
-"""
-
-from .task_router import TaskRouter
-
-
 class TelegramAIBridge:
+    """
+    Single entrypoint between bot runtime and AI control layer.
+    """
 
     def __init__(self):
-        self.router = TaskRouter()
+        pass
 
-    def handle_message(self, message_text: str, context_files=None):
+    async def handle_message(self, user_id: int, text: str):
         """
-        Главная точка входа из Telegram bot handler.
-        """
+        AI decision layer stub.
 
-        task = message_text.strip()
-
-        result = self.router.route(
-            task=task,
-            context_files=context_files or []
-        )
-
-        return self._format_response(result)
-
-    def _format_response(self, result: dict) -> str:
-        """
-        Формат ответа для Telegram.
+        Later will connect:
+        - price intelligence
+        - risk scoring
+        - dedup engine
         """
 
-        if result.get("status") != "ok":
-            return f"❌ ERROR: {result.get('result')}"
+        # TEMP LOGIC (safe fallback)
+        if not text:
+            return {
+                "override": False
+            }
 
-        return f"✅ AI TASK DONE\n\n{result.get('result')}"
+        # basic routing heuristic
+        if "price" in text.lower():
+            return {
+                "override": True,
+                "response": "AI: price module not fully connected yet",
+                "state_patch": {}
+            }
+
+        return {
+            "override": False
+        }
