@@ -2,25 +2,31 @@ from __future__ import annotations
 
 import os
 import subprocess
-from typing import List
+from typing import List, Optional
 
 
 class AiderExecutor:
     """
-    Thin wrapper over aider CLI in non-interactive mode.
+    Production-safe wrapper over aider CLI.
+
+    HARD RULE:
+    Never run without explicit file scope.
     """
 
     def __init__(self, aider_bin: str = "aider", timeout: int = 600):
         self.aider_bin = aider_bin
         self.timeout = timeout
 
-    def full_cycle(self, instruction: str, files: List[str]) -> str:
-        return self.run_aider(instruction, files)
+    def full_cycle(self, instruction: str, files: Optional[List[str]] = None) -> str:
+        if not files:
+            raise ValueError(
+                "AiderExecutor blocked: file list is empty. "
+                "Full-repo execution is forbidden in Lentra."
+            )
 
-    def run_aider(self, instruction: str, files: List[str]) -> str:
         return self._run(instruction, files)
 
-    def _build_cmd(self, instruction: str, files: List[str]) -> List[str]:
+    def _build_cmd(self, instruction: str, files: List[str]) -> list:
         cmd = [
             self.aider_bin,
             "--message",
@@ -29,6 +35,7 @@ class AiderExecutor:
             "--no-gui",
             "--no-browser",
             "--cache-prompts",
+            "--no-auto-commits",
         ]
 
         for f in files:
@@ -51,6 +58,8 @@ class AiderExecutor:
         )
 
         if process.returncode != 0:
-            raise Exception(process.stderr)
+            raise RuntimeError(
+                f"Aider failed:\nSTDOUT:\n{process.stdout}\n\nSTDERR:\n{process.stderr}"
+            )
 
         return process.stdout
