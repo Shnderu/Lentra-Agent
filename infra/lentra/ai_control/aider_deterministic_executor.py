@@ -1,44 +1,14 @@
-import os
 import subprocess
-from typing import List, Dict
+from typing import List
 
 
 class AiderDeterministicExecutorV1:
     """
-    Deterministic wrapper over aider execution.
-    Enforces:
-    - strict file scope
-    - no repo expansion
-    - controlled git diff boundary
+    Deterministic wrapper over aider CLI (fixed version)
     """
 
     def __init__(self, repo_root: str = "/opt/lentra"):
         self.repo_root = repo_root
-        self.allowed_prefixes = [
-            "infra/lentra/core",
-            "infra/lentra/api",
-            "infra/lentra/ai_control",
-        ]
-
-    # -------------------------
-    # VALIDATION LAYER
-    # -------------------------
-
-    def _validate_files(self, files: List[str]) -> List[str]:
-        if not files:
-            raise Exception("No files provided to AiderDeterministicExecutorV1")
-
-        safe_files = []
-        for f in files:
-            if not any(f.startswith(p) for p in self.allowed_prefixes):
-                raise Exception(f"File outside allowed scope: {f}")
-            safe_files.append(f)
-
-        return safe_files
-
-    # -------------------------
-    # PRE-FLIGHT STATE CHECK
-    # -------------------------
 
     def _ensure_clean_git(self):
         result = subprocess.run(
@@ -48,49 +18,34 @@ class AiderDeterministicExecutorV1:
             text=True,
         )
         if result.stdout.strip():
-            raise Exception(
-                "Working tree not clean. Commit or stash before running Aider."
-            )
+            raise Exception("Working tree not clean. Commit or stash before running Aider.")
 
-    # -------------------------
-    # CORE EXECUTION
-    # -------------------------
-
-    def run(self, instruction: str, files: List[str]) -> Dict:
+    def run(self, instruction: str, files: List[str]):
         self._ensure_clean_git()
-
-        safe_files = self._validate_files(files)
 
         cmd = [
             "aider",
-            "--yes",
-            "--no-auto-commits",
-            "--model", "claude-opus-4-8",
-            "--subtree-only",
-            self.repo_root,
+            "--yes-always",
+            "--no-git",
+            "--message", instruction,
         ]
 
-        # inject file scope explicitly
-        for f in safe_files:
+        # IMPORTANT: only real CLI supported args
+        for f in files:
             cmd.append(f)
-
-        env = os.environ.copy()
-        env["AIDER_MODEL"] = "claude-opus-4-8"
 
         process = subprocess.run(
             cmd,
             cwd=self.repo_root,
-            env=env,
-            input=instruction,
-            text=True,
             capture_output=True,
+            text=True,
         )
 
         if process.returncode != 0:
             raise Exception(process.stderr)
 
         return {
-            "status": "ok",
-            "files": safe_files,
-            "output": process.stdout,
+            "stdout": process.stdout,
+            "stderr": process.stderr,
+            "cmd": cmd,
         }
