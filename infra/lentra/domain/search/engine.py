@@ -16,3 +16,24 @@ class SearchEngineCompat:
         }
 
 search_engine = SearchEngineCompat()
+
+
+def search(query: str) -> dict:
+    """
+    Minimal module-level search contract.
+
+    Exposes:
+        from core.search.engine import search
+
+    Returns a dict with at least:
+        {
+          "query": str,
+          "results": list,
+          "status": "ok"
+        }
+    """
+    return {
+        "query": query,
+        "results": [],
+        "status": "ok",
+    }

@@ -1,13 +1,25 @@
-import sys
+IGNORED_PATHS = {
+    "__pycache__",
+    ".git",
+    "venv-bot",
+    "venv",
+    ".venv",
+    "node_modules",
+}
 
 
-class ImportGuard:
+def should_index_path(path: str) -> bool:
+    normalized = path.replace("\\", "/")
 
-    def __init__(self, layer: str):
-        self.layer = layer
+    if normalized.endswith(".pyc"):
+        return False
 
-    def __enter__(self):
-        sys._lentra_import_layer = self.layer
+    for ignored in IGNORED_PATHS:
+        if f"/{ignored}/" in normalized:
+            return False
+        if normalized.endswith(f"/{ignored}"):
+            return False
+        if normalized == ignored:
+            return False
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        sys._lentra_import_layer = None
+    return True

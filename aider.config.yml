@@ -1,0 +1,12 @@
+model: claude-opus-4-8
+
+auto-commits: false
+dirty-commits: false
+
+subtree-only: true
+gitignore: true
+
+read:
+  - core/
+  - infra/
+  - services/

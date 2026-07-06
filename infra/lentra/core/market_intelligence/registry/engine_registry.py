@@ -32,6 +32,9 @@ class EngineRegistry:
             raise ValueError(f"Engine not registered: {name}")
         return self._engines[name]
 
+    def resolve(self, name: str) -> EngineSpec:
+        return self.get(name)
+
     def list(self):
         return {
             k: {

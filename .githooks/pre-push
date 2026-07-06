@@ -1,0 +1,9 @@
+#!/bin/bash
+python3 /opt/lentra/infra/scripts/repo_architecture_scan.py
+
+if [ $? -ne 0 ]; then
+  echo "🚫 PRE-PUSH BLOCKED"
+  exit 1
+fi
+
+echo "OK"

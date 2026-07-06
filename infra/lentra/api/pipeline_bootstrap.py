@@ -8,30 +8,25 @@ class Orchestrator:
         self.mi_engine = mi_engine
 
     def execute(self, request):
-        """
-        Safe execution flow:
-        1. Try resolve engine by type if provided
-        2. If missing or unknown -> fallback to MarketIntelligenceEngine
-        """
+        engine_name = request.get("type")
 
-        engine_type = request.get("type")
-
-        # если тип явно не задан — сразу MI engine
-        if not engine_type:
+        # SAFE DEFAULT (фикс падения market_intelligence)
+        if not engine_name:
             return self.mi_engine.execute(request)
 
-        # попытка резолва через registry
         try:
-            engine = self.registry.resolve(engine_type)
-        except Exception:
-            engine = None
+            engine = self.registry.resolve(engine_name)
+        except KeyError:
+            return self.mi_engine.execute(request)
 
-        # если engine найден — используем его
-        if engine:
+        # ADAPTER LAYER (КРИТИЧЕСКИЙ ФИКС)
+        if hasattr(engine, "run") and not hasattr(engine, "execute"):
+            return engine.run(request)
+
+        if hasattr(engine, "execute"):
             return engine.execute(request)
 
-        # fallback на Market Intelligence layer
-        return self.mi_engine.execute(request)
+        raise RuntimeError(f"Engine {engine_name} has no run/execute method")
 
 
 def build_orchestrator():

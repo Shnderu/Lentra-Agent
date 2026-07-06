@@ -16,5 +16,8 @@ class EngineRegistry:
     def get(self, name: str):
         return self._engines.get(name)
 
+    def resolve(self, name: str):
+        return self.get(name)
+
     def all(self):
         return self._engines

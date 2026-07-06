@@ -1,4 +1,4 @@
-#!/opt/lentra/infra/venv-bot/bin/python3
+#!/opt/lentra/infra/venv-bot/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys
