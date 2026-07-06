@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Any
 
+from lentra.ai_control.execution.policy.execution_policy_v1 import ExecutionPolicyV1
+
 
 @dataclass
 class RuntimeResult:
@@ -11,18 +13,27 @@ class RuntimeResult:
 
 class ControlledRuntimeV1:
     """
-    SINGLE ENTRYPOINT FOR ALL EXECUTION
-    NO subprocess outside sandbox adapter
+    FULL CONTROLLED RUNTIME WITH POLICY GATE
     """
 
     def __init__(self, execution_sandbox, git_guard):
         self.sandbox = execution_sandbox
         self.git_guard = git_guard
+        self.policy = ExecutionPolicyV1()
 
     def run(self, command: list[str], cwd: str = "/opt/lentra/infra") -> RuntimeResult:
         self.git_guard.ensure_clean()
 
-        result = self.sandbox.run(command, cwd=cwd)
+        decision = self.policy.validate(command)
+
+        if not decision.allowed:
+            return RuntimeResult(
+                ok=False,
+                data=None,
+                error=f"Policy rejected execution: {decision.reason}",
+            )
+
+        result = self.sandbox.run(decision.normalized_command or command, cwd=cwd)
 
         if result.code != 0:
             return RuntimeResult(
