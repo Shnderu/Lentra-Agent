@@ -1,57 +1,56 @@
-import subprocess
-import shutil
+from __future__ import annotations
+
 import os
+import subprocess
+from typing import List
 
 
 class AiderExecutor:
-    def __init__(self):
-        self.aider_path = self._resolve_aider()
+    """
+    Thin wrapper over aider CLI in non-interactive mode.
+    """
 
-    def _resolve_aider(self) -> str:
-        path = shutil.which("aider")
+    def __init__(self, aider_bin: str = "aider", timeout: int = 600):
+        self.aider_bin = aider_bin
+        self.timeout = timeout
 
-        if path:
-            return path
+    def full_cycle(self, instruction: str, files: List[str]) -> str:
+        return self.run_aider(instruction, files)
 
-        for p in ["/usr/local/bin/aider", "/usr/bin/aider"]:
-            if os.path.exists(p):
-                return p
+    def run_aider(self, instruction: str, files: List[str]) -> str:
+        return self._run(instruction, files)
 
-        raise Exception("aider binary not found")
-
-    def _run(self, args: list) -> str:
+    def _build_cmd(self, instruction: str, files: List[str]) -> List[str]:
         cmd = [
-            self.aider_path,
-            "--yes",
-            "--message", args[0],   # <-- КЛЮЧЕВОЕ ИЗМЕНЕНИЕ
+            self.aider_bin,
+            "--message",
+            instruction,
+            "--yes-always",
+            "--no-gui",
+            "--no-browser",
+            "--cache-prompts",
         ]
 
-        env = os.environ.copy()
+        for f in files:
+            cmd.extend(["--file", f])
 
-        env.update({
-            "PYTHONUNBUFFERED": "1",
-            "TERM": "dumb",
-            "COLORTERM": "0",
-            "PAGER": "cat",
-            "GIT_PAGER": "cat",
-            "AIDER_NON_INTERACTIVE": "1",
-        })
+        return cmd
+
+    def _run(self, instruction: str, files: List[str]) -> str:
+        env = os.environ.copy()
+        env["AIDER_NO_AUTO_UPGRADE"] = "1"
+        env["PYTHONUNBUFFERED"] = "1"
 
         process = subprocess.run(
-            cmd,
+            self._build_cmd(instruction, files),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            text=True,
             env=env,
-            text=True
+            timeout=self.timeout,
         )
 
         if process.returncode != 0:
             raise Exception(process.stderr)
 
         return process.stdout
-
-    def run_aider(self, instruction: str) -> str:
-        return self._run([instruction])
-
-    def full_cycle(self, instruction: str) -> str:
-        return self.run_aider(instruction)

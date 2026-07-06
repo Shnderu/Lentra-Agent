@@ -1,17 +1,25 @@
-"""
-CORE PIPELINE ORCHESTRATOR (PURE)
+from __future__ import annotations
 
-RULE:
-- NO tracing
-- NO audit
-- NO runtime imports
-"""
+from typing import Dict, Any
+
+from lentra.ai_control.aider_executor import AiderExecutor
+from lentra.core.market_intelligence.pipeline.file_scope_resolver import FileScopeResolver
+
 
 class IntelligencePipelineOrchestrator:
 
-    def run(self, data: dict):
-        # pure orchestration only
-        return {
-            "price": data.get("price", 0),
-            "risk": 0.5
-        }
+    def __init__(self):
+        self.aider = AiderExecutor()
+        self.scope_resolver = FileScopeResolver()
+
+    def execute(self, instruction: str, target_file: str, context: Dict[str, Any] | None = None) -> str:
+        files = self.scope_resolver.resolve(
+            target_file=target_file,
+            instruction=instruction,
+            context=context,
+        )
+
+        return self.aider.full_cycle(
+            instruction=instruction,
+            files=files
+        )
