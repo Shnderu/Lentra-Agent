@@ -13,22 +13,29 @@ class AiderExecutor:
         if path:
             return path
 
-        fallback_paths = [
-            "/usr/local/bin/aider",
-            "/usr/bin/aider",
-        ]
-
-        for p in fallback_paths:
+        for p in ["/usr/local/bin/aider", "/usr/bin/aider"]:
             if os.path.exists(p):
                 return p
 
         raise Exception("aider binary not found")
 
     def _run(self, cmd: list) -> str:
-        full_cmd = [self.aider_path] + cmd
+        full_cmd = [
+            self.aider_path,
+            "--yes",              # автосогласие (critical)
+            "--no-git",           # отключает git-interaction (если поддерживается)
+            *cmd
+        ]
 
         env = os.environ.copy()
-        env["PATH"] = "/usr/local/bin:/usr/bin:/bin"
+
+        # FORCE non-interactive behavior
+        env["PYTHONUNBUFFERED"] = "1"
+        env["AIDER_NON_INTERACTIVE"] = "1"
+        env["TERM"] = "dumb"
+        env["COLORTERM"] = "0"
+        env["GIT_PAGER"] = "cat"
+        env["PAGER"] = "cat"
 
         process = subprocess.run(
             full_cmd,
@@ -47,11 +54,4 @@ class AiderExecutor:
         return self._run([instruction])
 
     def full_cycle(self, instruction: str) -> str:
-        """
-        Main execution contract used by CLI layer.
-        Keeps pipeline stable for future stages:
-        - preprocessing (future)
-        - execution (aider)
-        - postprocessing (future)
-        """
         return self.run_aider(instruction)
