@@ -8,18 +8,11 @@ class AiderExecutor:
         self.aider_path = self._resolve_aider()
 
     def _resolve_aider(self) -> str:
-        """
-        Resolve aider binary across different runtime environments:
-        - systemd
-        - interactive shell
-        - minimal PATH subprocess
-        """
         path = shutil.which("aider")
 
         if path:
             return path
 
-        # hard fallback for typical installs
         fallback_paths = [
             "/usr/local/bin/aider",
             "/usr/bin/aider",
@@ -29,12 +22,9 @@ class AiderExecutor:
             if os.path.exists(p):
                 return p
 
-        raise Exception("aider binary not found in PATH or known locations")
+        raise Exception("aider binary not found")
 
     def _run(self, cmd: list) -> str:
-        """
-        Execute aider via absolute path to avoid PATH issues in systemd/subprocess.
-        """
         full_cmd = [self.aider_path] + cmd
 
         env = os.environ.copy()
@@ -55,3 +45,13 @@ class AiderExecutor:
 
     def run_aider(self, instruction: str) -> str:
         return self._run([instruction])
+
+    def full_cycle(self, instruction: str) -> str:
+        """
+        Main execution contract used by CLI layer.
+        Keeps pipeline stable for future stages:
+        - preprocessing (future)
+        - execution (aider)
+        - postprocessing (future)
+        """
+        return self.run_aider(instruction)
