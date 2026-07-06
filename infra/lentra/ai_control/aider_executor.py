@@ -1,63 +1,46 @@
 import subprocess
-import os
 from datetime import datetime
 
 
 class AiderExecutor:
-    """
-    Execution layer for Aider-driven modifications.
-    Responsible for:
-    - git checkpoint
-    - executing aider commands
-    - post-change validation
-    """
 
     def __init__(self, repo_path="/opt/lentra/infra"):
         self.repo_path = repo_path
+        self.python_bin = "/opt/lentra/infra/venv-bot/bin/python"
+        self.aider_bin = "/opt/lentra/infra/venv-bot/bin/aider"
 
     def _run(self, cmd: str):
         result = subprocess.run(
             cmd,
             shell=True,
             cwd=self.repo_path,
+            executable="/bin/bash",
             capture_output=True,
             text=True
         )
+
         if result.returncode != 0:
             raise Exception(result.stderr)
+
         return result.stdout
 
     def git_checkpoint(self, message: str):
         ts = datetime.utcnow().isoformat()
 
         self._run("git add .")
+        self._run(f'git commit -m "aider-checkpoint [{ts}] {message}"')
 
-        self._run(
-            f'git commit -m "aider-checkpoint [{ts}] {message}"'
-        )
-
-        return f"checkpoint created: {message}"
+        return f"checkpoint: {message}"
 
     def run_aider(self, instruction: str):
-        """
-        Executes aider CLI with instruction.
-        Assumes aider is installed in venv-bot/bin/aider
-        """
 
-        cmd = f"""
-        source venv-bot/bin/activate && \
-        aider --message "{instruction}" --yes
-        """
+        cmd = f'''
+        {self.aider_bin} --message "{instruction}" --yes
+        '''
 
         return self._run(cmd)
 
     def full_cycle(self, instruction: str):
-        """
-        Safe execution cycle:
-        1. git checkpoint
-        2. run aider
-        3. git checkpoint
-        """
 
         pre = self.git_checkpoint("pre-aider: " + instruction)
 
