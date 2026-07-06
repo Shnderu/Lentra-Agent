@@ -1,49 +1,57 @@
-import os
 import subprocess
+import shutil
+import os
 
 
 class AiderExecutor:
-
     def __init__(self):
-        self.working_dir = "/opt/lentra"
+        self.aider_path = self._resolve_aider()
 
-    def _run(self, cmd: str):
-        process = subprocess.Popen(
-            cmd,
-            cwd=self.working_dir,
-            shell=True,
-            executable="/bin/bash",
+    def _resolve_aider(self) -> str:
+        """
+        Resolve aider binary across different runtime environments:
+        - systemd
+        - interactive shell
+        - minimal PATH subprocess
+        """
+        path = shutil.which("aider")
+
+        if path:
+            return path
+
+        # hard fallback for typical installs
+        fallback_paths = [
+            "/usr/local/bin/aider",
+            "/usr/bin/aider",
+        ]
+
+        for p in fallback_paths:
+            if os.path.exists(p):
+                return p
+
+        raise Exception("aider binary not found in PATH or known locations")
+
+    def _run(self, cmd: list) -> str:
+        """
+        Execute aider via absolute path to avoid PATH issues in systemd/subprocess.
+        """
+        full_cmd = [self.aider_path] + cmd
+
+        env = os.environ.copy()
+        env["PATH"] = "/usr/local/bin:/usr/bin:/bin"
+
+        process = subprocess.run(
+            full_cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            env=self._env()
+            env=env,
+            text=True
         )
 
-        stdout, stderr = process.communicate()
-
         if process.returncode != 0:
-            raise Exception(stderr.decode("utf-8", errors="ignore"))
+            raise Exception(process.stderr)
 
-        return stdout.decode("utf-8", errors="ignore")
+        return process.stdout
 
-    def _env(self):
-        env = os.environ.copy()
-
-        # FIX: normalize Anthropic proxy auth for aider compatibility
-        if "ANTHROPIC_AUTH_TOKEN" in env and "ANTHROPIC_API_KEY" not in env:
-            env["ANTHROPIC_API_KEY"] = env["ANTHROPIC_AUTH_TOKEN"]
-
-        # required for proxy routing
-        if "ANTHROPIC_BASE_URL" in env:
-            env["ANTHROPIC_BASE_URL"] = env["ANTHROPIC_BASE_URL"]
-
-        # model routing
-        env["ANTHROPIC_MODEL"] = env.get("ANTHROPIC_MODEL", "claude-opus-4-8")
-
-        return env
-
-    def run_aider(self, instruction: str):
-        cmd = f"aider --yes --message \"{instruction}\""
-        return self._run(cmd)
-
-    def full_cycle(self, instruction: str):
-        return self.run_aider(instruction)
+    def run_aider(self, instruction: str) -> str:
+        return self._run([instruction])
