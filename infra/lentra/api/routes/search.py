@@ -4,6 +4,7 @@ import traceback
 from lentra.api.pipeline import run_pipeline
 from lentra.api.pipeline import get_pipeline
 
+
 router = APIRouter()
 
 
@@ -15,9 +16,19 @@ def search(payload: dict):
 
         pipeline = get_pipeline()
 
+        engine_keys = []
+
+        if hasattr(pipeline, "mi_engine"):
+            engine_keys = [
+                "market_intelligence"
+            ]
+
+        elif hasattr(pipeline, "_engine_keys"):
+            engine_keys = pipeline._engine_keys
+
         return {
             "status": "ok",
-            "engine_keys": pipeline["gateway"]._engine_keys,
+            "engine_keys": engine_keys,
             "result": result
         }
 
