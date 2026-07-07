@@ -6,7 +6,17 @@ from lentra.ai_control.runtime.git_guard_v1 import GitGuardV1
 
 class BridgeV4:
     """
-    FULL TRACEABLE DETEMINISTIC PIPELINE
+    FULL TRACEABLE DETERMINISTIC PIPELINE
+
+    Graph plan
+        ->
+    Controlled Runtime
+        ->
+    Policy
+        ->
+    Sandbox
+        ->
+    Aider
     """
 
     def __init__(self, graph_router):
@@ -17,15 +27,23 @@ class BridgeV4:
             git_guard=GitGuardV1(),
         )
 
+
     def run(self, query: str):
+
         plan = self.bridge_v3.build_plan(query)
 
-        command = self._build_deterministic_command(plan)
+        command = self._build_deterministic_command(
+            plan
+        )
 
         result = self.runtime.run(
             command=command,
             query=query,
-            plan=plan
+            plan={
+                "nodes": plan.nodes,
+                "files": plan.files,
+                "symbols": plan.symbols,
+            }
         )
 
         return {
@@ -34,16 +52,34 @@ class BridgeV4:
             "error": result.error,
         }
 
-    def _build_deterministic_command(self, plan: dict) -> list[str]:
-        nodes = plan.get("nodes", [])
 
-        if "risk_engine" in nodes:
-            return ["python", "-c", "print('risk_ok')"]
+    def _build_deterministic_command(self, plan):
 
-        if "dedup_engine" in nodes:
-            return ["python", "-c", "print('dedup_ok')"]
+        command = [
+            "aider",
+            "--yes-always",
+            "--no-suggest-shell-commands",
+            "--auto-commits",
+        ]
 
-        if "area_engine" in nodes:
-            return ["python", "-c", "print('area_ok')"]
 
-        return ["echo", "noop"]
+        files = (
+            plan.expanded_files
+            or plan.files
+        )
+
+
+        command.extend(
+            files
+        )
+
+
+        command.extend(
+            [
+                "--message",
+                plan.query,
+            ]
+        )
+
+
+        return command
