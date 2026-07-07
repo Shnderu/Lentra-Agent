@@ -1,67 +1,56 @@
 from typing import Dict, Any
 
 from lentra.runtime.bootstrap.gateway_v3 import build_gateway_v3
-from lentra.core.market_intelligence.data.city_profiles import get_market_price
-from lentra.core.market_intelligence.search.parsers.query_parser import parse_query
+from lentra.core.market_intelligence.fusion.fusion_engine_v2 import (
+    build_fusion_engine_v2,
+)
+from lentra.core.market_intelligence.search.parsers.query_parser import (
+    parse_query,
+)
 
 
 class SearchPipeline:
     """
-    Single entrypoint for /search API
+    Single entrypoint for /search API.
 
     Flow:
     query
       ->
-    parser
+    normalization
       ->
-    city profile
+    market engines
       ->
-    market intelligence
+    fusion intelligence
       ->
     decision
     """
 
     def __init__(self):
         self.gateway = build_gateway_v3()
+        self.fusion = build_fusion_engine_v2()
 
-    def run(
-        self,
-        payload: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def run(self, payload: Dict[str, Any]) -> Dict[str, Any]:
 
-        query_text = payload.get(
+        query = payload.get(
             "query",
             ""
         )
 
-        parsed = parse_query(
-            query_text
-        )
-
-        city = parsed.get(
-            "city",
-            "da_nang"
-        )
-
-        market_price = parsed.get(
-            "market_price"
-        )
-
-        price = payload.get(
-            "price"
-        )
-
-        if price is None:
-            price = parsed.get(
-                "budget",
-                0
-            )
+        parsed = parse_query(query)
 
         context = {
-            "query": query_text,
-            "city": city,
-            "price": price,
-            "market_price": market_price,
+            "query": query,
+            "price": payload.get(
+                "price",
+                parsed.get("budget", 0)
+            ),
+            "market_price": payload.get(
+                "market_price",
+                parsed.get("market_price", 0)
+            ),
+            "city": parsed.get(
+                "city"
+            ),
         }
 
         area = self.gateway.run_engine(
@@ -74,42 +63,61 @@ class SearchPipeline:
             context
         )
 
-        score = 0.5
+        engine_results = {
+            "pricing": {
+                "price": context["price"],
+                "market_price": context["market_price"],
+            },
 
-        if isinstance(
-            market,
-            dict
-        ):
-            score = market.get(
-                "pricing_score",
-                0.5
-            )
+            "risk": {
+                "level": "low"
+            },
 
-        decision = (
-            "BUY"
-            if score >= 0.7
-            else "REVIEW"
-            if score >= 0.45
-            else "AVOID"
+            "signals": {
+                "length": len(
+                    parsed.get(
+                        "tokens",
+                        []
+                    )
+                )
+            },
+
+            "dedup": {
+                "duplicates": 0
+            },
+
+            "area": area,
+
+            "market_intelligence": market,
+        }
+
+        intelligence = self.fusion.evaluate(
+            engine_results
         )
 
         return {
-            "query": query_text,
+            "query": query,
 
             "market_context": {
-                "city": city,
-                "listing_price": price,
-                "market_price": market_price,
+                "city": context["city"],
+                "listing_price": context["price"],
+                "market_price": context["market_price"],
             },
 
-            "features": {
-                "area": area,
-                "market_intelligence": market,
-            },
+            "intelligence": intelligence,
 
             "decision": {
-                "decision": decision,
-                "final_score": score,
-                "confidence": 0.8
+                "decision": intelligence.get(
+                    "decision"
+                ),
+
+                "score": intelligence.get(
+                    "score"
+                ),
+
+                "confidence": market.get(
+                    "confidence",
+                    0.5
+                ),
             }
         }
