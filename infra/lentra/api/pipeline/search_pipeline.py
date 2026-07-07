@@ -6,7 +6,7 @@ from lentra.core.adapters.search_adapter import SearchAdapter
 
 class SearchPipeline:
     """
-    Main Lentra Market Intelligence pipeline.
+    Main Market Intelligence Search Pipeline.
 
     Flow:
 
@@ -16,17 +16,77 @@ class SearchPipeline:
     SearchAdapter
       |
       v
-    Intelligence Engines
+    Market Intelligence Gateway
       |
       v
-    Product Listing Card
+    Decision Layer
     """
 
     def __init__(self):
-
         self.gateway = build_gateway_v3()
         self.adapter = SearchAdapter()
 
+    def _build_decision(
+        self,
+        market: Dict[str, Any],
+        area: Dict[str, Any],
+        listing: Dict[str, Any]
+    ) -> Dict[str, Any]:
+
+        price_score = market.get(
+            "pricing_score",
+            0.5
+        )
+
+        deviation = abs(
+            market.get(
+                "deviation",
+                0
+            )
+        )
+
+        area_score = area.get(
+            "score",
+            0.5
+        )
+
+        final_score = (
+            price_score * 0.7
+            +
+            area_score * 0.3
+        )
+
+        if deviation <= 0.05:
+            action = "BUY"
+            reason = "Цена соответствует рынку."
+
+        elif deviation <= 0.15:
+            action = "REVIEW"
+            reason = "Цена немного отличается от рынка, требуется проверка."
+
+        elif market.get("direction") == "over":
+            action = "NEGOTIATE"
+            reason = "Цена выше рынка, возможен торг."
+
+        else:
+            action = "REVIEW"
+            reason = "Предложение требует дополнительного анализа."
+
+        return {
+            "action": action,
+            "score": round(
+                final_score,
+                4
+            ),
+            "confidence": round(
+                0.7 + min(
+                    area_score * 0.2,
+                    0.2
+                ),
+                2
+            ),
+            "reason": reason
+        }
 
     def run(
         self,
@@ -44,54 +104,38 @@ class SearchPipeline:
 
         results: List[Dict[str, Any]] = []
 
-
         for listing in listings:
 
             context = {
-
                 "query": query,
-
                 "price": listing.get(
                     "price",
                     0
                 ),
-
                 "market_price": listing.get(
                     "market_price",
                     650
-                )
+                ),
             }
-
 
             area = self.gateway.run_engine(
                 "area",
                 context
             )
 
-
             market = self.gateway.run_engine(
                 "market_intelligence",
                 context
             )
 
-
-            score = market.get(
-                "pricing_score",
-                0.5
+            decision = self._build_decision(
+                market,
+                area,
+                listing
             )
-
-
-            decision = (
-                "BUY"
-                if score >= 0.7
-                else "REVIEW"
-            )
-
 
             results.append(
-
                 {
-
                     "id": listing.get(
                         "id"
                     ),
@@ -114,64 +158,26 @@ class SearchPipeline:
                         "seed"
                     ),
 
-
                     "market_analysis": {
-
-                        "listing_price":
-                            market.get(
-                                "listing_price"
-                            ),
-
-                        "market_price":
-                            market.get(
-                                "market_price"
-                            ),
-
-                        "difference":
-                            market.get(
-                                "difference"
-                            ),
-
-                        "difference_percent":
-                            market.get(
-                                "difference_percent"
-                            ),
-
-                        "verdict":
-                            market.get(
-                                "verdict"
-                            )
+                        "listing_price": listing.get(
+                            "price"
+                        ),
+                        "market_price": context.get(
+                            "market_price"
+                        )
                     },
 
-
                     "intelligence": {
-
                         "area": area,
-
                         "market": market
                     },
 
-
-                    "decision": {
-
-                        "decision": decision,
-
-                        "score": round(
-                            score,
-                            4
-                        )
-                    }
+                    "decision": decision
                 }
             )
 
-
         return {
-
             "query": query,
-
-            "count": len(
-                results
-            ),
-
+            "count": len(results),
             "results": results
         }
