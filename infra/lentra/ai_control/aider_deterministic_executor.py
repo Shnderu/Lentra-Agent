@@ -1,4 +1,5 @@
 import subprocess
+import shlex
 
 from lentra.ai_control.execution.execution_sandbox_v1 import ExecutionSandboxV1
 
@@ -10,7 +11,6 @@ class AiderDeterministicExecutor:
 
 
     def _git_hash(self):
-
         result = subprocess.run(
             [
                 "git",
@@ -26,8 +26,7 @@ class AiderDeterministicExecutor:
         return result.stdout.strip()
 
 
-    def _has_changes(self):
-
+    def _changed_files(self):
         result = subprocess.run(
             [
                 "git",
@@ -40,7 +39,13 @@ class AiderDeterministicExecutor:
             text=True,
         )
 
-        return bool(result.stdout.strip())
+        files = []
+
+        for line in result.stdout.splitlines():
+            if len(line) > 3:
+                files.append(line[3:])
+
+        return files
 
 
     def run(
@@ -71,10 +76,18 @@ class AiderDeterministicExecutor:
 
         cmd.extend(
             [
-                "--message",
-                prompt
+                "--message-file",
+                "/tmp/lentra_aider_message.txt"
             ]
         )
+
+
+        with open(
+            "/tmp/lentra_aider_message.txt",
+            "w",
+            encoding="utf-8"
+        ) as f:
+            f.write(prompt)
 
 
         result = self.sandbox.run(
@@ -83,19 +96,25 @@ class AiderDeterministicExecutor:
         )
 
 
-        if result.code != 0:
-            raise Exception(
-                result.stderr
-            )
-
-
-        after = self._git_hash()
-
-
-        return {
+        output = {
             "stdout": result.stdout,
             "stderr": result.stderr,
             "before_commit": before,
-            "after_commit": after,
-            "changed": self._has_changes(),
+            "after_commit": self._git_hash(),
+            "changed_files": self._changed_files(),
         }
+
+
+        if result.code != 0:
+            raise Exception(result.stderr)
+
+
+        allowed = set(files)
+
+        output["changed"] = any(
+            x in allowed
+            for x in output["changed_files"]
+        )
+
+
+        return output
