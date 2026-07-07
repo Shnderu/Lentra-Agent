@@ -11,25 +11,29 @@ from lentra.core.market_intelligence.search.parsers.query_parser import (
 
 class SearchPipeline:
     """
-    Single entrypoint for /search API.
+    Main search pipeline.
 
     Flow:
-    query
+
+    Query
       ->
-    normalization
+    Parser
       ->
-    market engines
+    Market engines
       ->
-    fusion intelligence
+    Fusion Intelligence
       ->
-    decision
+    Decision
     """
 
     def __init__(self):
         self.gateway = build_gateway_v3()
         self.fusion = build_fusion_engine_v2()
 
-    def run(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+    def run(
+        self,
+        payload: Dict[str, Any]
+    ) -> Dict[str, Any]:
 
         query = payload.get(
             "query",
@@ -40,18 +44,30 @@ class SearchPipeline:
 
         context = {
             "query": query,
+
             "price": payload.get(
                 "price",
-                parsed.get("budget", 0)
+                parsed.get(
+                    "budget",
+                    0
+                )
             ),
+
             "market_price": payload.get(
                 "market_price",
-                parsed.get("market_price", 0)
+                parsed.get(
+                    "market_price",
+                    0
+                )
             ),
+
             "city": parsed.get(
                 "city"
             ),
         }
+
+
+        # MARKET INTELLIGENCE ENGINES
 
         area = self.gateway.run_engine(
             "area",
@@ -63,11 +79,70 @@ class SearchPipeline:
             context
         )
 
+
+        # NORMALIZED PRICING CONTRACT
+
+        listing_price = context.get(
+            "price",
+            0
+        )
+
+        market_price = context.get(
+            "market_price",
+            0
+        )
+
+
+        if market_price:
+
+            deviation = (
+                listing_price - market_price
+            ) / market_price
+
+            delta = (
+                listing_price - market_price
+            )
+
+            pricing_score = max(
+                0.0,
+                min(
+                    1.0,
+                    1 - abs(deviation)
+                )
+            )
+
+        else:
+
+            deviation = 0
+            delta = 0
+            pricing_score = 0.5
+
+
+        pricing = {
+            "price": listing_price,
+
+            "market_price": market_price,
+
+            "score": round(
+                pricing_score,
+                4
+            ),
+
+            "delta": round(
+                delta,
+                2
+            ),
+
+            "deviation": round(
+                deviation,
+                4
+            )
+        }
+
+
         engine_results = {
-            "pricing": {
-                "price": context["price"],
-                "market_price": context["market_price"],
-            },
+
+            "pricing": pricing,
 
             "risk": {
                 "level": "low"
@@ -87,26 +162,39 @@ class SearchPipeline:
             },
 
             "area": area,
-
-            "market_intelligence": market,
         }
+
 
         intelligence = self.fusion.evaluate(
             engine_results
         )
 
+
         return {
+
             "query": query,
 
             "market_context": {
                 "city": context["city"],
-                "listing_price": context["price"],
-                "market_price": context["market_price"],
+
+                "listing_price": listing_price,
+
+                "market_price": market_price,
             },
 
-            "intelligence": intelligence,
+
+            "market_analysis": intelligence.get(
+                "market_analysis"
+            ),
+
+
+            "intelligence": intelligence.get(
+                "intelligence"
+            ),
+
 
             "decision": {
+
                 "decision": intelligence.get(
                     "decision"
                 ),
