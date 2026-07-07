@@ -11,7 +11,7 @@ class SearchPipeline:
     """
     Main Market Intelligence Search Pipeline.
 
-    Flow:
+    Core flow:
 
     Search
       |
@@ -22,16 +22,20 @@ class SearchPipeline:
       |
       +--> Dedup
       |
+      +--> Area Intelligence
+      |
       v
-    Decision
+    Decision Layer
     """
 
     def __init__(self):
+
         self.gateway = build_gateway_v3()
         self.adapter = SearchAdapter()
 
         self.risk_engine = RiskEngine()
         self.dedup_engine = DedupEngine()
+
 
     def _risk_penalty(
         self,
@@ -46,6 +50,7 @@ class SearchPipeline:
             level,
             0.15
         )
+
 
     def _build_decision(
         self,
@@ -65,6 +70,7 @@ class SearchPipeline:
             0.5
         )
 
+
         risk_data = risk.get(
             "risk",
             {}
@@ -75,9 +81,11 @@ class SearchPipeline:
             "medium"
         )
 
-        risk_penalty = self._risk_penalty(
-            risk_level
+        fraud_score = risk_data.get(
+            "fraud_score",
+            0.5
         )
+
 
         duplicates = dedup.get(
             "dedup",
@@ -87,20 +95,44 @@ class SearchPipeline:
             0
         )
 
-        duplicate_penalty = min(
-            duplicates * 0.05,
-            0.25
+
+        deviation = abs(
+            market.get(
+                "difference_percent",
+                0
+            )
         )
 
-        score = (
-            price_score * 0.6
-            +
-            area_score * 0.2
-            +
-            (1 - risk_penalty) * 0.2
-            -
-            duplicate_penalty
+
+        risk_penalty = self._risk_penalty(
+            risk_level
         )
+
+
+        duplicate_penalty = min(
+            duplicates * 0.1,
+            0.3
+        )
+
+
+        score = (
+
+            price_score * 0.45
+
+            +
+
+            area_score * 0.20
+
+            +
+
+            (1 - fraud_score) * 0.20
+
+            +
+
+            (1 - duplicate_penalty) * 0.15
+
+        )
+
 
         score = max(
             0.0,
@@ -110,41 +142,91 @@ class SearchPipeline:
             )
         )
 
+
+        signals = {
+
+            "price": market.get(
+                "verdict"
+            ),
+
+            "risk": risk_level,
+
+            "fraud_score": fraud_score,
+
+            "duplicates": duplicates,
+
+            "deviation_percent": deviation
+
+        }
+
+
         if risk_level == "high":
 
             action = "AVOID"
-            reason = "Высокий риск объявления."
 
-        elif risk_level == "medium":
+            reason = (
+                "Высокий риск объявления."
+            )
+
+
+        elif fraud_score >= 0.45:
 
             action = "REVIEW"
-            reason = "Цена отличается от рынка, требуется проверка."
 
-        elif score >= 0.75:
+            reason = (
+                "Цена привлекательная, "
+                "но требуется проверка риска."
+            )
+
+
+        elif deviation > 25:
+
+            action = "REVIEW"
+
+            reason = (
+                "Сильное отклонение от рынка."
+            )
+
+
+        elif score >= 0.78:
 
             action = "BUY"
-            reason = "Цена и параметры соответствуют рынку."
+
+            reason = (
+                "Цена, риск и параметры "
+                "соответствуют рынку."
+            )
+
 
         else:
 
             action = "REVIEW"
-            reason = "Предложение требует дополнительного анализа."
+
+            reason = (
+                "Предложение требует анализа."
+            )
+
 
         return {
+
             "action": action,
+
             "score": round(
                 score,
                 4
             ),
+
             "confidence": round(
-                max(
-                    0.5,
-                    1 - risk_penalty
-                ),
+                1 - risk_penalty,
                 2
             ),
-            "reason": reason
+
+            "reason": reason,
+
+            "signals": signals
+
         }
+
 
     def run(
         self,
@@ -156,47 +238,61 @@ class SearchPipeline:
             ""
         )
 
+
         listings = self.adapter.build_objects(
             query
         )
 
+
         results: List[Dict[str, Any]] = []
+
 
         for listing in listings:
 
+
             context = {
+
                 "query": query,
+
                 "price": listing.get(
                     "price",
                     0
                 ),
+
                 "market_price": listing.get(
                     "market_price",
                     650
                 ),
+
                 "city": listing.get(
                     "city",
                     "da_nang"
                 ),
+
             }
+
 
             area = self.gateway.run_engine(
                 "area",
                 context
             )
 
+
             market = self.gateway.run_engine(
                 "market_intelligence",
                 context
             )
 
+
             risk_result = self.risk_engine.evaluate(
                 context.copy()
             )
 
+
             dedup_result = self.dedup_engine.evaluate(
                 context.copy()
             )
+
 
             decision = self._build_decision(
                 market,
@@ -205,39 +301,72 @@ class SearchPipeline:
                 area
             )
 
+
             results.append(
+
                 {
-                    "id": listing.get("id"),
-                    "title": listing.get("title"),
-                    "price": listing.get("price"),
+
+                    "id": listing.get(
+                        "id"
+                    ),
+
+                    "title": listing.get(
+                        "title"
+                    ),
+
+                    "price": listing.get(
+                        "price"
+                    ),
+
                     "city": listing.get(
                         "city",
                         "da_nang"
                     ),
+
                     "source": listing.get(
                         "source",
                         "seed"
                     ),
+
                     "market_analysis": {
-                        "listing_price": listing.get(
-                            "price"
-                        ),
-                        "market_price": context.get(
-                            "market_price"
-                        )
+
+                        "listing_price":
+                            listing.get("price"),
+
+                        "market_price":
+                            context.get(
+                                "market_price"
+                            )
+
                     },
+
+
                     "intelligence": {
+
                         "area": area,
+
                         "market": market,
+
                         "risk": risk_result,
+
                         "dedup": dedup_result
+
                     },
+
+
                     "decision": decision
+
                 }
+
             )
 
+
         return {
+
             "query": query,
+
             "count": len(results),
+
             "results": results
+
         }
