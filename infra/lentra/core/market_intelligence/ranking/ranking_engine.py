@@ -9,8 +9,12 @@ class MarketRankingEngine:
         def score(c):
 
             price = c.get("price") or 0
-            risk = c.get("risk") or 0.5
-            confidence = c.get("confidence") or 0.5
+            risk = c.get("risk")
+            if risk is None:
+                risk = 0.5
+            confidence = c.get("confidence")
+            if confidence is None:
+                confidence = 0.5
 
             # normalized utility model
             value_score = confidence * (1.0 - risk)
