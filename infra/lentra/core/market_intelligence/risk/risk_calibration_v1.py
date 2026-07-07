@@ -16,8 +16,11 @@ class RiskCalibrationV1:
     Deterministic risk calibration engine.
 
     No ML.
-    Only ratio-based correction.
+    Only bounded, confidence-weighted correction.
     """
+
+    # Number of events at which we fully trust observed outcomes.
+    FULL_CONFIDENCE_EVENTS = 10
 
     def __init__(self):
         self.events: List[RiskEvent] = []
@@ -32,8 +35,18 @@ class RiskCalibrationV1:
             )
         )
 
+    def _relevant_events(self, entity_id: str) -> List[RiskEvent]:
+        return [e for e in self.events if e.entity_id == entity_id]
+
     def calibration_factor(self, entity_id: str) -> float:
-        relevant = [e for e in self.events if e.entity_id == entity_id]
+        """
+        Bounded correction factor.
+
+        Returns the ratio of observed outcome to predicted risk,
+        clamped to a sane range so a few noisy events cannot cause
+        runaway scaling.
+        """
+        relevant = self._relevant_events(entity_id)
 
         if not relevant:
             return 1.0
@@ -44,9 +57,28 @@ class RiskCalibrationV1:
         if avg_pred == 0:
             return 1.0
 
-        # deterministic correction factor
-        return avg_actual / avg_pred
+        factor = avg_actual / avg_pred
+
+        # deterministic clamp to avoid runaway scaling
+        return max(0.25, min(4.0, factor))
 
     def calibrated_risk(self, entity_id: str, base_risk: float) -> float:
-        factor = self.calibration_factor(entity_id)
-        return max(0.0, min(1.0, base_risk * factor))
+        """
+        Blend the base risk toward observed outcomes.
+
+        The more events we have for an entity, the more we trust the
+        observed average outcome over the raw base risk. This keeps the
+        result bounded, deterministic and stable.
+        """
+        relevant = self._relevant_events(entity_id)
+
+        if not relevant:
+            return max(0.0, min(1.0, base_risk))
+
+        avg_actual = sum(e.actual_outcome for e in relevant) / len(relevant)
+
+        confidence = min(1.0, len(relevant) / self.FULL_CONFIDENCE_EVENTS)
+
+        calibrated = (1.0 - confidence) * base_risk + confidence * avg_actual
+
+        return max(0.0, min(1.0, calibrated))
