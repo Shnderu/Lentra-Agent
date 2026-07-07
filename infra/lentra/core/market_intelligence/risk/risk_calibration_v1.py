@@ -22,10 +22,19 @@ class RiskCalibrationV1:
     # Number of events at which we fully trust observed outcomes.
     FULL_CONFIDENCE_EVENTS = 10
 
+    # Upper bound on confidence so base_risk always keeps some weight.
+    MAX_CONFIDENCE = 0.95
+
+    # Hard cap on stored events to prevent unbounded growth.
+    MAX_EVENTS = 10000
+
     def __init__(self):
         self.events: List[RiskEvent] = []
 
     def log_event(self, entity_id: str, predicted_risk: float, actual_outcome: float):
+        predicted_risk = max(0.0, min(1.0, predicted_risk))
+        actual_outcome = max(0.0, min(1.0, actual_outcome))
+
         self.events.append(
             RiskEvent(
                 entity_id=entity_id,
@@ -34,6 +43,10 @@ class RiskCalibrationV1:
                 timestamp=time.time(),
             )
         )
+
+        # deterministic bound on storage: drop oldest events beyond cap
+        if len(self.events) > self.MAX_EVENTS:
+            del self.events[: len(self.events) - self.MAX_EVENTS]
 
     def _relevant_events(self, entity_id: str) -> List[RiskEvent]:
         return [e for e in self.events if e.entity_id == entity_id]
@@ -77,7 +90,9 @@ class RiskCalibrationV1:
 
         avg_actual = sum(e.actual_outcome for e in relevant) / len(relevant)
 
-        confidence = min(1.0, len(relevant) / self.FULL_CONFIDENCE_EVENTS)
+        confidence = min(
+            self.MAX_CONFIDENCE, len(relevant) / self.FULL_CONFIDENCE_EVENTS
+        )
 
         calibrated = (1.0 - confidence) * base_risk + confidence * avg_actual
 

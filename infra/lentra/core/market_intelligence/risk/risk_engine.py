@@ -10,6 +10,9 @@ class RiskEngine:
         self.calibration = RiskCalibrationV1()
 
     def score(self, entity_id: str, signals: dict) -> float:
+        if signals is None:
+            signals = {}
+
         base = self._base_score(signals)
 
         return self.calibration.calibrated_risk(entity_id, base)
