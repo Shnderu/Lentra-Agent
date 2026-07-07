@@ -1,36 +1,27 @@
-from lentra.core.graph_v2.engines.registry import EngineRegistry
-from lentra.core.market_intelligence.engines.market_intelligence_engine import MarketIntelligenceEngine
+from typing import Any, Dict
+
+from lentra.runtime.bootstrap.wiring_safe import build_gateway
 
 
 class Orchestrator:
-    def __init__(self, registry, mi_engine):
-        self.registry = registry
-        self.mi_engine = mi_engine
+    """
+    API orchestration layer.
 
-    def execute(self, request):
-        engine_name = request.get("type")
+    Core intelligence:
+    RegistryV3 + FusionEngineV2
+    """
 
-        # SAFE DEFAULT (фикс падения market_intelligence)
-        if not engine_name:
-            return self.mi_engine.execute(request)
+    def __init__(self, gateway: Dict[str, Any]):
+        self.gateway = gateway
 
-        try:
-            engine = self.registry.resolve(engine_name)
-        except KeyError:
-            return self.mi_engine.execute(request)
-
-        # ADAPTER LAYER (КРИТИЧЕСКИЙ ФИКС)
-        if hasattr(engine, "run") and not hasattr(engine, "execute"):
-            return engine.run(request)
-
-        if hasattr(engine, "execute"):
-            return engine.execute(request)
-
-        raise RuntimeError(f"Engine {engine_name} has no run/execute method")
+    def execute(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        return self.gateway["handle"](request)
 
 
 def build_orchestrator():
-    registry = EngineRegistry()
-    mi_engine = MarketIntelligenceEngine()
 
-    return Orchestrator(registry=registry, mi_engine=mi_engine)
+    gateway = build_gateway()
+
+    return Orchestrator(
+        gateway=gateway
+    )
