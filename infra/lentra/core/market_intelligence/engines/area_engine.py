@@ -10,18 +10,45 @@ class AreaEngine:
 
     output:
         enriched result dict
+
+    Responsibility:
+    - use normalized city context
+    - provide area intelligence contract
     """
 
-    def evaluate(self, result: Dict[str, Any]) -> Dict[str, Any]:
+    def evaluate(
+        self,
+        result: Dict[str, Any]
+    ) -> Dict[str, Any]:
 
         if not isinstance(result, dict):
             result = {}
 
-        query = result.get("query", "")
+        city = result.get(
+            "city"
+        )
+
+        query = result.get(
+            "query",
+            ""
+        )
+
+        if city:
+            detected = city
+
+        elif "da nang" in query.lower():
+            detected = "da_nang"
+
+        else:
+            detected = "unknown"
+
 
         result["area"] = {
-            "detected": "unknown",
-            "query_hint": query[:20],
+
+            "detected": detected,
+
+            "city": detected,
+
             "status": "ok"
         }
 
