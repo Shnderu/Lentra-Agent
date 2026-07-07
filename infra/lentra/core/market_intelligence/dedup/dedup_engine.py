@@ -1,42 +1,97 @@
+from typing import Dict, Any
+
+from lentra.core.market_intelligence.dedup.fingerprint_index import fingerprint_index
+
+
 class DedupEngine:
+    """
+    Deduplication Intelligence Engine v1.
 
-    def cluster(self, listings):
+    Responsibilities:
+    - generate object fingerprint
+    - store listing
+    - detect existing duplicates
+    """
 
-        clusters = []
-        used = set()
 
-        for i, item in enumerate(listings):
+    def evaluate(
+        self,
+        listing: Dict[str, Any]
+    ) -> Dict[str, Any]:
 
-            if i in used:
-                continue
+        if not isinstance(listing, dict):
+            return {
+                "duplicates": 0,
+                "confidence": 0.0
+            }
 
-            cluster = [item]
-            used.add(i)
 
-            for j, other in enumerate(listings):
+        fingerprint = self._fingerprint(
+            listing
+        )
 
-                if j in used:
-                    continue
 
-                if self._similar(item, other):
-                    cluster.append(other)
-                    used.add(j)
+        existing = fingerprint_index.find(
+            fingerprint
+        )
 
-            clusters.append({
-                "listings": cluster
-            })
 
-        return clusters
+        duplicates = len(existing)
 
-    def _similar(self, a, b):
 
-        if (a.get("title") or "").lower() == (b.get("title") or "").lower():
-            return True
+        fingerprint_index.add(
+            fingerprint,
+            listing
+        )
 
-        pa = a.get("price")
-        pb = b.get("price")
 
-        if pa and pb:
-            return abs(pa - pb) / max(pa, pb) < 0.1
+        return {
+            "fingerprint": fingerprint,
+            "duplicates": duplicates,
+            "confidence": (
+                0.9
+                if duplicates
+                else 0.0
+            ),
+            "sources": [
+                x.get("source")
+                for x in existing
+            ],
+            "status": (
+                "duplicate_found"
+                if duplicates
+                else "new_listing"
+            )
+        }
 
-        return False
+
+    def _fingerprint(
+        self,
+        listing: Dict[str, Any]
+    ) -> str:
+
+        title = listing.get(
+            "title",
+            ""
+        ).lower()
+
+        city = listing.get(
+            "city",
+            ""
+        )
+
+        normalized = (
+            title
+            .replace("studio", "")
+            .replace("apartment", "")
+            .replace("near", "")
+            .replace(" ", "")
+            +
+            city
+        )
+
+        import hashlib
+
+        return hashlib.sha256(
+            normalized.encode()
+        ).hexdigest()[:16]
