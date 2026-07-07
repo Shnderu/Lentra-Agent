@@ -1,29 +1,16 @@
 import subprocess
-import hashlib
 
 from lentra.ai_control.execution.execution_sandbox_v1 import ExecutionSandboxV1
 
 
 class AiderDeterministicExecutor:
-    """
-    Controlled Aider executor.
-
-    Flow:
-
-    git state before
-        ↓
-    aider execution
-        ↓
-    git state after
-        ↓
-    change verification
-    """
 
     def __init__(self):
         self.sandbox = ExecutionSandboxV1()
 
 
     def _git_hash(self):
+
         result = subprocess.run(
             [
                 "git",
@@ -40,6 +27,7 @@ class AiderDeterministicExecutor:
 
 
     def _has_changes(self):
+
         result = subprocess.run(
             [
                 "git",
@@ -63,6 +51,7 @@ class AiderDeterministicExecutor:
 
         before = self._git_hash()
 
+
         cmd = [
             "aider",
             "--yes-always",
@@ -70,27 +59,37 @@ class AiderDeterministicExecutor:
             "--auto-commits",
         ]
 
-        for f in files:
-            cmd.append(f)
+
+        for file in files:
+            cmd.extend(
+                [
+                    "--file",
+                    file
+                ]
+            )
+
 
         cmd.extend(
             [
                 "--message",
-                prompt,
+                prompt
             ]
         )
 
 
-        result = self.sandbox.run(cmd)
+        result = self.sandbox.run(
+            cmd,
+            cwd="/opt/lentra"
+        )
 
 
         if result.code != 0:
-            raise Exception(result.stderr)
+            raise Exception(
+                result.stderr
+            )
 
 
         after = self._git_hash()
-
-        changed = self._has_changes()
 
 
         return {
@@ -98,5 +97,5 @@ class AiderDeterministicExecutor:
             "stderr": result.stderr,
             "before_commit": before,
             "after_commit": after,
-            "changed": changed,
+            "changed": self._has_changes(),
         }
