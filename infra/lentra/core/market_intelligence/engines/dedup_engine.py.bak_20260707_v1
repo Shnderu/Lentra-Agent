@@ -1,9 +1,9 @@
 from typing import Dict, Any
 
 
-class SignalsEngine:
+class DedupEngine:
     """
-    V3 SAFE SIGNAL ENGINE
+    V3 SAFE DEDUP ENGINE
 
     input:
         accumulated result dict
@@ -17,12 +17,9 @@ class SignalsEngine:
         if not isinstance(result, dict):
             result = {}
 
-        query = result.get("query", "")
-
-        result["signals"] = {
-            "length": len(query),
-            "type": "rental_query",
-            "status": "ok"
+        result["dedup"] = {
+            "duplicates": 0,
+            "status": "no_index"
         }
 
         return result

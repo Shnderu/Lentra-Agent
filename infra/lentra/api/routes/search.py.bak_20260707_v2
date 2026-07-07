@@ -18,26 +18,13 @@ def search(payload: dict):
 
         engine_keys = []
 
-        gateway = getattr(
-            pipeline,
-            "gateway",
-            None
-        )
+        if hasattr(pipeline, "mi_engine"):
+            engine_keys = [
+                "market_intelligence"
+            ]
 
-        if isinstance(gateway, dict):
-
-            registry = gateway.get(
-                "registry"
-            )
-
-            if registry and hasattr(
-                registry,
-                "list_engines"
-            ):
-                engine_keys = registry.list_engines().get(
-                    "active",
-                    []
-                )
+        elif hasattr(pipeline, "_engine_keys"):
+            engine_keys = pipeline._engine_keys
 
         return {
             "status": "ok",
@@ -46,7 +33,6 @@ def search(payload: dict):
         }
 
     except Exception as e:
-
         return {
             "status": "error",
             "error": str(e),
