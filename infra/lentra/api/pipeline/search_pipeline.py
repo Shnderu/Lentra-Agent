@@ -3,6 +3,9 @@ from typing import Dict, Any, List
 from lentra.runtime.bootstrap.gateway_v3 import build_gateway_v3
 from lentra.core.adapters.search_adapter import SearchAdapter
 
+from lentra.core.market_intelligence.engines.risk_engine import RiskEngine
+from lentra.core.market_intelligence.engines.dedup_engine import DedupEngine
+
 
 class SearchPipeline:
     """
@@ -10,27 +13,46 @@ class SearchPipeline:
 
     Flow:
 
-    query
+    Search
       |
       v
-    SearchAdapter
+    Market Intelligence
+      |
+      +--> Risk
+      |
+      +--> Dedup
       |
       v
-    Market Intelligence Gateway
-      |
-      v
-    Decision Layer
+    Decision
     """
 
     def __init__(self):
         self.gateway = build_gateway_v3()
         self.adapter = SearchAdapter()
 
+        self.risk_engine = RiskEngine()
+        self.dedup_engine = DedupEngine()
+
+    def _risk_penalty(
+        self,
+        level: str
+    ) -> float:
+
+        return {
+            "low": 0.0,
+            "medium": 0.15,
+            "high": 0.35,
+        }.get(
+            level,
+            0.15
+        )
+
     def _build_decision(
         self,
         market: Dict[str, Any],
+        risk: Dict[str, Any],
+        dedup: Dict[str, Any],
         area: Dict[str, Any],
-        listing: Dict[str, Any]
     ) -> Dict[str, Any]:
 
         price_score = market.get(
@@ -38,50 +60,86 @@ class SearchPipeline:
             0.5
         )
 
-        deviation = abs(
-            market.get(
-                "deviation",
-                0
-            )
-        )
-
         area_score = area.get(
             "score",
             0.5
         )
 
-        final_score = (
-            price_score * 0.7
-            +
-            area_score * 0.3
+        risk_data = risk.get(
+            "risk",
+            {}
         )
 
-        if deviation <= 0.05:
-            action = "BUY"
-            reason = "Цена соответствует рынку."
+        risk_level = risk_data.get(
+            "level",
+            "medium"
+        )
 
-        elif deviation <= 0.15:
+        risk_penalty = self._risk_penalty(
+            risk_level
+        )
+
+        duplicates = dedup.get(
+            "dedup",
+            {}
+        ).get(
+            "duplicates",
+            0
+        )
+
+        duplicate_penalty = min(
+            duplicates * 0.05,
+            0.25
+        )
+
+        score = (
+            price_score * 0.6
+            +
+            area_score * 0.2
+            +
+            (1 - risk_penalty) * 0.2
+            -
+            duplicate_penalty
+        )
+
+        score = max(
+            0.0,
+            min(
+                score,
+                1.0
+            )
+        )
+
+        if risk_level == "high":
+
+            action = "AVOID"
+            reason = "Высокий риск объявления."
+
+        elif risk_level == "medium":
+
             action = "REVIEW"
-            reason = "Цена немного отличается от рынка, требуется проверка."
+            reason = "Цена отличается от рынка, требуется проверка."
 
-        elif market.get("direction") == "over":
-            action = "NEGOTIATE"
-            reason = "Цена выше рынка, возможен торг."
+        elif score >= 0.75:
+
+            action = "BUY"
+            reason = "Цена и параметры соответствуют рынку."
 
         else:
+
             action = "REVIEW"
             reason = "Предложение требует дополнительного анализа."
 
         return {
             "action": action,
             "score": round(
-                final_score,
+                score,
                 4
             ),
             "confidence": round(
-                0.7 + min(
-                    area_score * 0.2,
-                    0.2
+                max(
+                    0.5,
+                    1 - risk_penalty
                 ),
                 2
             ),
@@ -116,6 +174,10 @@ class SearchPipeline:
                     "market_price",
                     650
                 ),
+                "city": listing.get(
+                    "city",
+                    "da_nang"
+                ),
             }
 
             area = self.gateway.run_engine(
@@ -128,36 +190,34 @@ class SearchPipeline:
                 context
             )
 
+            risk_result = self.risk_engine.evaluate(
+                context.copy()
+            )
+
+            dedup_result = self.dedup_engine.evaluate(
+                context.copy()
+            )
+
             decision = self._build_decision(
                 market,
-                area,
-                listing
+                risk_result,
+                dedup_result,
+                area
             )
 
             results.append(
                 {
-                    "id": listing.get(
-                        "id"
-                    ),
-
-                    "title": listing.get(
-                        "title"
-                    ),
-
-                    "price": listing.get(
-                        "price"
-                    ),
-
+                    "id": listing.get("id"),
+                    "title": listing.get("title"),
+                    "price": listing.get("price"),
                     "city": listing.get(
                         "city",
                         "da_nang"
                     ),
-
                     "source": listing.get(
                         "source",
                         "seed"
                     ),
-
                     "market_analysis": {
                         "listing_price": listing.get(
                             "price"
@@ -166,12 +226,12 @@ class SearchPipeline:
                             "market_price"
                         )
                     },
-
                     "intelligence": {
                         "area": area,
-                        "market": market
+                        "market": market,
+                        "risk": risk_result,
+                        "dedup": dedup_result
                     },
-
                     "decision": decision
                 }
             )
