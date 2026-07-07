@@ -30,54 +30,25 @@ def extract_engine_block(name: str, value: Dict[str, Any]) -> Dict[str, Any]:
 
 def build_features(engines: Dict[str, Any]) -> Dict[str, float]:
 
-    pricing = extract_engine_block(
-        "pricing",
-        engines.get("pricing", {})
-    )
+    pricing = extract_engine_block("pricing", engines.get("pricing", {}))
+    risk = extract_engine_block("risk", engines.get("risk", {}))
+    signals = extract_engine_block("signals", engines.get("signals", {}))
+    area = extract_engine_block("area", engines.get("area", {}))
+    dedup = extract_engine_block("dedup", engines.get("dedup", {}))
 
-    risk = extract_engine_block(
-        "risk",
-        engines.get("risk", {})
-    )
-
-    signals = extract_engine_block(
-        "signals",
-        engines.get("signals", {})
-    )
-
-    area = extract_engine_block(
-        "area",
-        engines.get("area", {})
-    )
-
-    dedup = extract_engine_block(
-        "dedup",
-        engines.get("dedup", {})
-    )
-
-
-    delta = safe_get(
-        pricing,
-        "delta",
-        0
-    ) or 0
-
+    delta = safe_get(pricing, "delta", 0) or 0
 
     price_score = safe_get(
         pricing,
         "score",
-        1.0 / (
-            1.0 + abs(delta) / 100.0
-        )
+        1.0 / (1.0 + abs(delta) / 100.0)
     )
-
 
     risk_level = safe_get(
         risk,
         "level",
         "unknown"
     )
-
 
     risk_map = {
         "low": 0.9,
@@ -86,13 +57,11 @@ def build_features(engines: Dict[str, Any]) -> Dict[str, float]:
         "unknown": 0.5
     }
 
-
     signal_len = safe_get(
         signals,
         "length",
         0
     ) or 0
-
 
     duplicates = safe_get(
         dedup,
@@ -100,30 +69,12 @@ def build_features(engines: Dict[str, Any]) -> Dict[str, float]:
         0
     ) or 0
 
-
     return {
         "price": price_score,
-        "risk": risk_map.get(
-            risk_level,
-            0.5
-        ),
-        "signals": min(
-            signal_len / 30.0,
-            1.0
-        ),
-        "area": (
-            0.3
-            if safe_get(area, "detected", "unknown") == "unknown"
-            else 0.8
-        ),
-        "dedup": (
-            1.0
-            if duplicates == 0
-            else max(
-                0.0,
-                1.0 - duplicates * 0.2
-            )
-        ),
+        "risk": risk_map.get(risk_level, 0.5),
+        "signals": min(signal_len / 30.0, 1.0),
+        "area": 0.3 if safe_get(area, "detected", "unknown") == "unknown" else 0.8,
+        "dedup": 1.0 if duplicates == 0 else max(0.0, 1.0 - duplicates * 0.2),
     }
 
 
@@ -142,10 +93,7 @@ def calibrate(raw_score: float) -> float:
         1 + (2.718 ** (-3 * (raw_score - 0.5)))
     )
 
-    return round(
-        calibrated,
-        4
-    )
+    return round(calibrated, 4)
 
 
 def decision(score: float) -> str:
@@ -159,59 +107,54 @@ def decision(score: float) -> str:
     return "REJECT"
 
 
-def build_market_analysis(
-    engine_results: Dict[str, Any]
-) -> Dict[str, Any]:
+def build_market_analysis(engine_results):
 
     pricing = extract_engine_block(
         "pricing",
         engine_results.get("pricing", {})
     )
 
-    price = safe_get(
-        pricing,
-        "price",
-        0
-    )
-
-    market_price = safe_get(
-        pricing,
-        "market_price",
-        0
-    )
-
-    delta = safe_get(
-        pricing,
-        "delta",
-        0
-    )
-
-    deviation = safe_get(
-        pricing,
-        "deviation",
-        0
-    )
-
+    delta = safe_get(pricing, "delta", 0)
+    deviation = safe_get(pricing, "deviation", 0)
 
     if delta > 0:
         verdict = "overpriced"
-
     elif delta < 0:
         verdict = "good_deal"
-
     else:
         verdict = "market_price"
 
-
     return {
-        "listing_price": price,
-        "market_price": market_price,
+        "listing_price": safe_get(pricing, "price", 0),
+        "market_price": safe_get(pricing, "market_price", 0),
         "difference": delta,
         "difference_percent": round(
             deviation * 100,
             2
         ),
         "verdict": verdict
+    }
+
+
+def build_intelligence(engine_results):
+
+    return {
+        "pricing": build_market_analysis(engine_results),
+
+        "risk": extract_engine_block(
+            "risk",
+            engine_results.get("risk", {})
+        ),
+
+        "dedup": extract_engine_block(
+            "dedup",
+            engine_results.get("dedup", {})
+        ),
+
+        "area": extract_engine_block(
+            "area",
+            engine_results.get("area", {})
+        )
     }
 
 
@@ -222,19 +165,14 @@ class FusionEngineV2:
         engine_results: Dict[str, Any]
     ) -> Dict[str, Any]:
 
-        features = build_features(
-            engine_results
-        )
+        features = build_features(engine_results)
 
         raw_score = sum(
             features[k] * WEIGHTS[k]
             for k in WEIGHTS
         )
 
-        calibrated_score = calibrate(
-            raw_score
-        )
-
+        calibrated_score = calibrate(raw_score)
 
         return {
             "score": calibrated_score,
@@ -249,6 +187,10 @@ class FusionEngineV2:
             ),
 
             "market_analysis": build_market_analysis(
+                engine_results
+            ),
+
+            "intelligence": build_intelligence(
                 engine_results
             ),
 
