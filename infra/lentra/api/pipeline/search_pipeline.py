@@ -6,7 +6,7 @@ from lentra.core.adapters.search_adapter import SearchAdapter
 
 class SearchPipeline:
     """
-    Main search pipeline.
+    Main Lentra Market Intelligence pipeline.
 
     Flow:
 
@@ -16,17 +16,22 @@ class SearchPipeline:
     SearchAdapter
       |
       v
-    Market Intelligence Gateway
+    Intelligence Engines
       |
       v
-    AI Decision
+    Product Listing Card
     """
 
     def __init__(self):
+
         self.gateway = build_gateway_v3()
         self.adapter = SearchAdapter()
 
-    def run(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+
+    def run(
+        self,
+        payload: Dict[str, Any]
+    ) -> Dict[str, Any]:
 
         query = payload.get(
             "query",
@@ -39,40 +44,42 @@ class SearchPipeline:
 
         results: List[Dict[str, Any]] = []
 
+
         for listing in listings:
 
             context = {
+
                 "query": query,
+
                 "price": listing.get(
                     "price",
                     0
                 ),
+
                 "market_price": listing.get(
                     "market_price",
                     650
-                ),
+                )
             }
+
 
             area = self.gateway.run_engine(
                 "area",
                 context
             )
 
+
             market = self.gateway.run_engine(
                 "market_intelligence",
                 context
             )
 
-            score = 0.5
 
-            if isinstance(
-                market,
-                dict
-            ):
-                score = market.get(
-                    "pricing_score",
-                    0.5
-                )
+            score = market.get(
+                "pricing_score",
+                0.5
+            )
+
 
             decision = (
                 "BUY"
@@ -80,8 +87,11 @@ class SearchPipeline:
                 else "REVIEW"
             )
 
+
             results.append(
+
                 {
+
                     "id": listing.get(
                         "id"
                     ),
@@ -104,13 +114,48 @@ class SearchPipeline:
                         "seed"
                     ),
 
+
+                    "market_analysis": {
+
+                        "listing_price":
+                            market.get(
+                                "listing_price"
+                            ),
+
+                        "market_price":
+                            market.get(
+                                "market_price"
+                            ),
+
+                        "difference":
+                            market.get(
+                                "difference"
+                            ),
+
+                        "difference_percent":
+                            market.get(
+                                "difference_percent"
+                            ),
+
+                        "verdict":
+                            market.get(
+                                "verdict"
+                            )
+                    },
+
+
                     "intelligence": {
+
                         "area": area,
+
                         "market": market
                     },
 
+
                     "decision": {
+
                         "decision": decision,
+
                         "score": round(
                             score,
                             4
@@ -119,7 +164,9 @@ class SearchPipeline:
                 }
             )
 
+
         return {
+
             "query": query,
 
             "count": len(
