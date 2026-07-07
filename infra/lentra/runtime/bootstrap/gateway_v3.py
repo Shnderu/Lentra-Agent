@@ -3,15 +3,17 @@ from typing import Dict, Any
 from lentra.core.market_intelligence.engine_wrapper import EngineWrapper
 from lentra.core.engines.area_engine import AreaEngine
 from lentra.core.engines.market_intelligence_engine import MarketIntelligenceEngine
+from lentra.core.market_intelligence.engines.risk_engine import RiskEngine
+from lentra.core.market_intelligence.engines.dedup_engine import DedupEngine
 from lentra.core.observability.observability_engine_v1 import ObservabilityEngineV1
 
 
 class GatewayV3:
     """
-    Gateway orchestration layer.
+    Gateway V3 orchestration layer.
 
     Responsibility:
-    - engine routing only
+    - routing only
     - no business logic
     """
 
@@ -23,9 +25,20 @@ class GatewayV3:
 
         engine = engine_cls()
 
+        if hasattr(engine, "run"):
+            fn = engine.run
+
+        elif hasattr(engine, "evaluate"):
+            fn = engine.evaluate
+
+        else:
+            raise RuntimeError(
+                f"engine_has_no_entrypoint:{name}"
+            )
+
         self.engines[name] = EngineWrapper(
             name,
-            engine.run,
+            fn,
             self.obs
         )
 
@@ -58,6 +71,16 @@ def build_gateway_v3():
     gateway.register(
         "market_intelligence",
         MarketIntelligenceEngine
+    )
+
+    gateway.register(
+        "risk",
+        RiskEngine
+    )
+
+    gateway.register(
+        "dedup",
+        DedupEngine
     )
 
     return gateway
