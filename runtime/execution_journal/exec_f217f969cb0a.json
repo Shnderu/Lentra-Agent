@@ -1,0 +1,17 @@
+{
+  "id": "exec_f217f969cb0a",
+  "created_at": "2026-07-07T06:03:04.522463+00:00",
+  "query": "fix risk engine scoring logic",
+  "status": "running",
+  "payload": {
+    "intent": "risk",
+    "engine": "risk_engine"
+  },
+  "events": [
+    {
+      "timestamp": "2026-07-07T06:03:04.522644+00:00",
+      "event": "verification_started",
+      "data": {}
+    }
+  ]
+}
