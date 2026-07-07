@@ -3,22 +3,32 @@ from typing import Dict, Any
 from lentra.core.market_intelligence.engine_wrapper import EngineWrapper
 from lentra.core.engines.area_engine import AreaEngine
 from lentra.core.engines.market_intelligence_engine import MarketIntelligenceEngine
+from lentra.core.observability.observability_engine_v1 import ObservabilityEngineV1
 
 
 class GatewayV3:
     """
-    Clean Gateway abstraction for Lentra AI OS.
+    Gateway orchestration layer.
 
     Responsibility:
-    - engine orchestration only
+    - engine routing only
     - no business logic
     """
 
     def __init__(self):
         self.engines: Dict[str, Any] = {}
+        self.obs = ObservabilityEngineV1()
 
-    def register(self, name: str, engine: Any):
-        self.engines[name] = EngineWrapper(engine)
+    def register(self, name: str, engine_cls):
+
+        engine = engine_cls()
+
+        self.engines[name] = EngineWrapper(
+            name,
+            engine.run,
+            self.obs
+        )
+
         return self
 
     def run_engine(
