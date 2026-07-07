@@ -9,5 +9,5 @@ class UnifiedRankingEngine:
     def __init__(self):
         self.core = MarketRankingEngine()
 
-    def rank(self, cards: list):
+    def rank(self, cards: list, market_truth=None):
         return self.core.rank(cards)
