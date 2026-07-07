@@ -1,34 +1,58 @@
 from typing import Dict, Any
 
 from lentra.runtime.bootstrap.gateway_v3 import build_gateway_v3
+
 from lentra.core.market_intelligence.fusion.fusion_engine_v2 import (
     build_fusion_engine_v2,
 )
+
 from lentra.core.market_intelligence.search.parsers.query_parser import (
     parse_query,
+)
+
+from lentra.core.market_intelligence.engines.pricing_engine import (
+    PricingEngine,
+)
+
+from lentra.core.market_intelligence.engines.risk_engine import (
+    RiskEngine,
+)
+
+from lentra.core.market_intelligence.engines.dedup_engine import (
+    DedupEngine,
+)
+
+from lentra.core.market_intelligence.engines.area_engine import (
+    AreaEngine,
 )
 
 
 class SearchPipeline:
     """
-    Main search pipeline.
-
-    Flow:
+    Main Market Intelligence pipeline.
 
     Query
       ->
-    Parser
+    Normalization
       ->
-    Market engines
+    Intelligence engines
       ->
-    Fusion Intelligence
+    Fusion
       ->
     Decision
     """
 
     def __init__(self):
+
         self.gateway = build_gateway_v3()
+
         self.fusion = build_fusion_engine_v2()
+
+        self.pricing = PricingEngine()
+        self.risk = RiskEngine()
+        self.dedup = DedupEngine()
+        self.area = AreaEngine()
+
 
     def run(
         self,
@@ -40,9 +64,13 @@ class SearchPipeline:
             ""
         )
 
-        parsed = parse_query(query)
+        parsed = parse_query(
+            query
+        )
+
 
         context = {
+
             "query": query,
 
             "price": payload.get(
@@ -67,86 +95,53 @@ class SearchPipeline:
         }
 
 
-        # MARKET INTELLIGENCE ENGINES
+        # BASE CONTRACT
 
-        area = self.gateway.run_engine(
-            "area",
-            context
-        )
-
-        market = self.gateway.run_engine(
-            "market_intelligence",
+        intelligence_context = dict(
             context
         )
 
 
-        # NORMALIZED PRICING CONTRACT
+        # ENGINE CHAIN
 
-        listing_price = context.get(
-            "price",
-            0
+        intelligence_context = self.pricing.evaluate(
+            intelligence_context
         )
 
-        market_price = context.get(
-            "market_price",
-            0
+        intelligence_context = self.risk.evaluate(
+            intelligence_context
         )
 
+        intelligence_context = self.dedup.evaluate(
+            intelligence_context
+        )
 
-        if market_price:
-
-            deviation = (
-                listing_price - market_price
-            ) / market_price
-
-            delta = (
-                listing_price - market_price
-            )
-
-            pricing_score = max(
-                0.0,
-                min(
-                    1.0,
-                    1 - abs(deviation)
-                )
-            )
-
-        else:
-
-            deviation = 0
-            delta = 0
-            pricing_score = 0.5
-
-
-        pricing = {
-            "price": listing_price,
-
-            "market_price": market_price,
-
-            "score": round(
-                pricing_score,
-                4
-            ),
-
-            "delta": round(
-                delta,
-                2
-            ),
-
-            "deviation": round(
-                deviation,
-                4
-            )
-        }
+        intelligence_context = self.area.evaluate(
+            intelligence_context
+        )
 
 
         engine_results = {
 
-            "pricing": pricing,
+            "pricing": intelligence_context.get(
+                "pricing",
+                {}
+            ),
 
-            "risk": {
-                "level": "low"
-            },
+            "risk": intelligence_context.get(
+                "risk",
+                {}
+            ),
+
+            "dedup": intelligence_context.get(
+                "dedup",
+                {}
+            ),
+
+            "area": intelligence_context.get(
+                "area",
+                {}
+            ),
 
             "signals": {
                 "length": len(
@@ -156,16 +151,10 @@ class SearchPipeline:
                     )
                 )
             },
-
-            "dedup": {
-                "duplicates": 0
-            },
-
-            "area": area,
         }
 
 
-        intelligence = self.fusion.evaluate(
+        fusion = self.fusion.evaluate(
             engine_results
         )
 
@@ -175,37 +164,35 @@ class SearchPipeline:
             "query": query,
 
             "market_context": {
+
                 "city": context["city"],
 
-                "listing_price": listing_price,
+                "listing_price": context["price"],
 
-                "market_price": market_price,
+                "market_price": context["market_price"],
+
             },
 
 
-            "market_analysis": intelligence.get(
+            "market_analysis": fusion.get(
                 "market_analysis"
             ),
 
 
-            "intelligence": intelligence.get(
+            "intelligence": fusion.get(
                 "intelligence"
             ),
 
 
             "decision": {
 
-                "decision": intelligence.get(
+                "decision": fusion.get(
                     "decision"
                 ),
 
-                "score": intelligence.get(
+                "score": fusion.get(
                     "score"
                 ),
 
-                "confidence": market.get(
-                    "confidence",
-                    0.5
-                ),
             }
         }
