@@ -56,56 +56,28 @@ def build_features(engines: Dict[str, Any]) -> Dict[str, float]:
     )
 
 
-    # ---------------------------
-    # AI PRICE CHECK
-    # ---------------------------
-
-    price = safe_get(
+    delta = safe_get(
         pricing,
-        "price",
-        None
-    )
+        "delta",
+        0
+    ) or 0
 
-    market_price = safe_get(
+
+    price_score = safe_get(
         pricing,
-        "market_price",
-        None
-    )
-
-    if price is not None and market_price:
-        deviation = abs(
-            price - market_price
-        ) / market_price
-
-        price_score = max(
-            0.0,
-            min(
-                1.0,
-                1 - deviation
-            )
-        )
-
-    else:
-        delta = safe_get(
-            pricing,
-            "delta",
-            0
-        ) or 0
-
-        price_score = 1.0 / (
+        "score",
+        1.0 / (
             1.0 + abs(delta) / 100.0
         )
+    )
 
-
-    # ---------------------------
-    # RISK SCORE
-    # ---------------------------
 
     risk_level = safe_get(
         risk,
         "level",
         "unknown"
     )
+
 
     risk_map = {
         "low": 0.9,
@@ -114,15 +86,6 @@ def build_features(engines: Dict[str, Any]) -> Dict[str, float]:
         "unknown": 0.5
     }
 
-    risk_score = risk_map.get(
-        risk_level,
-        0.5
-    )
-
-
-    # ---------------------------
-    # SIGNAL SCORE
-    # ---------------------------
 
     signal_len = safe_get(
         signals,
@@ -130,30 +93,6 @@ def build_features(engines: Dict[str, Any]) -> Dict[str, float]:
         0
     ) or 0
 
-    signal_score = min(
-        signal_len / 30.0,
-        1.0
-    )
-
-
-    # ---------------------------
-    # AREA SCORE
-    # ---------------------------
-
-    area_conf = (
-        0.3
-        if safe_get(
-            area,
-            "detected",
-            "unknown"
-        ) == "unknown"
-        else 0.8
-    )
-
-
-    # ---------------------------
-    # DEDUP SCORE
-    # ---------------------------
 
     duplicates = safe_get(
         dedup,
@@ -161,22 +100,30 @@ def build_features(engines: Dict[str, Any]) -> Dict[str, float]:
         0
     ) or 0
 
-    dedup_score = (
-        1.0
-        if duplicates == 0
-        else max(
-            0.0,
-            1.0 - duplicates * 0.2
-        )
-    )
-
 
     return {
         "price": price_score,
-        "risk": risk_score,
-        "signals": signal_score,
-        "area": area_conf,
-        "dedup": dedup_score,
+        "risk": risk_map.get(
+            risk_level,
+            0.5
+        ),
+        "signals": min(
+            signal_len / 30.0,
+            1.0
+        ),
+        "area": (
+            0.3
+            if safe_get(area, "detected", "unknown") == "unknown"
+            else 0.8
+        ),
+        "dedup": (
+            1.0
+            if duplicates == 0
+            else max(
+                0.0,
+                1.0 - duplicates * 0.2
+            )
+        ),
     }
 
 
@@ -212,6 +159,62 @@ def decision(score: float) -> str:
     return "REJECT"
 
 
+def build_market_analysis(
+    engine_results: Dict[str, Any]
+) -> Dict[str, Any]:
+
+    pricing = extract_engine_block(
+        "pricing",
+        engine_results.get("pricing", {})
+    )
+
+    price = safe_get(
+        pricing,
+        "price",
+        0
+    )
+
+    market_price = safe_get(
+        pricing,
+        "market_price",
+        0
+    )
+
+    delta = safe_get(
+        pricing,
+        "delta",
+        0
+    )
+
+    deviation = safe_get(
+        pricing,
+        "deviation",
+        0
+    )
+
+
+    if delta > 0:
+        verdict = "overpriced"
+
+    elif delta < 0:
+        verdict = "good_deal"
+
+    else:
+        verdict = "market_price"
+
+
+    return {
+        "listing_price": price,
+        "market_price": market_price,
+        "difference": delta,
+        "difference_percent": round(
+            deviation * 100,
+            2
+        ),
+        "verdict": verdict
+    }
+
+
 class FusionEngineV2:
 
     def evaluate(
@@ -232,15 +235,23 @@ class FusionEngineV2:
             raw_score
         )
 
+
         return {
             "score": calibrated_score,
+
             "raw_score": round(
                 raw_score,
                 4
             ),
+
             "decision": decision(
                 calibrated_score
             ),
+
+            "market_analysis": build_market_analysis(
+                engine_results
+            ),
+
             "explanation": (
                 f"Price score={features['price']:.2f} | "
                 f"Risk score={features['risk']:.2f} | "
@@ -248,7 +259,9 @@ class FusionEngineV2:
                 f"Area score={features['area']:.2f} | "
                 f"Dedup score={features['dedup']:.2f}"
             ),
+
             "features": features,
+
             "weights": WEIGHTS,
         }
 
