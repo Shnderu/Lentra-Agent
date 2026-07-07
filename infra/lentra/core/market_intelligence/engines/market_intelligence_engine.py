@@ -1,7 +1,20 @@
 class MarketIntelligenceEngine:
+    """
+    Main Market Intelligence Engine.
+
+    Compatibility:
+    - API / Orchestrator expects execute()
+    - core intelligence logic uses compute()
+    """
 
     def __init__(self, config=None):
         self.config = config or {}
+
+    def execute(self, request: dict) -> dict:
+        """
+        Runtime entrypoint adapter.
+        """
+        return self.compute(request)
 
     def compute(self, payload: dict) -> dict:
 
@@ -45,7 +58,10 @@ class MarketIntelligenceEngine:
         confidence = min(pricing_score, 1 - risk_level)
 
         return {
-            "dedup": {"score": 1.0, "confidence": 1.0},
+            "dedup": {
+                "score": 1.0,
+                "confidence": 1.0
+            },
             "ranking": {
                 "score": ranking_score,
                 "version": "ranking_v3_norm_v0.9"
