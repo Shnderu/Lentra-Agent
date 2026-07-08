@@ -23,12 +23,15 @@ class DedupEngine:
         )
 
 
+        result["fingerprint"] = fingerprint
+
+
         self.index.register(
             result
         )
 
 
-        context = self.index.build_context(
+        context = self.index.analyze(
             result
         )
 
@@ -39,7 +42,7 @@ class DedupEngine:
 
             "fingerprint": fingerprint,
 
-            "status": "similarity_checked"
+            "status": "memory_checked"
 
         }
 
@@ -52,7 +55,6 @@ class DedupEngine:
         self,
         result: Dict[str, Any]
     ) -> str:
-
 
         raw = "|".join(
             [

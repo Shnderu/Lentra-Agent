@@ -8,15 +8,20 @@ from lentra.core.market_intelligence.dedup.similarity import (
     SimilarityEngine
 )
 
+from lentra.core.market_intelligence.dedup.object_memory import (
+    ObjectMemory
+)
+
 
 class DedupIndex:
     """
-    Dedup Intelligence V3
+    Dedup Intelligence V4
 
     Responsibilities:
-    - store fingerprints
+    - fingerprint index
     - similarity matching
     - duplicate clustering
+    - historical object memory
     """
 
 
@@ -27,6 +32,8 @@ class DedupIndex:
         self.similarity = SimilarityEngine()
 
         self.cluster_engine = DuplicateClusterEngine()
+
+        self.memory = ObjectMemory()
 
 
 
@@ -43,12 +50,8 @@ class DedupIndex:
         if not fingerprint:
 
             return {
-
                 "status": "error",
-
-                "reason":
-                    "missing_fingerprint"
-
+                "reason": "missing_fingerprint"
             }
 
 
@@ -58,19 +61,16 @@ class DedupIndex:
         )
 
 
-        self.index[fingerprint].append(
-            listing
-        )
+        if listing not in self.index[fingerprint]:
+
+            self.index[fingerprint].append(
+                listing
+            )
 
 
         return {
-
-            "status":
-                "registered",
-
-            "fingerprint":
-                fingerprint
-
+            "status": "registered",
+            "fingerprint": fingerprint
         }
 
 
@@ -87,11 +87,7 @@ class DedupIndex:
 
             for item in items:
 
-                if (
-                    item.get("id")
-                    ==
-                    listing.get("id")
-                ):
+                if item.get("id") == listing.get("id"):
                     continue
 
 
@@ -106,9 +102,7 @@ class DedupIndex:
                     matches.append(
                         {
                             **item,
-
-                            "similarity":
-                                score
+                            "similarity": score
                         }
                     )
 
@@ -122,7 +116,6 @@ class DedupIndex:
         listing: Dict[str, Any]
     ) -> Dict[str, Any]:
 
-
         matches = self.search(
             listing
         )
@@ -131,6 +124,11 @@ class DedupIndex:
         cluster = self.cluster_engine.build_cluster(
             listing,
             matches
+        )
+
+
+        memory = self.memory.update(
+            listing
         )
 
 
@@ -165,7 +163,10 @@ class DedupIndex:
             "matches":
                 matches,
 
+            "object_memory":
+                memory,
+
             "status":
-                "cluster_ready"
+                "memory_ready"
 
         }

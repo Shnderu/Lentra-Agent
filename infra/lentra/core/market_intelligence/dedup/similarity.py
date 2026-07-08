@@ -1,149 +1,126 @@
-import re
-from typing import Dict, Any, Set
+from typing import Dict, Any
 
 
-class DedupSimilarity:
-
+class SimilarityEngine:
     """
-    Similarity helper for rental objects.
+    Dedup Intelligence Similarity Engine
 
-    Purpose:
-    - normalize text
-    - extract comparable features
-    - calculate similarity score
+    Responsibility:
+    - compare normalized listings
+    - return similarity score
     """
-
-
-    STOP_WORDS = {
-        "studio",
-        "apartment",
-        "room",
-        "near",
-        "the",
-        "and",
-        "with",
-        "for"
-    }
-
-
-    def normalize_text(
-        self,
-        value: str
-    ) -> Set[str]:
-
-        if not value:
-            return set()
-
-
-        value = value.lower()
-
-
-        words = re.findall(
-            r"[a-z0-9]+",
-            value
-        )
-
-
-        return {
-            word
-            for word in words
-            if word not in self.STOP_WORDS
-        }
-
-
 
     def compare(
         self,
-        first: Dict[str, Any],
-        second: Dict[str, Any]
+        left: Dict[str, Any],
+        right: Dict[str, Any]
     ) -> float:
-
 
         score = 0.0
 
 
-        if first.get("city") == second.get("city"):
-            score += 0.25
+        left_title = str(
+            left.get(
+                "title",
+                ""
+            )
+        ).lower()
 
 
-        if first.get("type") == second.get("type"):
-            score += 0.15
+        right_title = str(
+            right.get(
+                "title",
+                ""
+            )
+        ).lower()
 
 
-        first_text = (
-            str(first.get("title", ""))
-            + " "
-            + str(first.get("description", ""))
-        )
+        if left_title and right_title:
 
+            left_words = set(
+                left_title.split()
+            )
 
-        second_text = (
-            str(second.get("title", ""))
-            + " "
-            + str(second.get("description", ""))
-        )
-
-
-        first_words = self.normalize_text(
-            first_text
-        )
-
-        second_words = self.normalize_text(
-            second_text
-        )
-
-
-        if first_words and second_words:
+            right_words = set(
+                right_title.split()
+            )
 
             intersection = len(
-                first_words &
-                second_words
+                left_words.intersection(
+                    right_words
+                )
             )
 
             union = len(
-                first_words |
-                second_words
-            )
-
-            score += (
-                intersection /
-                max(
-                    union,
-                    1
+                left_words.union(
+                    right_words
                 )
-            ) * 0.45
+            )
+
+            if union:
+
+                score += (
+                    intersection /
+                    union
+                ) * 0.5
 
 
-        price_one = float(
-            first.get(
+
+        if (
+            left.get("city")
+            ==
+            right.get("city")
+        ):
+
+            score += 0.2
+
+
+
+        if (
+            left.get("type")
+            ==
+            right.get("type")
+        ):
+
+            score += 0.1
+
+
+
+        left_price = float(
+            left.get(
                 "price",
                 0
             )
         )
 
-        price_two = float(
-            second.get(
+
+        right_price = float(
+            right.get(
                 "price",
                 0
             )
         )
 
 
-        if price_one and price_two:
+        if left_price and right_price:
 
-            deviation = abs(
-                price_one - price_two
+            diff = abs(
+                left_price -
+                right_price
             ) / max(
-                price_one,
-                price_two
+                left_price,
+                right_price
             )
 
+            if diff < 0.1:
 
-            if deviation <= 0.15:
-                score += 0.15
+                score += 0.2
 
 
         return round(
-            min(score, 1.0),
+            min(
+                score,
+                1.0
+            ),
             3
         )
