@@ -6,35 +6,49 @@ from lentra.core.adapters.search_adapter import SearchAdapter
 from lentra.core.market_intelligence.engines.risk_engine import RiskEngine
 from lentra.core.market_intelligence.engines.dedup_engine import DedupEngine
 
+from lentra.core.market_intelligence.decision.decision_layer import DecisionLayer
+from lentra.core.market_intelligence.ranking.unified_ranking_engine import UnifiedRankingEngine
+
 
 class SearchPipeline:
     """
     Main Market Intelligence Search Pipeline.
 
-    Core flow:
+    Flow:
 
     Search
       |
       v
     Market Intelligence
       |
-      +--> Risk Intelligence
-      |
+      +--> Market
+      +--> Risk
       +--> Dedup
+      +--> Area
       |
-      +--> Area Intelligence
+      v
+    Ranking
       |
       v
     Decision Layer
+      |
+      v
+    Final Verdict
     """
 
     def __init__(self):
 
         self.gateway = build_gateway_v3()
+
         self.adapter = SearchAdapter()
 
         self.risk_engine = RiskEngine()
+
         self.dedup_engine = DedupEngine()
+
+        self.decision_layer = DecisionLayer()
+
+        self.ranking_engine = UnifiedRankingEngine()
 
 
     def _risk_penalty(
@@ -56,28 +70,13 @@ class SearchPipeline:
         self,
         market: Dict[str, Any],
         risk: Dict[str, Any],
-        dedup: Dict[str, Any],
         area: Dict[str, Any],
+        ranking_score: float = 0.5,
     ) -> Dict[str, Any]:
-
-        price_score = market.get(
-            "pricing_score",
-            0.5
-        )
-
-        area_score = area.get(
-            "score",
-            0.5
-        )
 
         risk_data = risk.get(
             "risk",
             {}
-        )
-
-        risk_level = risk_data.get(
-            "level",
-            "medium"
         )
 
         fraud_score = risk_data.get(
@@ -85,134 +84,79 @@ class SearchPipeline:
             0.5
         )
 
-        duplicates = dedup.get(
-            "dedup",
-            {}
-        ).get(
-            "duplicates",
-            0
-        )
-
-        deviation = abs(
-            market.get(
-                "difference_percent",
-                0
-            )
-        )
-
-        risk_penalty = self._risk_penalty(
-            risk_level
-        )
-
-        duplicate_penalty = min(
-            duplicates * 0.1,
-            0.3
-        )
-
-        score = (
-
-            price_score * 0.45
-
-            +
-
-            area_score * 0.20
-
-            +
-
-            (1 - fraud_score) * 0.20
-
-            +
-
-            (1 - duplicate_penalty) * 0.15
-
-        )
-
-        score = max(
-            0.0,
-            min(
-                score,
-                1.0
-            )
+        risk_level = risk_data.get(
+            "level",
+            "medium"
         )
 
 
-        signals = {
+        decision_input = {
 
-            "price": market.get(
-                "verdict"
-            ),
+            "signals": {
 
-            "risk": risk_level,
+                "pricing": market,
 
-            "fraud_score": fraud_score,
+                "area": area
 
-            "duplicates": duplicates,
+            },
 
-            "deviation_percent": deviation
+            "ranking": {
+
+                "score": ranking_score
+
+            },
+
+            "risk": {
+
+                "risk_level": fraud_score
+
+            }
 
         }
 
 
-        if risk_level == "high":
-
-            action = "AVOID"
-
-            reason = (
-                "Высокий риск объявления."
-            )
-
-        elif fraud_score >= 0.45:
-
-            action = "REVIEW"
-
-            reason = (
-                "Цена привлекательная, "
-                "но требуется проверка риска."
-            )
-
-        elif deviation > 25:
-
-            action = "REVIEW"
-
-            reason = (
-                "Сильное отклонение от рынка."
-            )
-
-        elif score >= 0.78:
-
-            action = "BUY"
-
-            reason = (
-                "Цена, риск и параметры "
-                "соответствуют рынку."
-            )
-
-        else:
-
-            action = "REVIEW"
-
-            reason = (
-                "Предложение требует анализа."
-            )
+        decision = self.decision_layer.build(
+            decision_input
+        )
 
 
         return {
 
-            "action": action,
+            "action": decision.get(
+                "decision",
+                "REVIEW"
+            ),
 
-            "score": round(
-                score,
-                4
+            "score": decision.get(
+                "decision_score",
+                0.5
             ),
 
             "confidence": round(
-                1 - risk_penalty,
+                1 - self._risk_penalty(
+                    risk_level
+                ),
                 2
             ),
 
-            "reason": reason,
+            "reason": (
+                "Решение сформировано "
+                "Market Intelligence Decision Layer."
+            ),
 
-            "signals": signals
+            "signals": {
+
+                "price": market.get(
+                    "verdict"
+                ),
+
+                "risk": risk_level,
+
+                "fraud_score": fraud_score
+
+            },
+
+            "decision_layer": decision
 
         }
 
@@ -227,11 +171,15 @@ class SearchPipeline:
             ""
         )
 
+
         listings = self.adapter.build_objects(
             query
         )
 
-        results: List[Dict[str, Any]] = []
+
+        raw_cards = []
+
+        prepared = []
 
 
         for listing in listings:
@@ -254,26 +202,6 @@ class SearchPipeline:
                     "city",
                     "da_nang"
                 ),
-
-                "title": listing.get(
-                    "title",
-                    ""
-                ),
-
-                "description": listing.get(
-                    "description",
-                    ""
-                ),
-
-                "source": listing.get(
-                    "source",
-                    "unknown"
-                ),
-
-                "location": listing.get(
-                    "location",
-                    ""
-                )
 
             }
 
@@ -300,11 +228,106 @@ class SearchPipeline:
             )
 
 
+            risk_data = risk_result.get(
+                "risk",
+                {}
+            )
+
+
+            raw_cards.append(
+
+                {
+
+                    "id": listing.get(
+                        "id"
+                    ),
+
+                    "price": listing.get(
+                        "price",
+                        0
+                    ),
+
+                    "risk": risk_data.get(
+                        "fraud_score",
+                        0.5
+                    ),
+
+                    "confidence": market.get(
+                        "confidence",
+                        0.5
+                    )
+
+                }
+
+            )
+
+
+            prepared.append(
+
+                {
+
+                    "listing": listing,
+
+                    "context": context,
+
+                    "area": area,
+
+                    "market": market,
+
+                    "risk": risk_result,
+
+                    "dedup": dedup_result
+
+                }
+
+            )
+
+
+        ranked = self.ranking_engine.rank(
+            raw_cards
+        )
+
+
+        rank_map = {
+
+            item.get(
+                "id"
+            ): item.get(
+                "rank"
+            )
+            for item in ranked
+
+        }
+
+
+        results = []
+
+
+        for item in prepared:
+
+            listing = item["listing"]
+
             decision = self._build_decision(
-                market,
-                risk_result,
-                dedup_result,
-                area
+
+                item["market"],
+
+                item["risk"],
+
+                item["area"],
+
+                ranking_score=(
+                    1 /
+                    max(
+                        rank_map.get(
+                            listing.get(
+                                "id"
+                            ),
+                            1
+                        ),
+                        1
+                    )
+                )
+
             )
 
 
@@ -337,10 +360,12 @@ class SearchPipeline:
                     "market_analysis": {
 
                         "listing_price":
-                            listing.get("price"),
+                            listing.get(
+                                "price"
+                            ),
 
                         "market_price":
-                            context.get(
+                            item["context"].get(
                                 "market_price"
                             )
 
@@ -348,17 +373,22 @@ class SearchPipeline:
 
                     "intelligence": {
 
-                        "area": area,
+                        "area":
+                            item["area"],
 
-                        "market": market,
+                        "market":
+                            item["market"],
 
-                        "risk": risk_result,
+                        "risk":
+                            item["risk"],
 
-                        "dedup": dedup_result
+                        "dedup":
+                            item["dedup"]
 
                     },
 
-                    "decision": decision
+                    "decision":
+                        decision
 
                 }
 
