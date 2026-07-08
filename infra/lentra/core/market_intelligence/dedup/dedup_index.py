@@ -1,126 +1,171 @@
-from typing import Dict, Any
+from typing import Dict, Any, List
+
+from lentra.core.market_intelligence.dedup.cluster_engine import (
+    DuplicateClusterEngine
+)
+
+from lentra.core.market_intelligence.dedup.similarity import (
+    SimilarityEngine
+)
 
 
 class DedupIndex:
-
     """
-    Dedup Intelligence Index.
+    Dedup Intelligence V3
 
-    Stores listings and performs similarity matching.
+    Responsibilities:
+    - store fingerprints
+    - similarity matching
+    - duplicate clustering
     """
 
 
     def __init__(self):
 
-        self.records = []
+        self.index = {}
 
+        self.similarity = SimilarityEngine()
 
-        from lentra.core.market_intelligence.dedup.similarity import DedupSimilarity
-
-        self.similarity = DedupSimilarity()
+        self.cluster_engine = DuplicateClusterEngine()
 
 
 
     def register(
         self,
         listing: Dict[str, Any]
-    ):
+    ) -> Dict[str, Any]:
 
-        self.records.append(
-            listing.copy()
+        fingerprint = listing.get(
+            "fingerprint"
         )
 
 
+        if not fingerprint:
 
-    def find_matches(
+            return {
+
+                "status": "error",
+
+                "reason":
+                    "missing_fingerprint"
+
+            }
+
+
+        self.index.setdefault(
+            fingerprint,
+            []
+        )
+
+
+        self.index[fingerprint].append(
+            listing
+        )
+
+
+        return {
+
+            "status":
+                "registered",
+
+            "fingerprint":
+                fingerprint
+
+        }
+
+
+
+    def search(
         self,
         listing: Dict[str, Any]
-    ):
+    ) -> List[Dict[str, Any]]:
 
         matches = []
 
 
-        for item in self.records:
+        for items in self.index.values():
 
-            if item.get("id") == listing.get("id"):
-                continue
+            for item in items:
+
+                if (
+                    item.get("id")
+                    ==
+                    listing.get("id")
+                ):
+                    continue
 
 
-            score = self.similarity.compare(
-                listing,
-                item
-            )
-
-
-            if score >= 0.65:
-
-                matches.append(
-                    {
-                        "listing": item,
-                        "score": score
-                    }
+                score = self.similarity.compare(
+                    listing,
+                    item
                 )
+
+
+                if score >= 0.7:
+
+                    matches.append(
+                        {
+                            **item,
+
+                            "similarity":
+                                score
+                        }
+                    )
 
 
         return matches
 
 
 
-    def build_context(
+    def analyze(
         self,
         listing: Dict[str, Any]
-    ):
+    ) -> Dict[str, Any]:
 
 
-        matches = self.find_matches(
+        matches = self.search(
             listing
         )
 
 
-        sources = {
-            item["listing"].get(
-                "source",
-                "unknown"
-            )
-
-            for item in matches
-        }
+        cluster = self.cluster_engine.build_cluster(
+            listing,
+            matches
+        )
 
 
         return {
 
-            "duplicates": len(
-                matches
-            ),
-
-            "confidence": round(
-                min(
-                    0.95,
-                    0.65 +
-                    (
-                        len(matches)
-                        * 0.1
-                    )
+            "duplicates":
+                cluster.get(
+                    "duplicate_count",
+                    0
                 ),
-                2
-            )
-            if matches else 0.0,
 
-            "sources": list(
-                sources
-            ),
+            "confidence":
+                cluster.get(
+                    "confidence",
+                    0.0
+                ),
+
+            "sources":
+                cluster.get(
+                    "sources",
+                    []
+                ),
 
             "canonical_listing":
-                matches[0]["listing"].get("id")
-                if matches
-                else listing.get("id"),
+                cluster.get(
+                    "canonical_listing"
+                ),
 
-            "matches": [
-                {
-                    "id": x["listing"].get("id"),
-                    "score": x["score"]
-                }
-                for x in matches
-            ]
+            "cluster":
+                cluster,
+
+            "matches":
+                matches,
+
+            "status":
+                "cluster_ready"
 
         }
