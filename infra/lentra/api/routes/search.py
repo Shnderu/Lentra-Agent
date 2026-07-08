@@ -12,6 +12,7 @@ router = APIRouter()
 def search(payload: dict):
 
     try:
+
         result = run_pipeline(payload)
 
         pipeline = get_pipeline()
@@ -24,31 +25,42 @@ def search(payload: dict):
             None
         )
 
-        if isinstance(gateway, dict):
+        if gateway is not None:
 
-            registry = gateway.get(
-                "registry"
+            engines = getattr(
+                gateway,
+                "engines",
+                {}
             )
 
-            if registry and hasattr(
-                registry,
-                "list_engines"
+            if isinstance(
+                engines,
+                dict
             ):
-                engine_keys = registry.list_engines().get(
-                    "active",
-                    []
+                engine_keys = list(
+                    engines.keys()
                 )
 
+
         return {
+
             "status": "ok",
+
             "engine_keys": engine_keys,
+
             "result": result
+
         }
+
 
     except Exception as e:
 
         return {
+
             "status": "error",
+
             "error": str(e),
+
             "trace": traceback.format_exc()
+
         }
