@@ -1,18 +1,31 @@
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 
 class RiskEngine:
     """
-    Market Intelligence Risk Engine v1.
+    Market Intelligence Risk Engine v2.
 
     Responsibility:
-    - estimate anomaly risk
-    - separate price opportunity from fraud suspicion
-    - enrich object with risk intelligence
+    - estimate fraud probability
+    - separate opportunity from scam risk
+    - explain risk signals
 
-    Rule:
-    low price != fraud
+    Signals:
+    - price anomaly
+    - suspicious text
+    - source reliability
     """
+
+    SUSPICIOUS_WORDS = [
+        "scam",
+        "suspicious",
+        "urgent",
+        "deposit",
+        "advance",
+        "owner refuses",
+        "no viewing",
+        "cheap",
+    ]
 
     def evaluate(
         self,
@@ -41,51 +54,93 @@ class RiskEngine:
             "unknown"
         )
 
-        if market > 0:
+        title = str(
+            result.get(
+                "title",
+                ""
+            )
+        ).lower()
+
+        description = str(
+            result.get(
+                "description",
+                ""
+            )
+        ).lower()
+
+        text = f"{title} {description}"
+
+
+        if market:
+
             deviation = (
                 price - market
             ) / market
+
         else:
+
             deviation = 0.0
 
 
-        absolute_deviation = abs(
-            deviation
-        )
-
-
-        # ---------------------------------
-        # Price anomaly
-        # ---------------------------------
-
-        if absolute_deviation <= 0.15:
-            price_signal = "normal"
-
-        elif deviation < 0:
-            price_signal = "below_market"
-
-        else:
-            price_signal = "above_market"
-
-
-        # ---------------------------------
-        # Fraud probability
-        # ---------------------------------
+        signals: List[str] = []
 
         fraud_score = 0.1
 
 
-        # Extremely cheap offers require review
+        # -----------------------------
+        # Price anomaly
+        # -----------------------------
+
         if deviation <= -0.40:
-            fraud_score += 0.45
+
+            fraud_score += 0.35
+            signals.append(
+                "extreme_low_price"
+            )
 
         elif deviation <= -0.25:
-            fraud_score += 0.25
+
+            fraud_score += 0.20
+            signals.append(
+                "below_market_price"
+            )
 
 
-        # Unknown source penalty
+        # -----------------------------
+        # Text analysis
+        # -----------------------------
+
+        for word in self.SUSPICIOUS_WORDS:
+
+            if word in text:
+
+                fraud_score += 0.15
+
+                signals.append(
+                    f"text:{word}"
+                )
+
+
+        # -----------------------------
+        # Source analysis
+        # -----------------------------
+
+        if source == "telegram":
+
+            fraud_score += 0.05
+
+            signals.append(
+                "telegram_source"
+            )
+
+
         if source == "unknown":
+
             fraud_score += 0.1
+
+            signals.append(
+                "unknown_source"
+            )
 
 
         fraud_score = min(
@@ -95,16 +150,20 @@ class RiskEngine:
 
 
         if fraud_score >= 0.7:
+
             level = "high"
 
         elif fraud_score >= 0.35:
+
             level = "medium"
 
         else:
+
             level = "low"
 
 
         result["risk"] = {
+
             "fraud_score": round(
                 fraud_score,
                 4
@@ -112,7 +171,12 @@ class RiskEngine:
 
             "level": level,
 
-            "price_signal": price_signal,
+            "signals": signals,
+
+            "price_signal":
+                "below_market"
+                if deviation < 0
+                else "normal",
 
             "deviation": round(
                 deviation,

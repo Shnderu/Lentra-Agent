@@ -18,7 +18,7 @@ class SearchPipeline:
       v
     Market Intelligence
       |
-      +--> Risk
+      +--> Risk Intelligence
       |
       +--> Dedup
       |
@@ -70,7 +70,6 @@ class SearchPipeline:
             0.5
         )
 
-
         risk_data = risk.get(
             "risk",
             {}
@@ -86,7 +85,6 @@ class SearchPipeline:
             0.5
         )
 
-
         duplicates = dedup.get(
             "dedup",
             {}
@@ -95,7 +93,6 @@ class SearchPipeline:
             0
         )
 
-
         deviation = abs(
             market.get(
                 "difference_percent",
@@ -103,17 +100,14 @@ class SearchPipeline:
             )
         )
 
-
         risk_penalty = self._risk_penalty(
             risk_level
         )
-
 
         duplicate_penalty = min(
             duplicates * 0.1,
             0.3
         )
-
 
         score = (
 
@@ -132,7 +126,6 @@ class SearchPipeline:
             (1 - duplicate_penalty) * 0.15
 
         )
-
 
         score = max(
             0.0,
@@ -168,7 +161,6 @@ class SearchPipeline:
                 "Высокий риск объявления."
             )
 
-
         elif fraud_score >= 0.45:
 
             action = "REVIEW"
@@ -178,7 +170,6 @@ class SearchPipeline:
                 "но требуется проверка риска."
             )
 
-
         elif deviation > 25:
 
             action = "REVIEW"
@@ -186,7 +177,6 @@ class SearchPipeline:
             reason = (
                 "Сильное отклонение от рынка."
             )
-
 
         elif score >= 0.78:
 
@@ -196,7 +186,6 @@ class SearchPipeline:
                 "Цена, риск и параметры "
                 "соответствуют рынку."
             )
-
 
         else:
 
@@ -238,17 +227,14 @@ class SearchPipeline:
             ""
         )
 
-
         listings = self.adapter.build_objects(
             query
         )
-
 
         results: List[Dict[str, Any]] = []
 
 
         for listing in listings:
-
 
             context = {
 
@@ -268,6 +254,26 @@ class SearchPipeline:
                     "city",
                     "da_nang"
                 ),
+
+                "title": listing.get(
+                    "title",
+                    ""
+                ),
+
+                "description": listing.get(
+                    "description",
+                    ""
+                ),
+
+                "source": listing.get(
+                    "source",
+                    "unknown"
+                ),
+
+                "location": listing.get(
+                    "location",
+                    ""
+                )
 
             }
 
@@ -340,7 +346,6 @@ class SearchPipeline:
 
                     },
 
-
                     "intelligence": {
 
                         "area": area,
@@ -352,7 +357,6 @@ class SearchPipeline:
                         "dedup": dedup_result
 
                     },
-
 
                     "decision": decision
 
