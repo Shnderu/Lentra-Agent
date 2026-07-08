@@ -1,108 +1,126 @@
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 
 class DedupIndex:
-    """
-    Local Deduplication Index.
 
-    Responsibility:
-    - store listing fingerprints
-    - find similar objects
-    - provide duplicate context
-
-    Current stage:
-    - in-memory index
-    - later replaceable by persistent storage
     """
+    Dedup Intelligence Index.
+
+    Stores listings and performs similarity matching.
+    """
+
 
     def __init__(self):
 
-        self.records: Dict[str, Dict[str, Any]] = {}
+        self.records = []
+
+
+        from lentra.core.market_intelligence.dedup.similarity import DedupSimilarity
+
+        self.similarity = DedupSimilarity()
+
 
 
     def register(
         self,
-        fingerprint: str,
         listing: Dict[str, Any]
     ):
 
-        if fingerprint not in self.records:
-
-            self.records[fingerprint] = {
-                "canonical_listing": listing.get(
-                    "id"
-                ),
-                "sources": [],
-                "items": []
-            }
-
-
-        source = listing.get(
-            "source",
-            "unknown"
+        self.records.append(
+            listing.copy()
         )
 
 
-        if source not in self.records[fingerprint]["sources"]:
-            self.records[fingerprint]["sources"].append(
-                source
+
+    def find_matches(
+        self,
+        listing: Dict[str, Any]
+    ):
+
+        matches = []
+
+
+        for item in self.records:
+
+            if item.get("id") == listing.get("id"):
+                continue
+
+
+            score = self.similarity.compare(
+                listing,
+                item
             )
 
 
-        self.records[fingerprint]["items"].append(
+            if score >= 0.65:
+
+                matches.append(
+                    {
+                        "listing": item,
+                        "score": score
+                    }
+                )
+
+
+        return matches
+
+
+
+    def build_context(
+        self,
+        listing: Dict[str, Any]
+    ):
+
+
+        matches = self.find_matches(
             listing
         )
 
 
-    def find(
-        self,
-        fingerprint: str
-    ) -> Dict[str, Any]:
-
-        record = self.records.get(
-            fingerprint
-        )
-
-
-        if not record:
-
-            return {
-                "duplicates": 0,
-                "confidence": 0.0,
-                "sources": [],
-                "canonical_listing": None
-            }
-
-
-        count = len(
-            record["items"]
-        )
-
-
-        confidence = 0.0
-
-        if count > 1:
-            confidence = min(
-                0.95,
-                0.5 + (count * 0.15)
+        sources = {
+            item["listing"].get(
+                "source",
+                "unknown"
             )
+
+            for item in matches
+        }
 
 
         return {
 
-            "duplicates": max(
-                count - 1,
-                0
+            "duplicates": len(
+                matches
             ),
 
             "confidence": round(
-                confidence,
+                min(
+                    0.95,
+                    0.65 +
+                    (
+                        len(matches)
+                        * 0.1
+                    )
+                ),
                 2
+            )
+            if matches else 0.0,
+
+            "sources": list(
+                sources
             ),
 
-            "sources": record["sources"],
-
             "canonical_listing":
-                record["canonical_listing"]
+                matches[0]["listing"].get("id")
+                if matches
+                else listing.get("id"),
+
+            "matches": [
+                {
+                    "id": x["listing"].get("id"),
+                    "score": x["score"]
+                }
+                for x in matches
+            ]
 
         }
