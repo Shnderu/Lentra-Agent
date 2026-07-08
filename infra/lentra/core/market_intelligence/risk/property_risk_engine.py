@@ -24,10 +24,30 @@ class PropertyRiskEngine:
         risk_score = 0.0
 
 
-        duplicate_count = getattr(
+        metadata = {}
+
+        listings = getattr(
             market_object,
-            "listing_count",
-            0
+            "listings",
+            []
+        )
+
+        if listings:
+
+            metadata = getattr(
+                listings[0],
+                "metadata",
+                {}
+            ) or {}
+
+
+        duplicate_count = metadata.get(
+            "duplicate_count",
+            getattr(
+                market_object,
+                "listing_count",
+                0
+            )
         )
 
 
@@ -38,13 +58,6 @@ class PropertyRiskEngine:
         )
 
 
-        price = getattr(
-            market_object,
-            "market_price",
-            None
-        )
-
-
         deviation = getattr(
             market_object,
             "price_deviation",
@@ -52,14 +65,11 @@ class PropertyRiskEngine:
         )
 
 
-        sources = getattr(
-            market_object,
+        sources = metadata.get(
             "sources",
             []
         )
 
-
-        # duplicate signal
 
         if duplicate_count >= 3:
 
@@ -78,8 +88,6 @@ class PropertyRiskEngine:
             )
 
 
-        # confidence signal
-
         if confidence < 0.5:
 
             risk_score += 0.3
@@ -89,8 +97,6 @@ class PropertyRiskEngine:
             )
 
 
-        # source signal
-
         if not sources:
 
             risk_score += 0.15
@@ -99,8 +105,6 @@ class PropertyRiskEngine:
                 "unknown_source"
             )
 
-
-        # price anomaly
 
         if deviation is not None:
 
