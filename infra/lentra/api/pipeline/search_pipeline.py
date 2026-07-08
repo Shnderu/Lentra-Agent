@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 from lentra.runtime.bootstrap.gateway_v3 import build_gateway_v3
 from lentra.core.adapters.search_adapter import SearchAdapter
@@ -186,6 +186,30 @@ class SearchPipeline:
 
             context = {
 
+                "id": listing.get(
+                    "id"
+                ),
+
+                "title": listing.get(
+                    "title",
+                    ""
+                ),
+
+                "description": listing.get(
+                    "description",
+                    ""
+                ),
+
+                "source": listing.get(
+                    "source",
+                    "unknown"
+                ),
+
+                "type": listing.get(
+                    "type",
+                    "apartment"
+                ),
+
                 "query": query,
 
                 "price": listing.get(
@@ -208,13 +232,13 @@ class SearchPipeline:
 
             area = self.gateway.run_engine(
                 "area",
-                context
+                context.copy()
             )
 
 
             market = self.gateway.run_engine(
                 "market_intelligence",
-                context
+                context.copy()
             )
 
 
@@ -295,6 +319,7 @@ class SearchPipeline:
             ): item.get(
                 "rank"
             )
+
             for item in ranked
 
         }
@@ -306,6 +331,7 @@ class SearchPipeline:
         for item in prepared:
 
             listing = item["listing"]
+
 
             decision = self._build_decision(
 
