@@ -12,6 +12,10 @@ from lentra.core.market_intelligence.dedup.object_memory import (
     ObjectMemory
 )
 
+from lentra.core.market_intelligence.dedup.entity_resolver import (
+    EntityResolver
+)
+
 
 class DedupIndex:
     """
@@ -21,9 +25,9 @@ class DedupIndex:
     - fingerprint index
     - similarity matching
     - duplicate clustering
+    - property entity resolution
     - historical object memory
     """
-
 
     def __init__(self):
 
@@ -33,9 +37,9 @@ class DedupIndex:
 
         self.cluster_engine = DuplicateClusterEngine()
 
+        self.entity_resolver = EntityResolver()
+
         self.memory = ObjectMemory()
-
-
 
     def register(
         self,
@@ -46,7 +50,6 @@ class DedupIndex:
             "fingerprint"
         )
 
-
         if not fingerprint:
 
             return {
@@ -54,12 +57,10 @@ class DedupIndex:
                 "reason": "missing_fingerprint"
             }
 
-
         self.index.setdefault(
             fingerprint,
             []
         )
-
 
         if listing not in self.index[fingerprint]:
 
@@ -67,13 +68,10 @@ class DedupIndex:
                 listing
             )
 
-
         return {
             "status": "registered",
             "fingerprint": fingerprint
         }
-
-
 
     def search(
         self,
@@ -82,7 +80,6 @@ class DedupIndex:
 
         matches = []
 
-
         for items in self.index.values():
 
             for item in items:
@@ -90,12 +87,10 @@ class DedupIndex:
                 if item.get("id") == listing.get("id"):
                     continue
 
-
                 score = self.similarity.compare(
                     listing,
                     item
                 )
-
 
                 if score >= 0.7:
 
@@ -106,10 +101,7 @@ class DedupIndex:
                         }
                     )
 
-
         return matches
-
-
 
     def analyze(
         self,
@@ -120,17 +112,18 @@ class DedupIndex:
             listing
         )
 
-
         cluster = self.cluster_engine.build_cluster(
             listing,
             matches
         )
 
+        entity = self.entity_resolver.resolve(
+            cluster
+        )
 
         memory = self.memory.update(
             listing
         )
-
 
         return {
 
@@ -160,6 +153,9 @@ class DedupIndex:
             "cluster":
                 cluster,
 
+            "entity":
+                entity,
+
             "matches":
                 matches,
 
@@ -167,6 +163,6 @@ class DedupIndex:
                 memory,
 
             "status":
-                "memory_ready"
+                "entity_ready"
 
         }

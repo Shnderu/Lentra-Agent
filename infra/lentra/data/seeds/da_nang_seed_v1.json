@@ -43,5 +43,14 @@
     "location": "An Thuong",
     "source": "agency",
     "description": "expat area, cafes, stable internet"
+  },
+  {
+    "id": "dn_006",
+    "title": "Studio near My Khe Beach",
+    "price": 660,
+    "currency": "USD",
+    "location": "Da Nang, My Khe",
+    "source": "telegram",
+    "description": "same apartment reposted from another source, wifi included"
   }
 ]
