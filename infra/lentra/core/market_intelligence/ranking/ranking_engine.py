@@ -52,11 +52,20 @@ class MarketRankingEngine:
 
             if market_snapshot:
 
-                median_price = getattr(
+                if isinstance(
                     market_snapshot,
-                    "average_market_price",
-                    None
-                )
+                    dict
+                ):
+                    median_price = market_snapshot.get(
+                        "median_price"
+                    )
+                else:
+                    median_price = getattr(
+                        market_snapshot,
+                        "median_price",
+                        None
+                    )
+
 
                 price = c.get(
                     "price",
