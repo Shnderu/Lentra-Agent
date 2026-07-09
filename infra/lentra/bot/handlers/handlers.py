@@ -35,53 +35,52 @@ async def call_search_api(query: str):
         return response.json()
 
 
+
 def format_result(data: dict) -> str:
 
     if data.get("status") != "ok":
         return "❌ Ошибка анализа рынка"
 
-    result = data.get("result", {})
+
+    result = data.get(
+        "result",
+        {}
+    )
+
+
+    results = result.get(
+        "results",
+        []
+    )
+
+
+    if not results:
+        return "Ничего не найдено"
+
 
     snapshot = result.get(
         "market_snapshot",
         {}
     )
 
-    listings = snapshot.get(
-        "clean_listings",
-        []
-    )
-
-    if not listings:
-        return "Ничего не найдено"
-
 
     lines = []
 
-    lines.append(
-        f"🏠 Найдено объектов: {len(listings)}"
-    )
 
     lines.append(
-        f"📊 Средняя цена рынка: ${snapshot.get('median_price')}"
+        f"🏠 Найдено объектов: {len(results)}"
     )
+
+
+    lines.append(
+        f"📊 Цена рынка: ${snapshot.get('median_price')}"
+    )
+
 
     lines.append("")
 
 
-    for item in listings[:5]:
-
-        price = item.get(
-            "price"
-        )
-
-        market = item.get(
-            "market_price"
-        )
-
-        risk = item.get(
-            "risk"
-        )
+    for item in results[:5]:
 
         title = item.get(
             "title",
@@ -89,11 +88,99 @@ def format_result(data: dict) -> str:
         )
 
 
+        price = item.get(
+            "price",
+            0
+        )
+
+
+        ranking = item.get(
+            "ranking",
+            {}
+        )
+
+
+        market_price = ranking.get(
+            "market_price",
+            snapshot.get(
+                "median_price",
+                0
+            )
+        )
+
+
+        decision = item.get(
+            "decision",
+            {}
+        )
+
+
+        intelligence = item.get(
+            "intelligence",
+            {}
+        )
+
+
+        risk = intelligence.get(
+            "risk",
+            {}
+        ).get(
+            "risk",
+            {}
+        )
+
+
+        dedup = intelligence.get(
+            "dedup",
+            {}
+        )
+
+
+        risk_level = risk.get(
+            "level",
+            "unknown"
+        )
+
+
+        duplicates = dedup.get(
+            "duplicates",
+            0
+        )
+
+
+        ranking_score = ranking.get(
+            "ranking_score",
+            0
+        )
+
+
+        action = decision.get(
+            "action",
+            "REVIEW"
+        )
+
+
+        score = decision.get(
+            "score",
+            0
+        )
+
+
         lines.append(
-            f"🏠 {title}\n"
-            f"💵 Цена: ${price}\n"
-            f"📈 Рынок: ${market}\n"
-            f"⚠️ Риск: {risk}\n"
+            f"""
+🏠 {title}
+
+💵 Цена: ${price}
+📈 Рынок: ${market_price}
+
+🎯 Решение: {action}
+⭐ Score: {score}
+
+⚠️ Риск: {risk_level}
+🔁 Дубли: {duplicates}
+
+🏆 Ranking: {ranking_score}
+"""
         )
 
 
