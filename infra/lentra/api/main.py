@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from lentra.api.app_patch import patch_app
 from lentra.api.routes.search import router as search_router
+from lentra.api.routes.miniapp import router as miniapp_router
 
 
 def create_app() -> FastAPI:
@@ -16,6 +17,10 @@ def create_app() -> FastAPI:
 
     app.include_router(
         search_router
+    )
+
+    app.include_router(
+        miniapp_router
     )
 
     @app.get("/health")
