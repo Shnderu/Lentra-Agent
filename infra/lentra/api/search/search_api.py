@@ -1,39 +1,109 @@
-
-
 from lentra.core.ai.semantic_search.embeddings.embedding_engine import embed
 from lentra.core.ai.semantic_search.vector_store.vector_store import search
-from lentra.core.pipeline.pipeline import LentraPipeline
-from lentra.core.ai.concierge.ranker.ranking_engine import rank_listings
+
+from lentra.core.pipeline.canonical_search_pipeline import (
+    CanonicalSearchPipeline
+)
+
+from lentra.core.pipeline.canonical_entrypoint import (
+    CanonicalSearchEntrypoint
+)
+
+from lentra.core.pipeline.search_pipeline import SearchPipeline
+
+from lentra.core.adapters.search_adapter import SearchAdapter
 
 
 class SearchAPI:
+    """
+    Vector search API.
+
+    Flow:
+
+    query
+      |
+      v
+    vector candidates
+      |
+      v
+    canonical entrypoint
+      |
+      v
+    SearchPipeline
+      |
+      v
+    Market Intelligence
+    """
 
     def __init__(self):
-        self.pipeline = LentraPipeline()
 
-    def search_candidates(self, query: str):
+        self.adapter = SearchAdapter()
 
-        raw_candidates = search(embed(query))
+        self.pipeline = CanonicalSearchPipeline(
+            SearchPipeline()
+        )
 
-        results = []
+        self.entrypoint = CanonicalSearchEntrypoint(
+            self.pipeline
+        )
 
-        for c in raw_candidates:
 
-            enriched = self.pipeline.run({
-                "id": c.get("id"),
-                "title": c.get("title"),
-                "price": c.get("price"),
-                "currency": "USD",
-                "city": "",
-                "location": "",
-                "source": "vector"
-            })
+    def search_candidates(
+        self,
+        query: str
+    ):
 
-            results.append({
-                "listing": enriched,
-                "reason": "vector_match"
-            })
+        raw_candidates = search(
+            embed(query)
+        )
 
-        ranked = rank_listings(results)
 
-        return ranked
+        if not raw_candidates:
+
+            return []
+
+
+        objects = []
+
+
+        for item in raw_candidates:
+
+            objects.append(
+                {
+                    "id": item.get("id"),
+
+                    "title": item.get(
+                        "title",
+                        ""
+                    ),
+
+                    "price": item.get(
+                        "price",
+                        0
+                    ),
+
+                    "currency": "USD",
+
+                    "city": item.get(
+                        "city",
+                        "Da Nang"
+                    ),
+
+                    "location": item.get(
+                        "location",
+                        ""
+                    ),
+
+                    "source": "vector",
+
+                    "query": query
+                }
+            )
+
+
+        return self.entrypoint.execute(
+            {
+                "query": query,
+                "objects": objects
+            }
+        )
