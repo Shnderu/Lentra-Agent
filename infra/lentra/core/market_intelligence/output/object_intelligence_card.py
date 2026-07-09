@@ -120,9 +120,26 @@ class ObjectIntelligenceCardBuilder:
                 decision or {},
 
             "explanation":
-                explanation.get(
-                    "summary",
-                    ""
+                (
+                    verdict.get(
+                        "reason",
+                        ""
+                    )
+                    or
+                    (
+                        decision or {}
+                    ).get(
+                        "decision_layer",
+                        {}
+                    ).get(
+                        "reason",
+                        ""
+                    )
+                    or
+                    explanation.get(
+                        "summary",
+                        ""
+                    )
                 ),
 
             "ranking":
