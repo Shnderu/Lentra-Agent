@@ -14,6 +14,10 @@ from lentra.core.market_intelligence.history.price_trend_analyzer import (
     PriceTrendAnalyzer
 )
 
+from lentra.core.market_intelligence.explanation.market_explanation_engine import (
+    MarketExplanationEngine
+)
+
 from lentra.core.market_intelligence.history.segment_intelligence import (
     SegmentIntelligence
 )
@@ -58,6 +62,8 @@ class MarketService:
         )
 
         self.trend_analyzer = PriceTrendAnalyzer()
+
+        self.explanation_engine = MarketExplanationEngine()
 
         self.segment_intelligence = SegmentIntelligence()
 
@@ -158,6 +164,14 @@ class MarketService:
         )
 
 
+        market_explanation = self.explanation_engine.explain(
+            truth,
+            price_intelligence,
+            segment_intelligence,
+            market_movement
+        )
+
+
         return {
 
             "city": city,
@@ -170,6 +184,8 @@ class MarketService:
 
             "segment_intelligence": segment_intelligence,
 
-            "market_movement": market_movement
+            "market_movement": market_movement,
+
+            "market_explanation": market_explanation
 
         }

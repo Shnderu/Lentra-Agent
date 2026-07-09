@@ -276,6 +276,12 @@ class SearchPipeline:
         )
 
 
+        market_explanation = market_analysis.get(
+            "market_explanation",
+            {}
+        )
+
+
         raw_cards = []
 
         prepared = []
@@ -511,6 +517,8 @@ class SearchPipeline:
             "segment_intelligence": segment_intelligence,
 
             "market_movement": market_movement,
+
+            "market_explanation": market_explanation,
 
             "results": results
 
