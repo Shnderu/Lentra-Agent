@@ -30,14 +30,24 @@ class MarketService:
     MarketSnapshot
         |
         v
-    market context
+    PriceHistoryRepository
+        |
+        v
+    Price Intelligence
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        history_repository=None
+    ):
 
         self.truth_engine = MarketTruthEngine()
 
-        self.history_repository = PriceHistoryRepository()
+        self.history_repository = (
+            history_repository
+            if history_repository
+            else PriceHistoryRepository()
+        )
 
         self.trend_analyzer = PriceTrendAnalyzer()
 
@@ -85,15 +95,12 @@ class MarketService:
 
         snapshot.sample_size = truth.get(
             "sample_size",
-            len(listings)
+            0
         )
 
         snapshot.outliers_detected = truth.get(
-            "outliers_detected",
-            truth.get(
-                "outliers_removed",
-                0
-            )
+            "outliers_removed",
+            0
         )
 
         snapshot.confidence = truth.get(
@@ -127,7 +134,6 @@ class MarketService:
         price_intelligence = self.trend_analyzer.analyze(
             prices
         )
-
 
 
         return {

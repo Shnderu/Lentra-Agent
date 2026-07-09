@@ -10,6 +10,10 @@ from lentra.core.market_intelligence.decision.decision_layer import DecisionLaye
 from lentra.core.market_intelligence.ranking.unified_ranking_engine import UnifiedRankingEngine
 from lentra.core.market_intelligence.contracts.listing_contract_guard import ListingContractGuard
 
+from lentra.core.market_intelligence.history.price_observation import (
+    PriceObservation
+)
+
 from lentra.core.market_intelligence.market.market_service import MarketService
 from lentra.core.market_intelligence.repository.market_snapshot_repository import MarketSnapshotRepository
 
@@ -203,6 +207,48 @@ class SearchPipeline:
         )
 
 
+        for listing in listings:
+
+            listing = ListingContractGuard.normalize(
+                listing
+            )
+
+
+            self.market_service.history_repository.save(
+                PriceObservation(
+                    listing_id=str(
+                        listing.get("id")
+                    ),
+
+                    price=float(
+                        listing.get(
+                            "price",
+                            0
+                        )
+                    ),
+
+                    currency=listing.get(
+                        "currency",
+                        "USD"
+                    ),
+
+                    city=listing.get(
+                        "city",
+                        "da_nang"
+                    ),
+
+                    source=listing.get(
+                        "source"
+                    ),
+
+                    area=listing.get(
+                        "location"
+                    )
+                )
+            )
+
+
+
         market_analysis = self.market_service.analyze(
             listings
         )
@@ -224,11 +270,6 @@ class SearchPipeline:
 
 
         for listing in listings:
-
-            listing = ListingContractGuard.normalize(
-                listing
-            )
-
 
             context = {
 
