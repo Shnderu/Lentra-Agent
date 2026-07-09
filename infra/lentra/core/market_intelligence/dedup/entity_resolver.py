@@ -12,25 +12,34 @@ class EntityResolver:
     - aggregate linked listings
 
     Supports:
-    - cluster dict contract
-    - legacy list cluster format
+    - cluster contract
+    - raw listings list compatibility
     """
-
 
     def resolve(
         self,
-        cluster
+        cluster: Any
     ) -> Dict[str, Any]:
 
-        members = []
-        canonical = "unknown"
+        # --------------------------------------------------
+        # CONTRACT NORMALIZATION
+        # --------------------------------------------------
 
+        if isinstance(cluster, list):
 
-        # ---------------------------------
-        # Normalize cluster input
-        # ---------------------------------
+            members = [
+                item.get("id")
+                for item in cluster
+                if isinstance(item, dict)
+            ]
 
-        if isinstance(cluster, dict):
+            canonical = (
+                members[0]
+                if members
+                else "unknown"
+            )
+
+        elif isinstance(cluster, dict):
 
             members = cluster.get(
                 "members",
@@ -42,49 +51,20 @@ class EntityResolver:
                 "unknown"
             )
 
+        else:
 
-        elif isinstance(cluster, list):
+            members = []
 
-            members = cluster
-
-            if members:
-
-                canonical = (
-                    members[0].get("id")
-                    or "unknown"
-                )
-
-
-        # ---------------------------------
-        # Build entity
-        # ---------------------------------
-
-        linked_ids = []
-
-        for item in members:
-
-            if isinstance(item, dict):
-
-                linked_ids.append(
-                    item.get(
-                        "id",
-                        "unknown"
-                    )
-                )
-
-            else:
-
-                linked_ids.append(
-                    str(item)
-                )
+            canonical = "unknown"
 
 
         entity_id = self._entity_id(
             canonical
         )
 
+
         confidence = self._confidence(
-            len(linked_ids)
+            len(members)
         )
 
 
@@ -96,13 +76,14 @@ class EntityResolver:
                 canonical,
 
             "linked_listings":
-                linked_ids,
+                members,
 
             "confidence":
                 confidence,
 
             "status":
                 "entity_resolved"
+
         }
 
 
@@ -112,7 +93,7 @@ class EntityResolver:
     ) -> str:
 
         digest = hashlib.sha256(
-            canonical.encode(
+            str(canonical).encode(
                 "utf-8"
             )
         ).hexdigest()[:12]

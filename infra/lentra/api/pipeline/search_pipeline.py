@@ -8,6 +8,7 @@ from lentra.core.market_intelligence.engines.dedup_engine import DedupEngine
 
 from lentra.core.market_intelligence.decision.decision_layer import DecisionLayer
 from lentra.core.market_intelligence.ranking.unified_ranking_engine import UnifiedRankingEngine
+from lentra.core.market_intelligence.contracts.listing_contract_guard import ListingContractGuard
 
 
 class SearchPipeline:
@@ -183,6 +184,10 @@ class SearchPipeline:
 
 
         for listing in listings:
+
+            listing = ListingContractGuard.normalize(
+                listing
+            )
 
             context = {
 
