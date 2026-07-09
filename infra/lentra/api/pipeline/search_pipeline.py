@@ -439,14 +439,6 @@ class SearchPipeline:
             )
 
 
-            decision_result = self._build_decision(
-                market,
-                risk_result,
-                area,
-                0.5
-            )
-
-
             prepared.append(
                 {
                     "listing": listing,
@@ -456,9 +448,7 @@ class SearchPipeline:
                     "risk": risk_result,
                     "dedup": dedup_result,
 
-                    "market_verdict": market_verdict,
-
-                    "decision": decision_result
+                    "market_verdict": market_verdict
                 }
             )
 
@@ -478,6 +468,29 @@ class SearchPipeline:
             item.get("id"): item
             for item in ranked
         }
+
+
+        # Decision Layer AFTER ranking.
+        # Ranking score becomes real intelligence signal.
+
+        for item in prepared:
+
+            listing_id = item["listing"].get("id")
+
+            ranking_score = rank_map.get(
+                listing_id,
+                {}
+            ).get(
+                "ranking_score",
+                0.5
+            )
+
+            item["decision"] = self._build_decision(
+                item["market"],
+                item["risk"],
+                item["area"],
+                ranking_score
+            )
 
 
         results = []
