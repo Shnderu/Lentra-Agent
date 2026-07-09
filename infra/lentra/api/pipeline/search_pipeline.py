@@ -482,7 +482,19 @@ class SearchPipeline:
                             item["risk"],
 
                         "dedup":
-                            item["dedup"]
+                            item["dedup"],
+
+                        "price_intelligence":
+                            price_intelligence,
+
+                        "segment_intelligence":
+                            segment_intelligence,
+
+                        "market_movement":
+                            market_movement,
+
+                        "market_explanation":
+                            market_explanation
 
                     },
 
