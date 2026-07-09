@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import List
 
 from pydantic import BaseModel
 
@@ -61,6 +61,8 @@ class MiniAppSearchResponseSchema(BaseModel):
     api_version: str
 
     schema_version: str
+
+    contract_version: str
 
     platform: str
 

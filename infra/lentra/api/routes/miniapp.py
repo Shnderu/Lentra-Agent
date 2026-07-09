@@ -28,6 +28,8 @@ def miniapp_search(
 
         "schema_version": "3.1",
 
+        "contract_version": "miniapp.v1",
+
         "platform": "telegram_mini_app",
 
         "query": result.get(
