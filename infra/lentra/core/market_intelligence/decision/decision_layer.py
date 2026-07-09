@@ -3,26 +3,20 @@ from typing import Dict, Any
 
 class DecisionLayer:
     """
-    Decision Layer v2.0
+    Decision Layer v2.1
 
     PRINCIPLE:
 
     - Risk has authority over ranking
     - Ranking selects quality among trusted objects
-    - Decision layer only aggregates intelligence signals
+    - Decision aggregates market intelligence
 
-    Order:
-
-    Risk Gate
-        |
-        v
-    Pricing + Area Intelligence
-        |
-        v
-    Ranking
-        |
-        v
-    Final Decision
+    Signals:
+    - pricing intelligence
+    - market opportunity
+    - area intelligence
+    - ranking
+    - risk
     """
 
 
@@ -57,11 +51,6 @@ class DecisionLayer:
             {}
         )
 
-        market_snapshot = signals.get(
-            "market_snapshot",
-            {}
-        )
-
 
         pricing_score = pricing.get(
             "pricing_score",
@@ -86,10 +75,37 @@ class DecisionLayer:
             0.5
         )
 
-        market_confidence = market_snapshot.get(
-            "confidence",
-            0.5
-        ) if isinstance(market_snapshot, dict) else 0.5
+
+        difference_percent = pricing.get(
+            "difference_percent",
+            0
+        )
+
+
+        price_direction = pricing.get(
+            "direction",
+            "unknown"
+        )
+
+
+        opportunity_bonus = 0.0
+
+
+        if (
+            price_direction == "under"
+            and difference_percent <= -25
+        ):
+
+            opportunity_bonus = 0.15
+
+
+        elif (
+            price_direction == "under"
+            and difference_percent <= -10
+        ):
+
+            opportunity_bonus = 0.07
+
 
 
         # =========================
@@ -172,13 +188,14 @@ class DecisionLayer:
             }
 
 
+
         # =========================
         # TRUSTED OBJECT SCORING
         # =========================
 
         final_score = (
 
-            pricing_score * 0.40
+            pricing_score * 0.35
 
             +
 
@@ -191,6 +208,10 @@ class DecisionLayer:
             +
 
             (1 - risk_score) * 0.15
+
+            +
+
+            opportunity_bonus
 
         )
 
@@ -226,7 +247,9 @@ class DecisionLayer:
 
                 "area": area_score,
 
-                "risk": risk_score
+                "risk": risk_score,
+
+                "opportunity_bonus": opportunity_bonus
 
             },
 
