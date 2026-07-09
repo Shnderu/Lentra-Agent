@@ -36,82 +36,9 @@ async def call_search_api(query: str):
 
 
 
-def human_decision(action: str) -> str:
-
-    return {
-        "ACCEPT": "🟢 Можно рассматривать",
-        "REVIEW": "🟡 Требует проверки",
-        "REJECT": "🔴 Лучше избегать"
-    }.get(
-        action,
-        "⚪ Требуется анализ"
-    )
-
-
-
-def build_explanation(
-    decision: dict,
-    market: dict,
-    risk_level: str
-) -> str:
-
-    action = decision.get(
-        "action",
-        "REVIEW"
-    )
-
-    difference = market.get(
-        "difference_percent",
-        0
-    )
-
-
-    if risk_level == "high":
-
-        return (
-            "Цена выглядит привлекательной, "
-            "но высокий риск объявления. "
-            "Не рекомендуется без проверки владельца "
-            "и просмотра объекта."
-        )
-
-
-    if action == "ACCEPT":
-
-        return (
-            f"Цена значительно ниже рынка "
-            f"({difference}%). "
-            "Хорошее предложение, рекомендуется "
-            "проверить состояние объекта."
-        )
-
-
-    if action == "REVIEW":
-
-        if difference > 5:
-
-            return (
-                "Цена выше рынка. "
-                "Стоит сравнить альтернативные варианты."
-            )
-
-
-        return (
-            "Цена соответствует рынку. "
-            "Рекомендуется проверить детали объекта."
-        )
-
-
-    return (
-        "Объект имеет негативные сигналы рынка."
-    )
-
-
-
 def format_result(data: dict) -> str:
 
     if data.get("status") != "ok":
-
         return "❌ Ошибка анализа рынка"
 
 
@@ -128,13 +55,18 @@ def format_result(data: dict) -> str:
 
 
     if not results:
-
         return "Ничего не найдено"
 
 
     snapshot = result.get(
         "market_snapshot",
         {}
+    )
+
+
+    median_price = snapshot.get(
+        "median_price",
+        0
     )
 
 
@@ -145,13 +77,13 @@ def format_result(data: dict) -> str:
         f"🏠 Найдено объектов: {len(results)}"
     )
 
-
     lines.append(
-        f"📊 Цена рынка: ${snapshot.get('median_price')}"
+        f"📊 Рынок Da Nang: ${median_price}/месяц"
     )
 
-
-    lines.append("")
+    lines.append(
+        ""
+    )
 
 
     for item in results[:5]:
@@ -162,56 +94,32 @@ def format_result(data: dict) -> str:
         )
 
 
-        price = item.get(
+        card = item.get(
+            "card",
+            {}
+        )
+
+
+        price = card.get(
             "price",
             0
         )
 
 
-        ranking = item.get(
-            "ranking",
-            {}
-        )
-
-
-        market_price = ranking.get(
+        market_price = card.get(
             "market_price",
-            snapshot.get(
-                "median_price",
-                0
-            )
+            median_price
         )
 
 
-        decision = item.get(
-            "decision",
-            {}
+        difference = card.get(
+            "difference_percent",
+            0
         )
 
 
-        intelligence = item.get(
-            "intelligence",
-            {}
-        )
-
-
-        market = intelligence.get(
-            "market",
-            {}
-        )
-
-
-        risk = intelligence.get(
+        risk = card.get(
             "risk",
-            {}
-        ).get(
-            "risk",
-            {}
-        )
-
-
-        dedup = intelligence.get(
-            "dedup",
             {}
         )
 
@@ -222,9 +130,15 @@ def format_result(data: dict) -> str:
         )
 
 
-        duplicates = dedup.get(
+        duplicates = card.get(
             "duplicates",
             0
+        )
+
+
+        decision = card.get(
+            "decision",
+            {}
         )
 
 
@@ -240,60 +154,54 @@ def format_result(data: dict) -> str:
         )
 
 
-        ranking_score = ranking.get(
-            "ranking_score",
-            0
+        explanation = card.get(
+            "explanation",
+            ""
         )
 
 
-        ranking_percent = round(
-            ranking_score * 100,
-            1
-        )
+        if action == "ACCEPT":
 
+            verdict = "🟢 Хорошее предложение"
 
-        difference = market.get(
-            "difference_percent",
-            0
-        )
+        elif action == "REJECT":
 
+            verdict = "🔴 Лучше избегать"
 
-        explanation = build_explanation(
-            decision,
-            market,
-            risk_level
-        )
+        else:
+
+            verdict = "🟡 Требует проверки"
 
 
         lines.append(
             f"""
+━━━━━━━━━━━━
+
 🏠 {title}
 
-💵 Цена:
+💰 Цена:
 ${price}/месяц
 
 📈 Рынок:
 ${market_price}
 
-{human_decision(action)}
+{verdict}
 
-🤖 AI решение:
-{action}
+🤖 AI оценка:
+{round(score * 100)}/100
 
-⭐ Score:
-{round(score, 3)}
 
-📉 Отклонение от рынка:
+📉 Отклонение:
 {difference}%
+
 
 ⚠️ Риск:
 {risk_level}
 
-🔁 Дубли:
+
+🔁 Похожие объявления:
 {duplicates}
 
-🏆 Рыночный рейтинг:
-{ranking_percent}/100
 
 💡 Анализ:
 {explanation}
