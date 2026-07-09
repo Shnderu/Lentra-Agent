@@ -3,18 +3,23 @@ from typing import Dict, Any, List
 
 class RiskEngine:
     """
-    Market Intelligence Risk Engine v2.
+    Market Intelligence Risk Engine v3.
 
     Responsibility:
     - estimate fraud probability
     - separate opportunity from scam risk
     - explain risk signals
 
-    Signals:
-    - price anomaly
+    Principle:
+
+    Low price is not fraud.
+
+    Fraud requires combination of:
+    - extreme anomaly
     - suspicious text
-    - source reliability
+    - unreliable source
     """
+
 
     SUSPICIOUS_WORDS = [
         "scam",
@@ -24,8 +29,8 @@ class RiskEngine:
         "advance",
         "owner refuses",
         "no viewing",
-        "cheap",
     ]
+
 
     def evaluate(
         self,
@@ -35,12 +40,14 @@ class RiskEngine:
         if not isinstance(result, dict):
             result = {}
 
+
         price = float(
             result.get(
                 "price",
                 0
             )
         )
+
 
         market = float(
             result.get(
@@ -49,10 +56,12 @@ class RiskEngine:
             )
         )
 
+
         source = result.get(
             "source",
             "unknown"
         )
+
 
         title = str(
             result.get(
@@ -61,6 +70,7 @@ class RiskEngine:
             )
         ).lower()
 
+
         description = str(
             result.get(
                 "description",
@@ -68,8 +78,11 @@ class RiskEngine:
             )
         ).lower()
 
+
         text = f"{title} {description}"
 
+
+        deviation = 0.0
 
         if market:
 
@@ -77,69 +90,69 @@ class RiskEngine:
                 price - market
             ) / market
 
-        else:
-
-            deviation = 0.0
-
 
         signals: List[str] = []
 
         fraud_score = 0.1
 
 
-        # -----------------------------
-        # Price anomaly
-        # -----------------------------
+        opportunity_signals = []
 
-        if deviation <= -0.40:
 
-            fraud_score += 0.35
+        # =========================
+        # PRICE INTELLIGENCE
+        # =========================
+
+        if deviation <= -0.50:
+
+            fraud_score += 0.20
+
             signals.append(
                 "extreme_low_price"
             )
 
+
         elif deviation <= -0.25:
 
-            fraud_score += 0.20
-            signals.append(
+            opportunity_signals.append(
                 "below_market_price"
             )
 
 
-        # -----------------------------
-        # Text analysis
-        # -----------------------------
+        # =========================
+        # TEXT RISK
+        # =========================
 
         for word in self.SUSPICIOUS_WORDS:
 
             if word in text:
 
-                fraud_score += 0.15
+                fraud_score += 0.20
 
                 signals.append(
                     f"text:{word}"
                 )
 
 
-        # -----------------------------
-        # Source analysis
-        # -----------------------------
+        # =========================
+        # SOURCE RISK
+        # =========================
 
-        if source == "telegram":
+        if source == "unknown":
+
+            fraud_score += 0.15
+
+            signals.append(
+                "unknown_source"
+            )
+
+
+        elif source == "telegram":
 
             fraud_score += 0.05
 
             signals.append(
                 "telegram_source"
-            )
-
-
-        if source == "unknown":
-
-            fraud_score += 0.1
-
-            signals.append(
-                "unknown_source"
             )
 
 
@@ -164,28 +177,40 @@ class RiskEngine:
 
         result["risk"] = {
 
-            "fraud_score": round(
-                fraud_score,
-                4
-            ),
+            "fraud_score":
+                round(
+                    fraud_score,
+                    4
+                ),
 
-            "level": level,
+            "level":
+                level,
 
-            "signals": signals,
+            "signals":
+                signals,
+
+            "opportunity_signals":
+                opportunity_signals,
 
             "price_signal":
-                "below_market"
-                if deviation < 0
-                else "normal",
+                (
+                    "below_market"
+                    if deviation < 0
+                    else "normal"
+                ),
 
-            "deviation": round(
-                deviation,
-                4
-            ),
+            "deviation":
+                round(
+                    deviation,
+                    4
+                ),
 
-            "source": source,
+            "source":
+                source,
 
-            "status": "ok"
+            "status":
+                "ok"
+
         }
 
 
