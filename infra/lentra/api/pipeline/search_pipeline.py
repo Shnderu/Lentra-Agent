@@ -9,34 +9,11 @@ from lentra.core.market_intelligence.engines.dedup_engine import DedupEngine
 from lentra.core.market_intelligence.decision.decision_layer import DecisionLayer
 from lentra.core.market_intelligence.ranking.unified_ranking_engine import UnifiedRankingEngine
 from lentra.core.market_intelligence.contracts.listing_contract_guard import ListingContractGuard
-from lentra.core.market_intelligence.pricing.market_truth_engine import MarketTruthEngine
+
+from lentra.core.market_intelligence.market.market_service import MarketService
 
 
 class SearchPipeline:
-    """
-    Main Market Intelligence Search Pipeline.
-
-    Flow:
-
-    Search
-      |
-      v
-    Market Intelligence
-      |
-      +--> Market
-      +--> Risk
-      +--> Dedup
-      +--> Area
-      |
-      v
-    Ranking
-      |
-      v
-    Decision Layer
-      |
-      v
-    Final Verdict
-    """
 
     def __init__(self):
 
@@ -52,7 +29,7 @@ class SearchPipeline:
 
         self.ranking_engine = UnifiedRankingEngine()
 
-        self.market_truth_engine = MarketTruthEngine()
+        self.market_service = MarketService()
 
 
     def _risk_penalty(
@@ -87,12 +64,10 @@ class SearchPipeline:
             0
         )
 
-        risk_data = risk.get(
+        risk_level = risk.get(
             "risk",
             {}
-        )
-
-        risk_level = risk_data.get(
+        ).get(
             "level",
             "medium"
         )
@@ -164,33 +139,21 @@ class SearchPipeline:
         )
 
 
-        decision_input = {
-
-            "signals": {
-
-                "pricing": market,
-
-                "area": area
-
-            },
-
-            "ranking": {
-
-                "score": ranking_score
-
-            },
-
-            "risk": {
-
-                "risk_level": fraud_score
-
-            }
-
-        }
-
-
         decision = self.decision_layer.build(
-            decision_input
+            {
+                "signals": {
+                    "pricing": market,
+                    "area": area
+                },
+
+                "ranking": {
+                    "score": ranking_score
+                },
+
+                "risk": {
+                    "risk_level": fraud_score
+                }
+            }
         )
 
 
@@ -213,22 +176,8 @@ class SearchPipeline:
                 2
             ),
 
-            "reason": (
-                "Решение сформировано "
-                "Market Intelligence Decision Layer."
-            ),
-
-            "signals": {
-
-                "price": market.get(
-                    "verdict"
-                ),
-
-                "risk": risk_level,
-
-                "fraud_score": fraud_score
-
-            },
+            "reason":
+                "Решение сформировано Market Intelligence Decision Layer.",
 
             "decision_layer": decision
 
@@ -250,7 +199,8 @@ class SearchPipeline:
             query
         )
 
-        market_truth = self.market_truth_engine.stabilize(
+
+        market_truth = self.market_service.analyze(
             listings
         )
 
@@ -266,11 +216,10 @@ class SearchPipeline:
                 listing
             )
 
+
             context = {
 
-                "id": listing.get(
-                    "id"
-                ),
+                "id": listing.get("id"),
 
                 "title": listing.get(
                     "title",
@@ -303,10 +252,7 @@ class SearchPipeline:
                     market_truth.get(
                         "median_price"
                     )
-                    or listing.get(
-                        "market_price",
-                        650
-                    )
+                    or 650
                 ),
 
                 "market_truth": market_truth,
@@ -314,7 +260,7 @@ class SearchPipeline:
                 "city": listing.get(
                     "city",
                     "da_nang"
-                ),
+                )
 
             }
 
@@ -341,26 +287,19 @@ class SearchPipeline:
             )
 
 
-            risk_data = risk_result.get(
-                "risk",
-                {}
-            )
-
-
             raw_cards.append(
-
                 {
-
-                    "id": listing.get(
-                        "id"
-                    ),
+                    "id": listing.get("id"),
 
                     "price": listing.get(
                         "price",
                         0
                     ),
 
-                    "risk": risk_data.get(
+                    "risk": risk_result.get(
+                        "risk",
+                        {}
+                    ).get(
                         "fraud_score",
                         0.5
                     ),
@@ -387,30 +326,19 @@ class SearchPipeline:
                         "duplicates",
                         0
                     )
-
                 }
-
             )
 
 
             prepared.append(
-
                 {
-
                     "listing": listing,
-
                     "context": context,
-
                     "area": area,
-
                     "market": market,
-
                     "risk": risk_result,
-
                     "dedup": dedup_result
-
                 }
-
             )
 
 
@@ -420,24 +348,8 @@ class SearchPipeline:
 
 
         rank_map = {
-
-            item.get(
-                "id"
-            ): {
-
-                "rank": item.get(
-                    "rank"
-                ),
-
-                "score": item.get(
-                    "ranking_score",
-                    0.5
-                )
-
-            }
-
+            item.get("id"): item
             for item in ranked
-
         }
 
 
@@ -449,36 +361,10 @@ class SearchPipeline:
             listing = item["listing"]
 
 
-            decision = self._build_decision(
-
-                item["market"],
-
-                item["risk"],
-
-                item["area"],
-
-                ranking_score=(
-                    rank_map.get(
-                        listing.get(
-                            "id"
-                        ),
-                        {}
-                    ).get(
-                        "score",
-                        0.5
-                    )
-                )
-
-            )
-
-
             results.append(
-
                 {
 
-                    "id": listing.get(
-                        "id"
-                    ),
+                    "id": listing.get("id"),
 
                     "title": listing.get(
                         "title"
@@ -499,36 +385,20 @@ class SearchPipeline:
                     ),
 
                     "ranking": rank_map.get(
-                        listing.get(
-                            "id"
-                        ),
+                        listing.get("id"),
                         {}
                     ),
 
-                    "market_analysis": {
-
-                        "listing_price":
-                            listing.get(
-                                "price"
-                            ),
-
-                        "market_price":
-                            item["context"].get(
-                                "market_price"
-                            )
-
-                    },
-
                     "intelligence": {
 
-                        "area":
-                            item["area"],
+                        "market_truth":
+                            market_truth,
 
                         "market":
                             item["market"],
 
-                        "market_truth":
-                            market_truth,
+                        "area":
+                            item["area"],
 
                         "risk":
                             item["risk"],
@@ -538,67 +408,21 @@ class SearchPipeline:
 
                     },
 
-                    "ai_summary": {
-
-                        "price_status":
-                            item["market"].get(
-                                "verdict",
-                                "unknown"
-                            ),
-
-                        "market_difference":
-                            item["market"].get(
-                                "difference",
-                                0
-                            ),
-
-                        "market_difference_percent":
-                            item["market"].get(
-                                "difference_percent",
-                                0
-                            ),
-
-                        "risk_level":
-                            item["risk"].get(
-                                "risk",
-                                {}
-                            ).get(
-                                "level",
-                                "unknown"
-                            ),
-
-                        "fraud_score":
-                            item["risk"].get(
-                                "risk",
-                                {}
-                            ).get(
-                                "fraud_score",
-                                0.5
-                            ),
-
-                        "duplicates":
-                            item["dedup"].get(
-                                "dedup",
-                                {}
-                            ).get(
-                                "duplicates",
-                                0
-                            ),
-
-                        "verdict":
-                            self._build_ai_verdict(
-                                item["market"],
-                                item["risk"],
-                                item["dedup"]
-                            )
-
-                    },
-
                     "decision":
-                        decision
+                        self._build_decision(
+                            item["market"],
+                            item["risk"],
+                            item["area"],
+                            rank_map.get(
+                                listing.get("id"),
+                                {}
+                            ).get(
+                                "ranking_score",
+                                0.5
+                            )
+                        )
 
                 }
-
             )
 
 
