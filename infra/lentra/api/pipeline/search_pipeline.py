@@ -203,8 +203,18 @@ class SearchPipeline:
         )
 
 
-        market_truth = self.market_service.analyze(
+        market_analysis = self.market_service.analyze(
             listings
+        )
+
+        market_truth = market_analysis.get(
+            "market_truth",
+            {}
+        )
+
+        price_intelligence = market_analysis.get(
+            "price_intelligence",
+            {}
         )
 
 
@@ -442,6 +452,8 @@ class SearchPipeline:
             "count": len(results),
 
             "market_snapshot": market_truth_record,
+
+            "price_intelligence": price_intelligence,
 
             "results": results
 

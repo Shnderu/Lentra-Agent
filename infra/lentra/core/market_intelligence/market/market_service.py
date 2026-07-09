@@ -10,6 +10,10 @@ from lentra.core.market_intelligence.history.price_history_repository import (
     PriceHistoryRepository
 )
 
+from lentra.core.market_intelligence.history.price_trend_analyzer import (
+    PriceTrendAnalyzer
+)
+
 
 class MarketService:
     """
@@ -34,6 +38,8 @@ class MarketService:
         self.truth_engine = MarketTruthEngine()
 
         self.history_repository = PriceHistoryRepository()
+
+        self.trend_analyzer = PriceTrendAnalyzer()
 
 
     def analyze(
@@ -106,12 +112,32 @@ class MarketService:
         )
 
 
+        history = self.history_repository.get_city_history(
+            city
+        )
+
+
+        prices = [
+            item.get("price")
+            for item in history
+            if item.get("price") is not None
+        ]
+
+
+        price_intelligence = self.trend_analyzer.analyze(
+            prices
+        )
+
+
+
         return {
 
             "city": city,
 
             "snapshot": snapshot.to_dict(),
 
-            "market_truth": truth
+            "market_truth": truth,
+
+            "price_intelligence": price_intelligence
 
         }
