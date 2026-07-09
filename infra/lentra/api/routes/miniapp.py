@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from lentra.api.pipeline import run_pipeline
+from lentra.api.schemas.miniapp import MiniAppSearchResponseSchema
 
 
 router = APIRouter(
@@ -9,7 +10,10 @@ router = APIRouter(
 )
 
 
-@router.post("/search")
+@router.post(
+    "/search",
+    response_model=MiniAppSearchResponseSchema
+)
 def miniapp_search(
     payload: dict
 ):
