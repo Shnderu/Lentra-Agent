@@ -1,18 +1,40 @@
+from typing import Dict, Any
+
+from lentra.api.pipeline.search_pipeline import SearchPipeline
+
+
 class CanonicalSearchPipeline:
+    """
+    CANONICAL SEARCH FACADE
 
-    def __init__(self, engine):
-        self.engine = engine
+    ARCH RULE:
 
-    def run(self, query):
+    API
+      |
+      v
+    CanonicalSearchEntrypoint
+      |
+      v
+    CanonicalSearchPipeline
+      |
+      v
+    SearchPipeline
 
-        listings = self.engine.fetch(query)
+    This class MUST NOT contain business logic.
 
-        listings = self.engine.normalize(listings)
+    SearchPipeline is the single source of truth.
+    """
 
-        listings = self.engine.dedup(listings)
+    def __init__(self):
 
-        listings = self.engine.rank(listings)
+        self.pipeline = SearchPipeline()
 
-        listings = self.engine.risk(listings)
 
-        return listings
+    def run(
+        self,
+        payload: Dict[str, Any]
+    ) -> Dict[str, Any]:
+
+        return self.pipeline.run(
+            payload
+        )

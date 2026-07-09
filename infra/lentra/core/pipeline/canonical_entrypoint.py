@@ -1,27 +1,55 @@
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 
 class CanonicalSearchEntrypoint:
     """
-    ЕДИНАЯ ТОЧКА ВХОДА В ПОИСКОВЫЙ PIPELINE (v3).
+    SINGLE SEARCH ENTRYPOINT
 
-    Запрещает:
-    - обход pipeline
-    - прямой доступ к dedup/ranking/market logic из API
+    HARD ARCHITECTURE BOUNDARY:
 
-    Все запросы обязаны проходить через этот слой.
+    API
+      |
+      v
+    CanonicalSearchEntrypoint
+      |
+      v
+    CanonicalSearchPipeline
+      |
+      v
+    SearchPipeline
+
+
+    No:
+    - dedup execution
+    - ranking execution
+    - market execution
+    - intelligence execution
+
+    allowed outside SearchPipeline.
     """
 
-    def __init__(self, pipeline):
+
+    def __init__(
+        self,
+        pipeline
+    ):
+
         self.pipeline = pipeline
 
-    def execute(self, objects: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """
-        Единственный разрешённый путь обработки search results.
-        """
 
-        if not objects:
-            return []
 
-        # HARD BOUNDARY: никакой логики вне pipeline
-        return self.pipeline.run(objects)
+    def execute(
+        self,
+        payload: Dict[str, Any]
+    ):
+
+        if not payload:
+            return {
+                "results": [],
+                "count": 0
+            }
+
+
+        return self.pipeline.run(
+            payload
+        )
