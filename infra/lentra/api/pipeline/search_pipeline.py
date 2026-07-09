@@ -67,6 +67,76 @@ class SearchPipeline:
         )
 
 
+    def _build_ai_verdict(
+        self,
+        market: Dict[str, Any],
+        risk: Dict[str, Any],
+        dedup: Dict[str, Any]
+    ) -> str:
+
+        price_status = market.get(
+            "verdict",
+            "unknown"
+        )
+
+        difference_percent = market.get(
+            "difference_percent",
+            0
+        )
+
+        risk_data = risk.get(
+            "risk",
+            {}
+        )
+
+        risk_level = risk_data.get(
+            "level",
+            "medium"
+        )
+
+        duplicates = dedup.get(
+            "dedup",
+            {}
+        ).get(
+            "duplicates",
+            0
+        )
+
+
+        if risk_level == "high":
+            return (
+                "Цена выглядит выгодной, "
+                "но высокий риск объявления требует проверки."
+            )
+
+
+        if price_status == "good_deal":
+            return (
+                f"Хорошее предложение: цена ниже рынка "
+                f"примерно на {abs(difference_percent)}%."
+            )
+
+
+        if price_status == "overpriced":
+            return (
+                f"Цена выше рынка примерно на "
+                f"{difference_percent}%."
+            )
+
+
+        if duplicates > 0:
+            return (
+                "Объект найден в нескольких источниках. "
+                "Проверьте оригинальное объявление."
+            )
+
+
+        return (
+            "Цена соответствует рынку. "
+            "Объект выглядит сбалансированным."
+        )
+
+
     def _build_decision(
         self,
         market: Dict[str, Any],
@@ -466,9 +536,10 @@ class SearchPipeline:
                             ),
 
                         "verdict":
-                            decision.get(
-                                "reason",
-                                ""
+                            self._build_ai_verdict(
+                                item["market"],
+                                item["risk"],
+                                item["dedup"]
                             )
 
                     },
