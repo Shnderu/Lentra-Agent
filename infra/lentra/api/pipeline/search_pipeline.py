@@ -615,7 +615,110 @@ class SearchPipeline:
                                 "ranking_score",
                                 0.5
                             )
-                        )
+                        ),
+
+                    "mini_app": {
+
+                        "schema_version": "3.0.3",
+
+                        "object": {
+
+                            "id":
+                                listing.get("id"),
+
+                            "title":
+                                listing.get("title"),
+
+                            "price":
+                                listing.get("price"),
+
+                            "currency":
+                                listing.get(
+                                    "currency",
+                                    "USD"
+                                ),
+
+                            "city":
+                                listing.get(
+                                    "city",
+                                    "da_nang"
+                                )
+
+                        },
+
+                        "intelligence": {
+
+                            "price_signal":
+                                item["market"].get(
+                                    "price_signal",
+                                    "unknown"
+                                ),
+
+                            "market_difference":
+                                item["market"].get(
+                                    "difference_percent",
+                                    0
+                                ),
+
+                            "risk_level":
+                                item["risk"].get(
+                                    "risk",
+                                    {}
+                                ).get(
+                                    "level",
+                                    "unknown"
+                                ),
+
+                            "duplicates":
+                                item["dedup"].get(
+                                    "dedup",
+                                    {}
+                                ).get(
+                                    "duplicates",
+                                    0
+                                ),
+
+                            "trend":
+                                price_intelligence.get(
+                                    "trend",
+                                    "unknown"
+                                )
+
+                        },
+
+                        "verdict": {
+
+                            "label":
+                                item["market_verdict"].get(
+                                    "verdict",
+                                    "REVIEW"
+                                ),
+
+                            "confidence":
+                                item["market_verdict"].get(
+                                    "confidence",
+                                    0.5
+                                )
+
+                        },
+
+                        "explanation": {
+
+                            "summary":
+                                market_explanation.get(
+                                    "summary",
+                                    ""
+                                ),
+
+                            "movement":
+                                market_explanation.get(
+                                    "movement_explanation",
+                                    ""
+                                )
+
+                        }
+
+                    }
 
                 }
             )
