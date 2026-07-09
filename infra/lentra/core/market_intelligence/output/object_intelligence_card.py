@@ -1,7 +1,14 @@
 from typing import Dict, Any
 
+from lentra.core.market_intelligence.explanation.user_explanation_engine import (
+    UserExplanationEngine
+)
+
 
 class ObjectIntelligenceCardBuilder:
+
+    def __init__(self):
+        self.user_explanation = UserExplanationEngine()
     """
     Builds final product intelligence card.
 
@@ -120,26 +127,44 @@ class ObjectIntelligenceCardBuilder:
                 decision or {},
 
             "explanation":
-                (
-                    verdict.get(
-                        "reason",
-                        ""
-                    )
-                    or
-                    (
-                        decision or {}
-                    ).get(
-                        "decision_layer",
-                        {}
-                    ).get(
-                        "reason",
-                        ""
-                    )
-                    or
-                    explanation.get(
-                        "summary",
-                        ""
-                    )
+                self.user_explanation.explain(
+                    {
+                        "price":
+                            listing.get(
+                                "price",
+                                0
+                            ),
+
+                        "market_price":
+                            market.get(
+                                "market_price",
+                                0
+                            ),
+
+                        "difference_percent":
+                            market.get(
+                                "difference_percent",
+                                0
+                            ),
+
+                        "risk":
+                            risk.get(
+                                "risk",
+                                {}
+                            ),
+
+                        "duplicates":
+                            dedup.get(
+                                "dedup",
+                                {}
+                            ).get(
+                                "duplicates",
+                                0
+                            ),
+
+                        "decision":
+                            decision or {}
+                    }
                 ),
 
             "ranking":
