@@ -439,6 +439,14 @@ class SearchPipeline:
             )
 
 
+            decision_result = self._build_decision(
+                market,
+                risk_result,
+                area,
+                0.5
+            )
+
+
             prepared.append(
                 {
                     "listing": listing,
@@ -448,7 +456,9 @@ class SearchPipeline:
                     "risk": risk_result,
                     "dedup": dedup_result,
 
-                    "market_verdict": market_verdict
+                    "market_verdict": market_verdict,
+
+                    "decision": decision_result
                 }
             )
 
@@ -541,18 +551,7 @@ class SearchPipeline:
                                 listing.get("id"),
                                 {}
                             ),
-                            decision=self._build_decision(
-                                item["market"],
-                                item["risk"],
-                                item["area"],
-                                rank_map.get(
-                                    listing.get("id"),
-                                    {}
-                                ).get(
-                                    "ranking_score",
-                                    0.5
-                                )
-                            )
+                            decision=item["decision"]
                         ),
 
                     "intelligence": {
@@ -616,35 +615,13 @@ class SearchPipeline:
                                     listing.get("id"),
                                     {}
                                 ),
-                                decision=self._build_decision(
-                                    item["market"],
-                                    item["risk"],
-                                    item["area"],
-                                    rank_map.get(
-                                        listing.get("id"),
-                                        {}
-                                    ).get(
-                                        "ranking_score",
-                                        0.5
-                                    )
-                                )
+                                decision=item["decision"]
                             )
 
                     },
 
                     "decision":
-                        self._build_decision(
-                            item["market"],
-                            item["risk"],
-                            item["area"],
-                            rank_map.get(
-                                listing.get("id"),
-                                {}
-                            ).get(
-                                "ranking_score",
-                                0.5
-                            )
-                        ),
+                        item["decision"],
 
                     "mini_app": {
 
@@ -678,8 +655,25 @@ class SearchPipeline:
                         "intelligence": {
 
                             "price_signal":
-                                item["market"].get(
-                                    "price_signal",
+                                (
+                                    item["market"].get(
+                                        "price_signal"
+                                    )
+                                    or
+                                    item["risk"].get(
+                                        "risk",
+                                        {}
+                                    ).get(
+                                        "price_signal"
+                                    )
+                                    or
+                                    item["market_verdict"].get(
+                                        "signals",
+                                        {}
+                                    ).get(
+                                        "price_signal"
+                                    )
+                                    or
                                     "unknown"
                                 ),
 
@@ -718,15 +712,37 @@ class SearchPipeline:
                         "verdict": {
 
                             "label":
+                                item["decision"].get(
+                                    "action",
+                                    "REVIEW"
+                                ),
+
+                            "confidence":
+                                item["decision"].get(
+                                    "confidence",
+                                    0.5
+                                )
+
+                        },
+
+                        "analysis": {
+
+                            "label":
                                 item["market_verdict"].get(
                                     "verdict",
-                                    "REVIEW"
+                                    "MARKET_ANALYSIS"
                                 ),
 
                             "confidence":
                                 item["market_verdict"].get(
                                     "confidence",
                                     0.5
+                                ),
+
+                            "reason":
+                                item["market_verdict"].get(
+                                    "reason",
+                                    ""
                                 )
 
                         },
