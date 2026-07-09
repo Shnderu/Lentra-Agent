@@ -9,7 +9,6 @@ from lentra.core.market_intelligence.engines.dedup_engine import DedupEngine
 from lentra.core.market_intelligence.decision.decision_layer import DecisionLayer
 from lentra.core.market_intelligence.ranking.unified_ranking_engine import UnifiedRankingEngine
 from lentra.core.market_intelligence.contracts.listing_contract_guard import ListingContractGuard
-from lentra.core.market_intelligence.pricing.market_truth_engine import MarketTruthEngine
 
 
 class SearchPipeline:
@@ -51,8 +50,6 @@ class SearchPipeline:
         self.decision_layer = DecisionLayer()
 
         self.ranking_engine = UnifiedRankingEngine()
-
-        self.market_truth_engine = MarketTruthEngine()
 
 
     def _risk_penalty(
@@ -250,10 +247,6 @@ class SearchPipeline:
             query
         )
 
-        market_truth = self.market_truth_engine.stabilize(
-            listings
-        )
-
 
         raw_cards = []
 
@@ -299,17 +292,10 @@ class SearchPipeline:
                     0
                 ),
 
-                "market_price": (
-                    market_truth.get(
-                        "median_price"
-                    )
-                    or listing.get(
-                        "market_price",
-                        650
-                    )
+                "market_price": listing.get(
+                    "market_price",
+                    650
                 ),
-
-                "market_truth": market_truth,
 
                 "city": listing.get(
                     "city",
@@ -526,9 +512,6 @@ class SearchPipeline:
 
                         "market":
                             item["market"],
-
-                        "market_truth":
-                            market_truth,
 
                         "risk":
                             item["risk"],
