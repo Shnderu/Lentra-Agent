@@ -2,57 +2,56 @@ class MarketRankingEngine:
     """
     Market Intelligence ranking engine.
 
-    Ranks listings by real market utility:
-
+    Unified utility score:
     - pricing value
-    - risk quality
+    - risk
     - area quality
-    - data confidence
+    - confidence
     - duplicate penalty
 
-    This engine does not make final decisions.
-    Decision Layer remains responsible for ACCEPT/REVIEW/REJECT.
+    Single ranking source of truth.
     """
 
-    def rank(
-        self,
-        cards: list
-    ):
+    def rank(self, cards: list):
 
-        def score(card):
+        def score(c):
 
-            pricing_score = card.get(
-                "pricing_score",
-                0.5
-            )
-
-            area_score = card.get(
-                "area_score",
-                0.5
-            )
-
-            confidence = card.get(
-                "confidence",
-                0.5
-            )
-
-            risk = card.get(
+            risk = c.get(
                 "risk",
                 0.5
             )
 
-            duplicates = card.get(
+            confidence = c.get(
+                "confidence",
+                0.5
+            )
+
+            pricing_score = c.get(
+                "pricing_score",
+                0.5
+            )
+
+            area_score = c.get(
+                "area_score",
+                0.5
+            )
+
+            duplicates = c.get(
                 "duplicates",
                 0
             )
 
+            #
+            # Core intelligence utility
+            #
 
-            risk_quality = 1 - risk
-
+            trust_score = (
+                1.0 - risk
+            )
 
             duplicate_penalty = min(
-                duplicates * 0.05,
-                0.15
+                duplicates * 0.1,
+                0.3
             )
 
 
@@ -62,15 +61,15 @@ class MarketRankingEngine:
 
                 +
 
-                risk_quality * 0.25
-
-                +
-
                 area_score * 0.20
 
                 +
 
-                confidence * 0.15
+                trust_score * 0.25
+
+                +
+
+                confidence * 0.20
 
                 -
 
