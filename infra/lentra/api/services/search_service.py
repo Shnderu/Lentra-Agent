@@ -1,20 +1,24 @@
 # ============================================================
-# SEARCH SERVICE V18 - MARKET INTELLIGENCE ENTRY
+# SEARCH SERVICE V19 - CANONICAL SEARCH ENTRY
 # ============================================================
 
 import time
 
 from lentra.core.adapters.search_adapter import SearchAdapter
-from lentra.core.market_intelligence.market_intelligence_engine import (
-    MarketIntelligenceEngine,
+from lentra.core.pipeline.canonical_search_pipeline import (
+    CanonicalSearchPipeline,
 )
+from lentra.core.pipeline.canonical_entrypoint import (
+    CanonicalSearchEntrypoint,
+)
+from lentra.api.pipeline.search_pipeline import SearchPipeline
 
 
 class SearchService:
     """
-    Product search entrypoint.
+    Unified search service.
 
-    Flow:
+    Architecture:
 
     API
       |
@@ -22,20 +26,33 @@ class SearchService:
     SearchService
       |
       v
-    SearchAdapter
+    CanonicalSearchEntrypoint
       |
       v
-    Market Intelligence Engine
+    CanonicalSearchPipeline
       |
       v
-    Decision Layer
+    SearchPipeline
+      |
+      v
+    Market Intelligence Core
     """
 
     def __init__(self):
 
-        self.adapter = SearchAdapter()
+        adapter = SearchAdapter()
 
-        self.market_intelligence = MarketIntelligenceEngine()
+        search_pipeline = SearchPipeline()
+
+        self.pipeline = CanonicalSearchPipeline(
+            search_pipeline
+        )
+
+        self.entrypoint = CanonicalSearchEntrypoint(
+            self.pipeline
+        )
+
+        self.adapter = adapter
 
 
     async def search(self, request: dict):
@@ -51,18 +68,20 @@ class SearchService:
             query
         )
 
+
         if not objects:
+
             return {
                 "items": [],
                 "count": 0,
                 "query": query,
-                "mode": "market_intelligence_v18",
+                "mode": "canonical_search_v19",
             }
 
 
         try:
 
-            result = self.market_intelligence._run_core_graph(
+            result = self.entrypoint.execute(
                 {
                     "query": query,
                     "objects": objects,
@@ -75,7 +94,7 @@ class SearchService:
                 "status": "error",
                 "error": str(e),
                 "query": query,
-                "mode": "market_intelligence_v18",
+                "mode": "canonical_search_v19",
             }
 
 
@@ -92,5 +111,5 @@ class SearchService:
             else 1,
             "query": query,
             "execution_time": elapsed,
-            "mode": "market_intelligence_v18",
+            "mode": "canonical_search_v19",
         }
