@@ -418,6 +418,61 @@ class SearchPipeline:
 
                     },
 
+                    "ai_summary": {
+
+                        "price_status":
+                            item["market"].get(
+                                "verdict",
+                                "unknown"
+                            ),
+
+                        "market_difference":
+                            item["market"].get(
+                                "difference",
+                                0
+                            ),
+
+                        "market_difference_percent":
+                            item["market"].get(
+                                "difference_percent",
+                                0
+                            ),
+
+                        "risk_level":
+                            item["risk"].get(
+                                "risk",
+                                {}
+                            ).get(
+                                "level",
+                                "unknown"
+                            ),
+
+                        "fraud_score":
+                            item["risk"].get(
+                                "risk",
+                                {}
+                            ).get(
+                                "fraud_score",
+                                0.5
+                            ),
+
+                        "duplicates":
+                            item["dedup"].get(
+                                "dedup",
+                                {}
+                            ).get(
+                                "duplicates",
+                                0
+                            ),
+
+                        "verdict":
+                            decision.get(
+                                "reason",
+                                ""
+                            )
+
+                    },
+
                     "decision":
                         decision
 
