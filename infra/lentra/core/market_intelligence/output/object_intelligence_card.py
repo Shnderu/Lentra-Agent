@@ -9,7 +9,6 @@ class ObjectIntelligenceCardBuilder:
     into user-facing object intelligence.
     """
 
-
     def build(
         self,
         listing: Dict[str, Any],
@@ -17,7 +16,6 @@ class ObjectIntelligenceCardBuilder:
         ranking: Dict[str, Any],
         decision: Dict[str, Any] = None
     ) -> Dict[str, Any]:
-
 
         market = intelligence.get(
             "market",
@@ -49,7 +47,6 @@ class ObjectIntelligenceCardBuilder:
             {}
         )
 
-
         return {
 
             "price":
@@ -70,7 +67,6 @@ class ObjectIntelligenceCardBuilder:
                     0
                 ),
 
-
             "price_signal":
                 (
                     risk.get(
@@ -90,13 +86,11 @@ class ObjectIntelligenceCardBuilder:
                     "unknown"
                 ),
 
-
             "risk":
                 risk.get(
                     "risk",
                     {}
                 ),
-
 
             "duplicates":
                 dedup.get(
@@ -107,7 +101,6 @@ class ObjectIntelligenceCardBuilder:
                     0
                 ),
 
-
             "market_trend":
                 intelligence.get(
                     "price_intelligence",
@@ -117,18 +110,14 @@ class ObjectIntelligenceCardBuilder:
                     "unknown"
                 ),
 
-
             "area":
                 area,
-
 
             "ai_verdict":
                 verdict,
 
-
             "decision":
                 decision or {},
-
 
             "explanation":
                 explanation.get(
@@ -136,8 +125,6 @@ class ObjectIntelligenceCardBuilder:
                     ""
                 ),
 
-
             "ranking":
                 ranking
-
         }
