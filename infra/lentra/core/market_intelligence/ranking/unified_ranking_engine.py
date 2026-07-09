@@ -3,11 +3,21 @@ from lentra.core.market_intelligence.ranking.ranking_engine import MarketRanking
 
 class UnifiedRankingEngine:
     """
-    SINGLE SOURCE OF TRUTH ranking engine (clean version).
+    SINGLE SOURCE OF TRUTH ranking engine.
     """
 
     def __init__(self):
+
         self.core = MarketRankingEngine()
 
-    def rank(self, cards: list, market_truth=None):
-        return self.core.rank(cards)
+
+    def rank(
+        self,
+        cards: list,
+        market_truth=None
+    ):
+
+        return self.core.rank(
+            cards,
+            market_snapshot=market_truth
+        )

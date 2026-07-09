@@ -57,6 +57,11 @@ class DecisionLayer:
             {}
         )
 
+        market_snapshot = signals.get(
+            "market_snapshot",
+            {}
+        )
+
 
         pricing_score = pricing.get(
             "pricing_score",
@@ -80,6 +85,11 @@ class DecisionLayer:
             "score",
             0.5
         )
+
+        market_confidence = market_snapshot.get(
+            "confidence",
+            0.5
+        ) if isinstance(market_snapshot, dict) else 0.5
 
 
         # =========================

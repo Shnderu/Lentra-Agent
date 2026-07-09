@@ -343,7 +343,8 @@ class SearchPipeline:
 
 
         ranked = self.ranking_engine.rank(
-            raw_cards
+            raw_cards,
+            market_truth
         )
 
 

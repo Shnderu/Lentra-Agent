@@ -8,11 +8,16 @@ class MarketRankingEngine:
     - risk
     - confidence
     - duplicate signals
+    - market snapshot truth
 
     Single ranking source of truth.
     """
 
-    def rank(self, cards: list):
+    def rank(
+        self,
+        cards: list,
+        market_snapshot=None
+    ):
 
         def score(c):
 
@@ -42,17 +47,51 @@ class MarketRankingEngine:
             )
 
 
+            market_score = 0.5
+
+
+            if market_snapshot:
+
+                median_price = getattr(
+                    market_snapshot,
+                    "average_market_price",
+                    None
+                )
+
+                price = c.get(
+                    "price",
+                    0
+                )
+
+
+                if median_price and price:
+
+                    deviation = abs(
+                        price - median_price
+                    ) / median_price
+
+
+                    market_score = max(
+                        0,
+                        1 - deviation
+                    )
+
+
             value_score = (
 
-                pricing_score * 0.35
+                pricing_score * 0.30
 
                 +
 
-                area_score * 0.25
+                area_score * 0.20
 
                 +
 
-                confidence * 0.25
+                confidence * 0.20
+
+                +
+
+                market_score * 0.15
 
             )
 
