@@ -4,50 +4,108 @@ import json
 
 from lentra.worker.queue import pop_task
 from lentra.worker.result_store import save_result
-from lentra.core.pipeline.pipeline import LentraPipeline
+
+from lentra.core.pipeline.worker_search_entrypoint import (
+    WorkerSearchEntrypoint
+)
 
 
 def log(*args):
     print(*args, flush=True)
 
 
+def normalize_payload(payload):
+
+    if isinstance(payload, str):
+
+        try:
+            return json.loads(payload)
+
+        except Exception:
+            return {
+                "query": payload
+            }
+
+    if isinstance(payload, dict):
+        return payload
+
+    return {
+        "query": str(payload)
+    }
+
+
+
 def main():
-    pipeline = LentraPipeline()
+
+    pipeline = WorkerSearchEntrypoint()
 
     log("[QUEUE WORKER] STARTED")
 
+
     while True:
+
         task = pop_task()
 
+
         if task is None:
+
             time.sleep(2)
             continue
 
-        task_id = task.get("id")
-        payload = task.get("payload")
+
+        task_id = task.get(
+            "id"
+        )
+
+        payload = task.get(
+            "payload"
+        )
+
 
         try:
-            log("[TASK]", task_id)
 
-            # FIX: normalize payload before pipeline
-            if isinstance(payload, str):
-                try:
-                    payload = json.loads(payload)
-                except Exception:
-                    payload = {"text": payload}
+            log(
+                "[TASK]",
+                task_id
+            )
 
-            result = pipeline.run(payload)
 
-            save_result(task_id, result)
+            payload = normalize_payload(
+                payload
+            )
 
-            log("[DONE]", task_id)
+
+            result = pipeline.execute(
+                payload
+            )
+
+
+            save_result(
+                task_id,
+                result
+            )
+
+
+            log(
+                "[DONE]",
+                task_id
+            )
+
 
         except Exception:
-            log("[ERROR]", task_id)
+
+            log(
+                "[ERROR]",
+                task_id
+            )
+
             traceback.print_exc()
+
 
         time.sleep(0.1)
 
 
+
 if __name__ == "__main__":
+
     main()
