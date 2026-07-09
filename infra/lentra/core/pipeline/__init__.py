@@ -1,9 +1,9 @@
-"""
-Canonical pipeline package.
+from .canonical_search_pipeline import CanonicalSearchPipeline
+from .canonical_entrypoint import CanonicalSearchEntrypoint
+from .worker_search_entrypoint import WorkerSearchEntrypoint
 
-Legacy LentraPipeline removed.
-All execution goes through:
-CanonicalSearchEntrypoint
-CanonicalSearchPipeline
-SearchPipeline
-"""
+__all__ = [
+    "CanonicalSearchPipeline",
+    "CanonicalSearchEntrypoint",
+    "WorkerSearchEntrypoint",
+]
