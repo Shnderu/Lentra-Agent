@@ -354,6 +354,24 @@ class SearchPipeline:
                     "confidence": market.get(
                         "confidence",
                         0.5
+                    ),
+
+                    "pricing_score": market.get(
+                        "pricing_score",
+                        0.5
+                    ),
+
+                    "area_score": area.get(
+                        "score",
+                        0.5
+                    ),
+
+                    "duplicates": dedup_result.get(
+                        "dedup",
+                        {}
+                    ).get(
+                        "duplicates",
+                        0
                     )
 
                 }
