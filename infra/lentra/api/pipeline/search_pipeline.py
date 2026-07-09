@@ -19,6 +19,11 @@ from lentra.core.market_intelligence.verdict.market_verdict_engine import (
     MarketVerdictEngine
 )
 
+
+from lentra.core.market_intelligence.output.object_intelligence_card import (
+    ObjectIntelligenceCardBuilder
+)
+
 from lentra.core.market_intelligence.market.market_service import MarketService
 from lentra.core.market_intelligence.repository.market_snapshot_repository import MarketSnapshotRepository
 
@@ -42,6 +47,8 @@ class SearchPipeline:
         self.market_service = MarketService()
 
         self.verdict_engine = MarketVerdictEngine()
+
+        self.object_card_builder = ObjectIntelligenceCardBuilder()
 
         self.market_snapshot_repository = MarketSnapshotRepository()
 
@@ -523,7 +530,38 @@ class SearchPipeline:
                             market_explanation,
 
                         "market_verdict":
-                            item["market_verdict"]
+                            item["market_verdict"],
+
+                        "object_card":
+                            self.object_card_builder.build(
+                                listing,
+                                {
+                                    "market":
+                                        item["market"],
+
+                                    "area":
+                                        item["area"],
+
+                                    "risk":
+                                        item["risk"],
+
+                                    "dedup":
+                                        item["dedup"],
+
+                                    "price_intelligence":
+                                        price_intelligence,
+
+                                    "market_explanation":
+                                        market_explanation,
+
+                                    "market_verdict":
+                                        item["market_verdict"]
+                                },
+                                rank_map.get(
+                                    listing.get("id"),
+                                    {}
+                                )
+                            )
 
                     },
 
