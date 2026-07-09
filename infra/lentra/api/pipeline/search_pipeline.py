@@ -500,6 +500,43 @@ class SearchPipeline:
                         {}
                     ),
 
+                    "card":
+                        self.object_card_builder.build(
+                            listing,
+                            {
+                                "market":
+                                    item["market"],
+
+                                "area":
+                                    item["area"],
+
+                                "risk":
+                                    item["risk"],
+
+                                "dedup":
+                                    item["dedup"],
+
+                                "price_intelligence":
+                                    price_intelligence,
+
+                                "segment_intelligence":
+                                    segment_intelligence,
+
+                                "market_movement":
+                                    market_movement,
+
+                                "market_explanation":
+                                    market_explanation,
+
+                                "market_verdict":
+                                    item["market_verdict"]
+                            },
+                            rank_map.get(
+                                listing.get("id"),
+                                {}
+                            )
+                        ),
+
                     "intelligence": {
 
                         "market_truth":
