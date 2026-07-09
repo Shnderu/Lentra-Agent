@@ -14,7 +14,8 @@ class ObjectIntelligenceCardBuilder:
         self,
         listing: Dict[str, Any],
         intelligence: Dict[str, Any],
-        ranking: Dict[str, Any]
+        ranking: Dict[str, Any],
+        decision: Dict[str, Any] = None
     ) -> Dict[str, Any]:
 
 
@@ -123,6 +124,10 @@ class ObjectIntelligenceCardBuilder:
 
             "ai_verdict":
                 verdict,
+
+
+            "decision":
+                decision or {},
 
 
             "explanation":
