@@ -1,4 +1,5 @@
 from typing import Dict, Any
+from datetime import datetime, timezone
 
 from lentra.runtime.bootstrap.gateway_v3 import build_gateway_v3
 from lentra.core.adapters.search_adapter import SearchAdapter
@@ -621,6 +622,17 @@ class SearchPipeline:
 
 
         return {
+
+            "api_version": "1.0",
+
+            "schema_version": "3.0.2",
+
+            "platform": "Lentra",
+
+            "generated_at":
+                datetime.now(
+                    timezone.utc
+                ).isoformat(),
 
             "query": query,
 
