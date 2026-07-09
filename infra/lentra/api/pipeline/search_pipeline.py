@@ -341,11 +341,9 @@ class SearchPipeline:
                     0
                 ),
 
-                "market_price": (
-                    market_truth.get(
-                        "median_price"
-                    )
-                    or 650
+                "market_price": market_truth.get(
+                    "median_price",
+                    0
                 ),
 
                 "market_truth": market_truth,
