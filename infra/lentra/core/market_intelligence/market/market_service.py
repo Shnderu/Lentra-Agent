@@ -1,153 +1,103 @@
-import statistics
+from lentra.core.market_intelligence.pricing.market_truth_engine import (
+    MarketTruthEngine
+)
 
-from lentra.core.market_intelligence.market.market_snapshot import (
+from lentra.core.market_intelligence.models.market_snapshot import (
     MarketSnapshot
 )
 
 
 class MarketService:
     """
-    Market Intelligence analytical layer.
+    Market Intelligence market analysis service.
 
-    Converts raw normalized listings
-    into MarketSnapshot.
+    Flow:
 
-    Future extensions:
-    - district pricing
-    - historical snapshots
-    - market trends
-    - liquidity
-    - confidence calibration
+    listings
+        |
+        v
+    MarketTruthEngine
+        |
+        v
+    MarketSnapshot
+        |
+        v
+    market context
     """
+
+    def __init__(self):
+
+        self.truth_engine = MarketTruthEngine()
 
 
     def analyze(
         self,
-        listings: list
+        listings: list,
+        query: str = "",
+        city: str = "da_nang"
     ) -> dict:
 
-        prices = [
-            item.get("price")
-            for item in listings
-            if item.get("price")
-        ]
-
-
-        if not prices:
-
-            return MarketSnapshot(
-                clean_listings=listings
-            ).to_dict()
-
-
-        median = statistics.median(
-            prices
-        )
-
-        mean = statistics.mean(
-            prices
-        )
-
-
-        sorted_prices = sorted(
-            prices
-        )
-
-
-        q1 = sorted_prices[
-            len(sorted_prices) // 4
-        ]
-
-        q3 = sorted_prices[
-            (len(sorted_prices) * 3) // 4
-        ]
-
-
-        iqr = q3 - q1
-
-        low = q1 - (
-            1.5 * iqr
-        )
-
-        high = q3 + (
-            1.5 * iqr
-        )
-
-
-        clean = []
-
-        outliers = 0
-
-
-        for item in listings:
-
-            price = item.get(
-                "price"
-            )
-
-
-            if price is None:
-                continue
-
-
-            if price < low or price > high:
-
-                item["anomaly_flag"] = True
-
-                item["risk_score_boost"] = 0.2
-
-                outliers += 1
-
-            else:
-
-                item["anomaly_flag"] = False
-
-
-            clean.append(
-                item
-            )
-
-
-        confidence = min(
-            len(prices) / 20,
-            1.0
+        truth = self.truth_engine.stabilize(
+            listings
         )
 
 
         snapshot = MarketSnapshot(
-
-            city="da_nang",
-
-            median_price=median,
-
-            mean_price=mean,
-
-            q1=q1,
-
-            q3=q3,
-
-            sample_size=len(prices),
-
-            outliers_detected=outliers,
-
-            confidence=round(
-                confidence,
-                2
-            ),
-
-            price_min=min(prices),
-
-            price_max=max(prices),
-
-            market_health=(
-                "stable"
-                if len(prices) >= 5
-                else "low_sample"
-            ),
-
-            clean_listings=clean
-
+            query=query
         )
 
 
-        return snapshot.to_dict()
+        snapshot.median_price = truth.get(
+            "median_price"
+        )
+
+        snapshot.mean_price = truth.get(
+            "mean_price"
+        )
+
+        snapshot.q1 = truth.get(
+            "q1"
+        )
+
+        snapshot.q3 = truth.get(
+            "q3"
+        )
+
+        snapshot.price_min = truth.get(
+            "price_min"
+        )
+
+        snapshot.price_max = truth.get(
+            "price_max"
+        )
+
+        snapshot.sample_size = truth.get(
+            "sample_size"
+        )
+
+        snapshot.outliers_detected = truth.get(
+            "outliers_detected"
+        )
+
+        snapshot.confidence = truth.get(
+            "confidence"
+        )
+
+        snapshot.market_health = truth.get(
+            "market_health"
+        )
+
+        snapshot.total_objects = len(
+            listings
+        )
+
+
+        return {
+
+            "city": city,
+
+            "snapshot": snapshot.finalize(),
+
+            "market_truth": truth
+
+        }
