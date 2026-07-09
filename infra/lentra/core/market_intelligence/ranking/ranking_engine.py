@@ -1,33 +1,106 @@
 class MarketRankingEngine:
     """
-    Ranks listings using composite utility function:
-    value vs price vs risk vs confidence.
+    Market Intelligence ranking engine.
+
+    Ranks listings by real market utility:
+
+    - pricing value
+    - risk quality
+    - area quality
+    - data confidence
+    - duplicate penalty
+
+    This engine does not make final decisions.
+    Decision Layer remains responsible for ACCEPT/REVIEW/REJECT.
     """
 
-    def rank(self, cards: list):
+    def rank(
+        self,
+        cards: list
+    ):
 
-        def score(c):
+        def score(card):
 
-            price = c.get("price") or 0
-            risk = c.get("risk")
-            if risk is None:
-                risk = 0.5
-            confidence = c.get("confidence")
-            if confidence is None:
-                confidence = 0.5
+            pricing_score = card.get(
+                "pricing_score",
+                0.5
+            )
 
-            # normalized utility model
-            value_score = confidence * (1.0 - risk)
+            area_score = card.get(
+                "area_score",
+                0.5
+            )
 
-            # penalize expensive listings slightly
-            price_penalty = min(price / 1000.0, 1.0) * 0.2
+            confidence = card.get(
+                "confidence",
+                0.5
+            )
 
-            return value_score - price_penalty
+            risk = card.get(
+                "risk",
+                0.5
+            )
 
-        ranked = sorted(cards, key=score, reverse=True)
+            duplicates = card.get(
+                "duplicates",
+                0
+            )
 
-        # attach rank
-        for i, c in enumerate(ranked):
-            c["rank"] = i + 1
+
+            risk_quality = 1 - risk
+
+
+            duplicate_penalty = min(
+                duplicates * 0.05,
+                0.15
+            )
+
+
+            utility = (
+
+                pricing_score * 0.35
+
+                +
+
+                risk_quality * 0.25
+
+                +
+
+                area_score * 0.20
+
+                +
+
+                confidence * 0.15
+
+                -
+
+                duplicate_penalty
+
+            )
+
+
+            return round(
+                utility,
+                4
+            )
+
+
+        ranked = sorted(
+            cards,
+            key=score,
+            reverse=True
+        )
+
+
+        for index, card in enumerate(
+            ranked
+        ):
+
+            card["rank"] = index + 1
+
+            card["ranking_score"] = score(
+                card
+            )
+
 
         return ranked
