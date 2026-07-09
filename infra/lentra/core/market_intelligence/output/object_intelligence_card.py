@@ -71,11 +71,21 @@ class ObjectIntelligenceCardBuilder:
 
 
             "price_signal":
-                verdict.get(
-                    "signals",
-                    {}
-                ).get(
-                    "price_signal",
+                (
+                    risk.get(
+                        "risk",
+                        {}
+                    ).get(
+                        "price_signal"
+                    )
+                    or
+                    verdict.get(
+                        "signals",
+                        {}
+                    ).get(
+                        "price_signal"
+                    )
+                    or
                     "unknown"
                 ),
 
