@@ -1,13 +1,58 @@
-from lentra.runtime.contracts import ExecutionEnvelope
+import asyncio
+import logging
 
-def main():
-    # hard fail-safe init
-    envelope = ExecutionEnvelope()
+from aiogram import Bot, Dispatcher
 
-    print("[BOT] runtime envelope loaded OK")
+from lentra.bot.config import BOT_TOKEN
+from lentra.bot.handlers.handlers import router as search_router
 
-    # TODO: дальше UI layer
-    # bot must NOT execute tasks, only publish intents
+
+logging.basicConfig(
+    level=logging.INFO
+)
+
+
+async def main():
+
+    if not BOT_TOKEN:
+        raise RuntimeError(
+            "BOT_TOKEN is empty"
+        )
+
+    bot = Bot(
+        token=BOT_TOKEN
+    )
+
+    dp = Dispatcher()
+
+
+    #
+    # Primary user interaction router
+    #
+    dp.include_router(
+        search_router
+    )
+
+
+    logging.info(
+        "[BOT] starting aiogram polling"
+    )
+
+
+    try:
+
+        await dp.start_polling(
+            bot
+        )
+
+    finally:
+
+        await bot.session.close()
+
+
 
 if __name__ == "__main__":
-    main()
+
+    asyncio.run(
+        main()
+    )
