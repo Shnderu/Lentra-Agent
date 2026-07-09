@@ -14,6 +14,11 @@ from lentra.core.market_intelligence.history.price_observation import (
     PriceObservation
 )
 
+
+from lentra.core.market_intelligence.verdict.market_verdict_engine import (
+    MarketVerdictEngine
+)
+
 from lentra.core.market_intelligence.market.market_service import MarketService
 from lentra.core.market_intelligence.repository.market_snapshot_repository import MarketSnapshotRepository
 
@@ -35,6 +40,8 @@ class SearchPipeline:
         self.ranking_engine = UnifiedRankingEngine()
 
         self.market_service = MarketService()
+
+        self.verdict_engine = MarketVerdictEngine()
 
         self.market_snapshot_repository = MarketSnapshotRepository()
 
@@ -282,6 +289,12 @@ class SearchPipeline:
         )
 
 
+        market_verdict = market_analysis.get(
+            "market_verdict",
+            {}
+        )
+
+
         raw_cards = []
 
         prepared = []
@@ -359,6 +372,17 @@ class SearchPipeline:
             )
 
 
+
+            market_verdict = self.verdict_engine.verdict(
+                market,
+                price_intelligence,
+                market_explanation,
+                risk_result,
+                dedup_result,
+                area
+            )
+
+
             raw_cards.append(
                 {
                     "id": listing.get("id"),
@@ -409,7 +433,9 @@ class SearchPipeline:
                     "area": area,
                     "market": market,
                     "risk": risk_result,
-                    "dedup": dedup_result
+                    "dedup": dedup_result,
+
+                    "market_verdict": market_verdict
                 }
             )
 
@@ -494,7 +520,10 @@ class SearchPipeline:
                             market_movement,
 
                         "market_explanation":
-                            market_explanation
+                            market_explanation,
+
+                        "market_verdict":
+                            item["market_verdict"]
 
                     },
 
@@ -531,6 +560,8 @@ class SearchPipeline:
             "market_movement": market_movement,
 
             "market_explanation": market_explanation,
+
+            "market_verdict": market_verdict,
 
             "results": results
 

@@ -1,42 +1,157 @@
-from lentra.core.market_intelligence.area.market_segmentation_engine import MarketSegmentationEngine
-from lentra.core.market_intelligence.area.micro_market_engine import MicroMarketEngine
+from typing import Dict, Any
 
 
 class MarketVerdictEngine:
+    """
+    Final AI market interpretation layer.
 
-    def __init__(self):
-        self.segmenter = MarketSegmentationEngine()
-        self.micro = MicroMarketEngine()
+    Converts Market Intelligence signals
+    into user facing recommendation.
+    """
 
-    def evaluate(self, listing: dict):
 
-        segment = self.segmenter.update(listing)
-        cluster = self.micro.update(listing)
+    def verdict(
+        self,
+        market: Dict[str, Any],
+        price_intelligence: Dict[str, Any],
+        market_explanation: Dict[str, Any],
+        risk: Dict[str, Any],
+        dedup: Dict[str, Any],
+        area: Dict[str, Any],
+    ) -> Dict[str, Any]:
 
-        deviation = self.micro.deviation(listing)
+        score = 0.5
 
-        area = listing.get("area_quality") or 5
-        area_factor = (float(area) - 5) / 10
+        reasons = []
 
-        adjusted = deviation - area_factor * 0.15
 
-        # -------------------------
-        # DECISION LOGIC
-        # -------------------------
-        if adjusted > 0.25:
-            verdict = "overpriced"
-        elif adjusted < -0.25:
-            verdict = "cheap"
+        difference = market.get(
+            "difference_percent",
+            0
+        )
+
+
+        if difference > 10:
+
+            score -= 0.15
+
+            reasons.append(
+                f"Цена выше рынка на {difference}%."
+            )
+
+
+        elif difference < -10:
+
+            score += 0.15
+
+            reasons.append(
+                f"Цена ниже рынка на {abs(difference)}%."
+            )
+
+
+        risk_level = (
+            risk.get(
+                "risk",
+                {}
+            )
+            .get(
+                "level",
+                "medium"
+            )
+        )
+
+
+        if risk_level == "high":
+
+            score -= 0.2
+
+            reasons.append(
+                "Высокий риск объявления."
+            )
+
+
+        duplicates = (
+            dedup.get(
+                "dedup",
+                {}
+            )
+            .get(
+                "duplicates",
+                0
+            )
+        )
+
+
+        if duplicates > 0:
+
+            reasons.append(
+                f"Найдено дублей: {duplicates}."
+            )
+
+
+        movement = price_intelligence.get(
+            "trend",
+            "unknown"
+        )
+
+
+        if movement == "increasing":
+
+            reasons.append(
+                "Рынок показывает рост цен."
+            )
+
+
+        score = max(
+            0,
+            min(
+                score,
+                1
+            )
+        )
+
+
+        if score >= 0.7:
+
+            action = "GOOD_DEAL"
+
+        elif score <= 0.35:
+
+            action = "NEGOTIATE"
+
         else:
-            verdict = "fair"
 
-        confidence = 1.0 - min(1.0, abs(adjusted))
+            action = "REVIEW"
+
+
 
         return {
-            "segment": segment,
-            "micro_market": cluster,
-            "market_verdict": verdict,
-            "market_deviation": deviation,
-            "market_adjusted": adjusted,
-            "market_confidence": confidence
+
+            "verdict": action,
+
+            "confidence": round(
+                score,
+                2
+            ),
+
+            "reason": " ".join(
+                reasons
+            ),
+
+            "signals": {
+
+                "price":
+                    difference,
+
+                "risk":
+                    risk_level,
+
+                "duplicates":
+                    duplicates,
+
+                "market_trend":
+                    movement
+
+            }
+
         }

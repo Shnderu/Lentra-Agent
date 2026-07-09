@@ -65,6 +65,7 @@ class MarketService:
 
         self.explanation_engine = MarketExplanationEngine()
 
+
         self.segment_intelligence = SegmentIntelligence()
 
         self.market_movement = MarketMovementAnalyzer()
@@ -170,6 +171,7 @@ class MarketService:
             segment_intelligence,
             market_movement
         )
+
 
 
         return {
