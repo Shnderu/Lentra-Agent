@@ -3,10 +3,16 @@ from typing import Dict, Any
 
 class MarketVerdictEngine:
     """
-    Final AI market interpretation layer.
+    Market interpretation layer.
 
-    Converts Market Intelligence signals
-    into user facing recommendation.
+    IMPORTANT:
+    This module does NOT make final decisions.
+
+    Final decision authority:
+        DecisionLayer
+
+    Responsibility:
+        explain market situation
     """
 
 
@@ -20,8 +26,6 @@ class MarketVerdictEngine:
         area: Dict[str, Any],
     ) -> Dict[str, Any]:
 
-        score = 0.5
-
         reasons = []
 
 
@@ -31,21 +35,24 @@ class MarketVerdictEngine:
         )
 
 
-        if difference > 10:
+        if difference < -10:
 
-            score -= 0.15
+            reasons.append(
+                f"Цена ниже рынка на {abs(difference)}%."
+            )
+
+
+        elif difference > 10:
 
             reasons.append(
                 f"Цена выше рынка на {difference}%."
             )
 
 
-        elif difference < -10:
-
-            score += 0.15
+        else:
 
             reasons.append(
-                f"Цена ниже рынка на {abs(difference)}%."
+                "Цена находится в пределах рыночного диапазона."
             )
 
 
@@ -56,18 +63,14 @@ class MarketVerdictEngine:
             )
             .get(
                 "level",
-                "medium"
+                "unknown"
             )
         )
 
 
-        if risk_level == "high":
-
-            score -= 0.2
-
-            reasons.append(
-                "Высокий риск объявления."
-            )
+        reasons.append(
+            f"Риск объявления: {risk_level}."
+        )
 
 
         duplicates = (
@@ -82,55 +85,35 @@ class MarketVerdictEngine:
         )
 
 
-        if duplicates > 0:
+        if duplicates:
 
             reasons.append(
                 f"Найдено дублей: {duplicates}."
             )
 
 
-        movement = price_intelligence.get(
+        trend = price_intelligence.get(
             "trend",
             "unknown"
         )
 
 
-        if movement == "increasing":
+        if trend != "unknown":
 
             reasons.append(
-                "Рынок показывает рост цен."
+                f"Рыночный тренд: {trend}."
             )
-
-
-        score = max(
-            0,
-            min(
-                score,
-                1
-            )
-        )
-
-
-        if score >= 0.7:
-
-            action = "GOOD_DEAL"
-
-        elif score <= 0.35:
-
-            action = "NEGOTIATE"
-
-        else:
-
-            action = "REVIEW"
-
 
 
         return {
 
-            "verdict": action,
+            "verdict": "MARKET_ANALYSIS",
 
             "confidence": round(
-                score,
+                market.get(
+                    "confidence",
+                    0.5
+                ),
                 2
             ),
 
@@ -150,7 +133,7 @@ class MarketVerdictEngine:
                     duplicates,
 
                 "market_trend":
-                    movement
+                    trend
 
             }
 
