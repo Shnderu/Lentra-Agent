@@ -36,9 +36,82 @@ async def call_search_api(query: str):
 
 
 
+def human_decision(action: str) -> str:
+
+    return {
+        "ACCEPT": "🟢 Можно рассматривать",
+        "REVIEW": "🟡 Требует проверки",
+        "REJECT": "🔴 Лучше избегать"
+    }.get(
+        action,
+        "⚪ Требуется анализ"
+    )
+
+
+
+def build_explanation(
+    decision: dict,
+    market: dict,
+    risk_level: str
+) -> str:
+
+    action = decision.get(
+        "action",
+        "REVIEW"
+    )
+
+    difference = market.get(
+        "difference_percent",
+        0
+    )
+
+
+    if risk_level == "high":
+
+        return (
+            "Цена выглядит привлекательной, "
+            "но высокий риск объявления. "
+            "Не рекомендуется без проверки владельца "
+            "и просмотра объекта."
+        )
+
+
+    if action == "ACCEPT":
+
+        return (
+            f"Цена значительно ниже рынка "
+            f"({difference}%). "
+            "Хорошее предложение, рекомендуется "
+            "проверить состояние объекта."
+        )
+
+
+    if action == "REVIEW":
+
+        if difference > 5:
+
+            return (
+                "Цена выше рынка. "
+                "Стоит сравнить альтернативные варианты."
+            )
+
+
+        return (
+            "Цена соответствует рынку. "
+            "Рекомендуется проверить детали объекта."
+        )
+
+
+    return (
+        "Объект имеет негативные сигналы рынка."
+    )
+
+
+
 def format_result(data: dict) -> str:
 
     if data.get("status") != "ok":
+
         return "❌ Ошибка анализа рынка"
 
 
@@ -55,6 +128,7 @@ def format_result(data: dict) -> str:
 
 
     if not results:
+
         return "Ничего не найдено"
 
 
@@ -121,6 +195,12 @@ def format_result(data: dict) -> str:
         )
 
 
+        market = intelligence.get(
+            "market",
+            {}
+        )
+
+
         risk = intelligence.get(
             "risk",
             {}
@@ -148,12 +228,6 @@ def format_result(data: dict) -> str:
         )
 
 
-        ranking_score = ranking.get(
-            "ranking_score",
-            0
-        )
-
-
         action = decision.get(
             "action",
             "REVIEW"
@@ -166,20 +240,63 @@ def format_result(data: dict) -> str:
         )
 
 
+        ranking_score = ranking.get(
+            "ranking_score",
+            0
+        )
+
+
+        ranking_percent = round(
+            ranking_score * 100,
+            1
+        )
+
+
+        difference = market.get(
+            "difference_percent",
+            0
+        )
+
+
+        explanation = build_explanation(
+            decision,
+            market,
+            risk_level
+        )
+
+
         lines.append(
             f"""
 🏠 {title}
 
-💵 Цена: ${price}
-📈 Рынок: ${market_price}
+💵 Цена:
+${price}/месяц
 
-🎯 Решение: {action}
-⭐ Score: {score}
+📈 Рынок:
+${market_price}
 
-⚠️ Риск: {risk_level}
-🔁 Дубли: {duplicates}
+{human_decision(action)}
 
-🏆 Ranking: {ranking_score}
+🤖 AI решение:
+{action}
+
+⭐ Score:
+{round(score, 3)}
+
+📉 Отклонение от рынка:
+{difference}%
+
+⚠️ Риск:
+{risk_level}
+
+🔁 Дубли:
+{duplicates}
+
+🏆 Рыночный рейтинг:
+{ranking_percent}/100
+
+💡 Анализ:
+{explanation}
 """
         )
 
@@ -216,6 +333,7 @@ async def handle_search(message: Message):
         logger.exception(
             "[BOT SEARCH ERROR]"
         )
+
 
         await message.answer(
             f"Ошибка поиска: {e}"
