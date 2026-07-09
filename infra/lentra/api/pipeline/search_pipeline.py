@@ -400,6 +400,11 @@ class SearchPipeline:
                         0
                     ),
 
+                    "market_price": context.get(
+                        "market_price",
+                        0
+                    ),
+
                     "risk": risk_result.get(
                         "risk",
                         {}

@@ -1,23 +1,29 @@
 class MarketRankingEngine:
     """
-    Market Intelligence ranking engine.
+    Market Intelligence ranking engine v2.
 
-    Uses:
+    Ranking principles:
+
+    - Risk protects user from bad objects.
+    - Market opportunity increases value.
+    - Ranking selects best market opportunities.
+
+    Signals:
     - pricing intelligence
-    - area intelligence
-    - risk
+    - market deviation
+    - area quality
     - confidence
-    - duplicate signals
-    - market snapshot truth
-
-    Single ranking source of truth.
+    - risk
+    - duplicates
     """
+
 
     def rank(
         self,
         cards: list,
         market_snapshot=None
     ):
+
 
         def score(c):
 
@@ -26,20 +32,24 @@ class MarketRankingEngine:
                 0.5
             )
 
+
             confidence = c.get(
                 "confidence",
                 0.5
             )
+
 
             pricing_score = c.get(
                 "pricing_score",
                 0.5
             )
 
+
             area_score = c.get(
                 "area_score",
                 0.5
             )
+
 
             duplicates = c.get(
                 "duplicates",
@@ -47,48 +57,54 @@ class MarketRankingEngine:
             )
 
 
+            price = c.get(
+                "price",
+                0
+            )
+
+
+            market_price = c.get(
+                "market_price",
+                None
+            )
+
+
             market_score = 0.5
 
+            opportunity_bonus = 0.0
 
-            if market_snapshot:
 
-                if isinstance(
-                    market_snapshot,
-                    dict
-                ):
-                    median_price = market_snapshot.get(
-                        "median_price"
+            # =========================
+            # MARKET OPPORTUNITY
+            # =========================
+
+            if market_price and price:
+
+                deviation = (
+                    market_price - price
+                ) / market_price
+
+
+                if deviation > 0:
+
+                    opportunity_bonus = min(
+                        deviation * 0.35,
+                        0.20
                     )
-                else:
-                    median_price = getattr(
-                        market_snapshot,
-                        "median_price",
-                        None
+
+
+                market_score = max(
+                    0,
+                    min(
+                        1,
+                        1 - abs(deviation)
                     )
-
-
-                price = c.get(
-                    "price",
-                    0
                 )
-
-
-                if median_price and price:
-
-                    deviation = abs(
-                        price - median_price
-                    ) / median_price
-
-
-                    market_score = max(
-                        0,
-                        1 - deviation
-                    )
 
 
             value_score = (
 
-                pricing_score * 0.30
+                pricing_score * 0.25
 
                 +
 
@@ -101,6 +117,10 @@ class MarketRankingEngine:
                 +
 
                 market_score * 0.15
+
+                +
+
+                opportunity_bonus
 
             )
 
@@ -116,32 +136,34 @@ class MarketRankingEngine:
             )
 
 
-            price = c.get(
-                "price",
-                0
-            )
-
-
             price_penalty = (
                 min(
                     price / 1000.0,
                     1.0
                 )
                 *
-                0.1
+                0.05
             )
 
 
             return round(
+
                 value_score
+
                 -
+
                 risk_penalty
+
                 -
+
                 duplicate_penalty
+
                 -
+
                 price_penalty,
 
                 4
+
             )
 
 
