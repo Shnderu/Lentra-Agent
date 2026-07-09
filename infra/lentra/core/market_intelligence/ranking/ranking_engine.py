@@ -2,12 +2,12 @@ class MarketRankingEngine:
     """
     Market Intelligence ranking engine.
 
-    Unified utility score:
-    - pricing value
+    Uses:
+    - pricing intelligence
+    - area intelligence
     - risk
-    - area quality
     - confidence
-    - duplicate penalty
+    - duplicate signals
 
     Single ranking source of truth.
     """
@@ -41,45 +41,58 @@ class MarketRankingEngine:
                 0
             )
 
-            #
-            # Core intelligence utility
-            #
 
-            trust_score = (
-                1.0 - risk
-            )
-
-            duplicate_penalty = min(
-                duplicates * 0.1,
-                0.3
-            )
-
-
-            utility = (
+            value_score = (
 
                 pricing_score * 0.35
 
                 +
 
-                area_score * 0.20
+                area_score * 0.25
 
                 +
 
-                trust_score * 0.25
-
-                +
-
-                confidence * 0.20
-
-                -
-
-                duplicate_penalty
+                confidence * 0.25
 
             )
 
 
+            risk_penalty = (
+                risk * 0.35
+            )
+
+
+            duplicate_penalty = min(
+                duplicates * 0.05,
+                0.2
+            )
+
+
+            price = c.get(
+                "price",
+                0
+            )
+
+
+            price_penalty = (
+                min(
+                    price / 1000.0,
+                    1.0
+                )
+                *
+                0.1
+            )
+
+
             return round(
-                utility,
+                value_score
+                -
+                risk_penalty
+                -
+                duplicate_penalty
+                -
+                price_penalty,
+
                 4
             )
 

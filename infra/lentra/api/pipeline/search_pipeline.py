@@ -409,9 +409,18 @@ class SearchPipeline:
 
             item.get(
                 "id"
-            ): item.get(
-                "rank"
-            )
+            ): {
+
+                "rank": item.get(
+                    "rank"
+                ),
+
+                "score": item.get(
+                    "ranking_score",
+                    0.5
+                )
+
+            }
 
             for item in ranked
 
@@ -435,15 +444,14 @@ class SearchPipeline:
                 item["area"],
 
                 ranking_score=(
-                    1 /
-                    max(
-                        rank_map.get(
-                            listing.get(
-                                "id"
-                            ),
-                            1
+                    rank_map.get(
+                        listing.get(
+                            "id"
                         ),
-                        1
+                        {}
+                    ).get(
+                        "score",
+                        0.5
                     )
                 )
 
@@ -474,6 +482,13 @@ class SearchPipeline:
                     "source": listing.get(
                         "source",
                         "seed"
+                    ),
+
+                    "ranking": rank_map.get(
+                        listing.get(
+                            "id"
+                        ),
+                        {}
                     ),
 
                     "market_analysis": {
