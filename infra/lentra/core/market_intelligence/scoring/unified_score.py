@@ -1,64 +1,121 @@
-import math
+from lentra.core.market_intelligence.models.market_object import MarketObject
+
 
 class UnifiedScoreEngine:
+    """
+    Unified Market Intelligence score.
 
-    def compute(self, listing: dict):
+    Combines:
+        - Pricing Intelligence
+        - Property Risk
+        - Area Intelligence
 
-        price = float(listing.get("price") or 0)
-        risk = float(listing.get("risk") or 0.5)
-        area = float(listing.get("area_quality") or 5)
+    Produces a single normalized score that can later
+    be consumed by the AI Decision Layer.
+    """
 
-        # -------------------------
-        # MARKET GAP (SYMMETRIC)
-        # -------------------------
-        market_price = 500.0
-        gap = (price - market_price) / market_price
+    def compute(
+        self,
+        obj: MarketObject
+    ) -> MarketObject:
 
-        price_signal = -gap  # symmetric
+        market_price = obj.market_price or 0.0
 
-        # -------------------------
-        # AREA SIGNAL (STABLE SCALE)
-        # -------------------------
-        area_signal = (area - 5) / 5
+        if market_price:
 
-        # -------------------------
-        # RISK SIGNAL
-        # -------------------------
-        risk_signal = (0.5 - risk)
+            price = (
+                obj.listings[0].price
+                if obj.listings
+                else market_price
+            )
 
-        # -------------------------
-        # SCORE
-        # -------------------------
-        score = (
-            price_signal * 0.5 +
-            area_signal * 0.35 +
-            risk_signal * 0.15
-        )
+            deviation = (
+                price - market_price
+            ) / market_price
 
-        # -------------------------
-        # DECISION (STRICTER BOUNDARIES)
-        # -------------------------
-        if score > 0.3:
-            verdict = "fair"
-        elif score < -0.3:
-            verdict = "overpriced"
         else:
-            verdict = "neutral"
 
-        # -------------------------
-        # CONFIDENCE (SEPARATE MODEL)
-        # NOT DERIVED FROM SCORE SIGN
-        # -------------------------
-        confidence = (
-            0.4 * area_signal +
-            0.4 * (1 - risk) +
-            0.2 * (1 - abs(gap))
+            deviation = 0.0
+
+        price_signal = max(
+            -1.0,
+            min(
+                1.0,
+                -deviation
+            )
         )
 
-        confidence = max(0.0, min(1.0, confidence))
+        area_signal = (
+            (obj.area_score - 5.0)
+            / 5.0
+        )
 
-        listing["final_score"] = score
-        listing["verdict"] = verdict
-        listing["confidence"] = confidence
+        risk_signal = (
+            0.5 - obj.risk
+        )
 
-        return listing
+        final_score = (
+
+            price_signal * 0.50 +
+
+            area_signal * 0.35 +
+
+            risk_signal * 0.15
+
+        )
+
+        final_score = max(
+            -1.0,
+            min(
+                1.0,
+                final_score
+            )
+        )
+
+        if final_score >= 0.30:
+
+            verdict = "good_deal"
+
+        elif final_score <= -0.30:
+
+            verdict = "overpriced"
+
+        else:
+
+            verdict = "fair"
+
+        confidence = max(
+            0.0,
+            min(
+                1.0,
+                (
+                    obj.confidence * 0.50
+                    +
+                    (1.0 - obj.risk) * 0.30
+                    +
+                    (obj.area_score / 10.0) * 0.20
+                )
+            )
+        )
+
+        obj.price_deviation = round(
+            deviation,
+            4
+        )
+
+        obj.confidence = round(
+            confidence,
+            4
+        )
+
+        obj.verdict = verdict
+
+        if obj.negotiation is None:
+            obj.negotiation = {}
+
+        obj.negotiation["market_score"] = round(
+            final_score,
+            4
+        )
+
+        return obj
