@@ -2,7 +2,7 @@ from lentra.core.market_intelligence.pricing.market_truth_engine import (
     MarketTruthEngine
 )
 
-from lentra.core.market_intelligence.models.market_snapshot import (
+from lentra.core.market_intelligence.market.market_snapshot import (
     MarketSnapshot
 )
 
@@ -43,7 +43,7 @@ class MarketService:
 
 
         snapshot = MarketSnapshot(
-            query=query
+            city=city
         )
 
 
@@ -72,23 +72,31 @@ class MarketService:
         )
 
         snapshot.sample_size = truth.get(
-            "sample_size"
+            "sample_size",
+            len(listings)
         )
 
         snapshot.outliers_detected = truth.get(
-            "outliers_detected"
+            "outliers_detected",
+            truth.get(
+                "outliers_removed",
+                0
+            )
         )
 
         snapshot.confidence = truth.get(
-            "confidence"
+            "confidence",
+            0.0
         )
 
         snapshot.market_health = truth.get(
-            "market_health"
+            "market_health",
+            "unknown"
         )
 
-        snapshot.total_objects = len(
-            listings
+        snapshot.clean_listings = truth.get(
+            "clean_listings",
+            []
         )
 
 
@@ -96,7 +104,7 @@ class MarketService:
 
             "city": city,
 
-            "snapshot": snapshot.finalize(),
+            "snapshot": snapshot.to_dict(),
 
             "market_truth": truth
 

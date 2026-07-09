@@ -11,6 +11,7 @@ from lentra.core.market_intelligence.ranking.unified_ranking_engine import Unifi
 from lentra.core.market_intelligence.contracts.listing_contract_guard import ListingContractGuard
 
 from lentra.core.market_intelligence.market.market_service import MarketService
+from lentra.core.market_intelligence.repository.market_snapshot_repository import MarketSnapshotRepository
 
 
 class SearchPipeline:
@@ -30,6 +31,8 @@ class SearchPipeline:
         self.ranking_engine = UnifiedRankingEngine()
 
         self.market_service = MarketService()
+
+        self.market_snapshot_repository = MarketSnapshotRepository()
 
 
     def _risk_penalty(
@@ -342,6 +345,11 @@ class SearchPipeline:
             )
 
 
+        market_truth_record = self.market_snapshot_repository.save(
+            market_truth
+        )
+
+
         ranked = self.ranking_engine.rank(
             raw_cards,
             market_truth
@@ -432,6 +440,8 @@ class SearchPipeline:
             "query": query,
 
             "count": len(results),
+
+            "market_snapshot": market_truth_record,
 
             "results": results
 
