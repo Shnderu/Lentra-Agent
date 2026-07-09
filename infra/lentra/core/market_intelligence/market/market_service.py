@@ -14,6 +14,14 @@ from lentra.core.market_intelligence.history.price_trend_analyzer import (
     PriceTrendAnalyzer
 )
 
+from lentra.core.market_intelligence.history.segment_intelligence import (
+    SegmentIntelligence
+)
+
+from lentra.core.market_intelligence.history.market_movement import (
+    MarketMovementAnalyzer
+)
+
 
 class MarketService:
     """
@@ -50,6 +58,10 @@ class MarketService:
         )
 
         self.trend_analyzer = PriceTrendAnalyzer()
+
+        self.segment_intelligence = SegmentIntelligence()
+
+        self.market_movement = MarketMovementAnalyzer()
 
 
     def analyze(
@@ -136,6 +148,16 @@ class MarketService:
         )
 
 
+        segment_intelligence = self.segment_intelligence.analyze(
+            history
+        )
+
+
+        market_movement = self.market_movement.analyze(
+            history
+        )
+
+
         return {
 
             "city": city,
@@ -144,6 +166,10 @@ class MarketService:
 
             "market_truth": truth,
 
-            "price_intelligence": price_intelligence
+            "price_intelligence": price_intelligence,
+
+            "segment_intelligence": segment_intelligence,
+
+            "market_movement": market_movement
 
         }
