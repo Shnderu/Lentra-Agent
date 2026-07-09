@@ -535,6 +535,18 @@ class SearchPipeline:
                             rank_map.get(
                                 listing.get("id"),
                                 {}
+                            ),
+                            decision=self._build_decision(
+                                item["market"],
+                                item["risk"],
+                                item["area"],
+                                rank_map.get(
+                                    listing.get("id"),
+                                    {}
+                                ).get(
+                                    "ranking_score",
+                                    0.5
+                                )
                             )
                         ),
 
@@ -598,6 +610,18 @@ class SearchPipeline:
                                 rank_map.get(
                                     listing.get("id"),
                                     {}
+                                ),
+                                decision=self._build_decision(
+                                    item["market"],
+                                    item["risk"],
+                                    item["area"],
+                                    rank_map.get(
+                                        listing.get("id"),
+                                        {}
+                                    ).get(
+                                        "ranking_score",
+                                        0.5
+                                    )
                                 )
                             )
 
