@@ -135,6 +135,16 @@ class MarketService:
                 2
             ),
 
+            price_min=min(prices),
+
+            price_max=max(prices),
+
+            market_health=(
+                "stable"
+                if len(prices) >= 5
+                else "low_sample"
+            ),
+
             clean_listings=clean
 
         )
