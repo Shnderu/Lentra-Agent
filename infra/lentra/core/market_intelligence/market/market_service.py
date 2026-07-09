@@ -6,6 +6,10 @@ from lentra.core.market_intelligence.market.market_snapshot import (
     MarketSnapshot
 )
 
+from lentra.core.market_intelligence.history.price_history_repository import (
+    PriceHistoryRepository
+)
+
 
 class MarketService:
     """
@@ -28,6 +32,8 @@ class MarketService:
     def __init__(self):
 
         self.truth_engine = MarketTruthEngine()
+
+        self.history_repository = PriceHistoryRepository()
 
 
     def analyze(
