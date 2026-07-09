@@ -1,5 +1,7 @@
 from typing import Dict, Any, Optional
 from datetime import datetime
+from pathlib import Path
+import json
 
 
 class MarketSnapshotRepository:
@@ -17,7 +19,58 @@ class MarketSnapshotRepository:
 
     def __init__(self):
 
-        self._snapshots = []
+        self.storage_path = Path(
+            "lentra/storage/market_snapshots/market_snapshots.json"
+        )
+
+        self.storage_path.parent.mkdir(
+            parents=True,
+            exist_ok=True
+        )
+
+        self._snapshots = self._load()
+
+
+    def _load(self) -> list:
+
+        if not self.storage_path.exists():
+
+            return []
+
+        try:
+
+            with self.storage_path.open(
+                "r",
+                encoding="utf-8"
+            ) as f:
+
+                data = json.load(f)
+
+            if isinstance(data, list):
+
+                return data
+
+        except Exception:
+
+            pass
+
+
+        return []
+
+
+    def _persist(self) -> None:
+
+        with self.storage_path.open(
+            "w",
+            encoding="utf-8"
+        ) as f:
+
+            json.dump(
+                self._snapshots,
+                f,
+                ensure_ascii=False,
+                indent=2
+            )
 
 
     def save(
@@ -36,6 +89,8 @@ class MarketSnapshotRepository:
         self._snapshots.append(
             record
         )
+
+        self._persist()
 
         return record
 
