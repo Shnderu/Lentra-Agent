@@ -9206,5 +9206,121 @@
         "anomaly_flag": false
       }
     ]
+  },
+  {
+    "created_at": "2026-07-10T05:19:33.533404",
+    "city": "da_nang",
+    "median_price": 650.0,
+    "mean_price": 590.0,
+    "q1": 500.0,
+    "q3": 660.0,
+    "outliers_removed": 0,
+    "clean_listings": [
+      {
+        "id": "dn_002",
+        "title": "Cheap studio Da Nang center",
+        "description": "small studio, old building, central area",
+        "price": 420.0,
+        "market_price": 650.0,
+        "location": {
+          "segment": "Da Nang center",
+          "micro_market": "unknown"
+        },
+        "city": "da_nang",
+        "source": "telegram",
+        "currency": "USD",
+        "url": "",
+        "photos": [],
+        "type": "apartment",
+        "metadata": {},
+        "relevance_score": 8,
+        "risk": 0.5,
+        "anomaly_flag": false
+      },
+      {
+        "id": "dn_001",
+        "title": "Studio near My Khe Beach",
+        "description": "modern studio 5 min walk to beach, wifi included",
+        "price": 650.0,
+        "market_price": 650.0,
+        "location": {
+          "segment": "Da Nang, My Khe",
+          "micro_market": "unknown"
+        },
+        "city": "da_nang",
+        "source": "facebook",
+        "currency": "USD",
+        "url": "",
+        "photos": [],
+        "type": "apartment",
+        "metadata": {},
+        "relevance_score": 7,
+        "risk": 0.5,
+        "anomaly_flag": false
+      },
+      {
+        "id": "dn_006",
+        "title": "Studio near My Khe Beach",
+        "description": "same apartment reposted from another source, wifi included",
+        "price": 660.0,
+        "market_price": 650.0,
+        "location": {
+          "segment": "Da Nang, My Khe",
+          "micro_market": "unknown"
+        },
+        "city": "da_nang",
+        "source": "telegram",
+        "currency": "USD",
+        "url": "",
+        "photos": [],
+        "type": "apartment",
+        "metadata": {},
+        "relevance_score": 7,
+        "risk": 0.5,
+        "anomaly_flag": false
+      },
+      {
+        "id": "dn_004",
+        "title": "Studio near beach - scam suspicious",
+        "description": "owner refuses viewing, urgent rent",
+        "price": 500.0,
+        "market_price": 650.0,
+        "location": {
+          "segment": "My An",
+          "micro_market": "unknown"
+        },
+        "city": "da_nang",
+        "source": "telegram",
+        "currency": "USD",
+        "url": "",
+        "photos": [],
+        "type": "apartment",
+        "metadata": {},
+        "relevance_score": 1,
+        "risk": 0.5,
+        "anomaly_flag": false
+      },
+      {
+        "id": "dn_005",
+        "title": "Cozy studio expat friendly",
+        "description": "expat area, cafes, stable internet",
+        "price": 720.0,
+        "market_price": 650.0,
+        "location": {
+          "segment": "An Thuong",
+          "micro_market": "unknown"
+        },
+        "city": "da_nang",
+        "source": "agency",
+        "currency": "USD",
+        "url": "",
+        "photos": [],
+        "type": "apartment",
+        "metadata": {},
+        "relevance_score": 1,
+        "risk": 0.5,
+        "anomaly_flag": false
+      }
+    ]
   }
 ]
