@@ -6,7 +6,6 @@ mkdir -p lentra/core/contracts/dto
 mkdir -p lentra/core/runtime/replay
 mkdir -p lentra/core/runtime/replay/store
 
-mkdir -p app/core/graph/tracing
 mkdir -p app/core/control/adapters
 mkdir -p app/core/control/policy
 

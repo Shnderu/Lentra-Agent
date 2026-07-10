@@ -6,8 +6,12 @@ STRICT RULE:
   pipeline
   executor
   scenario
+
+Graph is offline compiler only.
 """
 
-def get_graph_engine():
-    from .engine import GraphEngine
-    return GraphEngine()
+
+def get_graph_compiler():
+    from .engine import OfflineGraphCompiler
+
+    return OfflineGraphCompiler()

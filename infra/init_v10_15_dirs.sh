@@ -13,6 +13,5 @@ mkdir -p lentra/domain/policies
 mkdir -p lentra/data/policies
 
 mkdir -p app/core/guards
-mkdir -p app/core/graph/tracing
 
 echo "[OK] v10.15 enforcement directories created"

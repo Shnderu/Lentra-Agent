@@ -1,32 +1,35 @@
 """
-GRAPH ENGINE ISOLATED MODE
+OFFLINE GRAPH COMPILER
 
-АРХИТЕКТУРНОЕ ПРАВИЛО:
-- Graph НЕ участвует в runtime execution
-- Graph НЕ вызывается pipeline/executor
-- Graph используется только оффлайн (analysis / compile)
+ARCHITECTURE RULES:
+
+- Graph is not runtime execution
+- Graph is not pipeline authority
+- Graph is offline analysis/compiler layer only
 """
 
-class GraphEngine:
+
+class OfflineGraphCompiler:
     """
-    DISABLED RUNTIME EXECUTION ENGINE
+    Static graph compiler.
+
+    Allowed:
+    - graph validation
+    - graph compilation
+    - offline analysis
+
+    Forbidden:
+    - runtime execution
+    - task orchestration
     """
 
     def __init__(self):
         self.enabled = False
 
-    def execute(self, *args, **kwargs):
-        raise RuntimeError(
-            "Graph execution is disabled. "
-            "Use pipeline as single execution authority."
-        )
-
     def compile(self, graph_definition):
-        """
-        Allowed: static compilation only
-        """
+
         return {
             "status": "compiled",
             "mode": "offline",
-            "graph": graph_definition
+            "graph": graph_definition,
         }
