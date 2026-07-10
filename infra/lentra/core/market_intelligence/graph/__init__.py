@@ -1,8 +1,21 @@
 """
-Graph package stabilized entrypoint
-Avoid direct engine import on module load
+Market Intelligence Graph Layer
+
+ROLE:
+- knowledge representation
+- metadata enrichment
+- offline analysis
+
+FORBIDDEN:
+- runtime execution
+- pipeline orchestration
+- engine replacement
 """
 
-def get_market_graph_engine():
-    from .market_graph_engine import MarketGraphEngine
-    return MarketGraphEngine
+
+from .integration import GraphIntegration
+
+
+__all__ = [
+    "GraphIntegration",
+]

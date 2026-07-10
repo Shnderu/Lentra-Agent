@@ -2,22 +2,21 @@ from typing import Dict, Any
 
 
 def attach_graph_layer(gateway, engines: Dict[str, Any]):
+
     """
-    SAFE hook:
-    НЕ влияет на bootstrap
-    только enrich step (optional)
+    Optional graph enrichment attachment.
+
+    Does not modify runtime pipeline.
     """
 
-    try:
-        from lentra.core.market_intelligence.graph.integration import try_graph_execute
+    def graph_enrichment(payload: Dict[str, Any]):
 
-        def wrapped(payload: Dict[str, Any]):
-            return try_graph_execute(engines, payload)
+        from lentra.core.market_intelligence.graph.integration import (
+            GraphIntegration
+        )
 
-        gateway.graph_execute = wrapped
+        return GraphIntegration().build(payload)
 
-    except Exception:
-        # FULL SAFETY: silent ignore
-        pass
+    gateway.graph_enrichment = graph_enrichment
 
     return gateway
