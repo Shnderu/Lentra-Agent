@@ -1,0 +1,130 @@
+You are working on the Lentra project.
+
+Lentra = AI Market Intelligence OS for SEA rental market.
+
+Your task:
+Improve ONLY these documentation files:
+
+infra/ARCHITECTURE_CONSTITUTION.md
+infra/CANONICAL_COMPONENT_MAP.md
+
+DO NOT modify:
+- Python code
+- imports
+- runtime files
+- architecture checker
+- tests
+- configs
+
+This is documentation hardening only.
+
+Goals:
+
+1. Make ARCHITECTURE_CONSTITUTION.md the supreme architectural authority.
+
+It must define:
+
+- Lentra identity:
+  AI Market Intelligence OS, not marketplace, not listing aggregator.
+
+- Canonical runtime flow:
+
+SearchPipeline
+ -> SearchAdapter
+ -> ListingContractGuard
+ -> MarketService
+ -> GatewayV3
+ -> AreaEngine
+ -> MarketIntelligenceEngine
+ -> RiskEngine
+ -> DedupEngine
+ -> UnifiedRankingEngine
+ -> DecisionLayer
+ -> ObjectIntelligenceCardBuilder
+
+
+2. Define ownership boundaries:
+
+MarketService:
+- owns market truth
+- owns price baselines
+- owns market context
+
+UnifiedRankingEngine:
+- owns ranking
+- no parallel ranking engines
+
+DecisionLayer:
+- owns final decision
+
+RiskEngine:
+- owns risk veto authority
+- DecisionLayer MUST respect veto
+
+
+3. Legacy isolation:
+
+Any duplicate:
+- pipeline
+- router
+- ranking engine
+- intelligence engine
+- decision engine
+
+is legacy.
+
+Rules:
+
+- no new imports into legacy
+- legacy cannot receive new features
+- canonical architecture wins over existing code
+
+
+4. Add architecture governance:
+
+Any architectural change requires ADR.
+
+ADR required for:
+- new pipeline
+- new engine
+- new router
+- ownership changes
+- decision authority changes
+
+
+5. Add automated architecture checker requirements.
+
+Checker must validate:
+
+- single pipeline
+- single router
+- single ranking authority
+- single decision authority
+- market truth ownership
+- risk veto integrity
+- no legacy imports
+- canonical direction flow
+
+
+6. CANONICAL_COMPONENT_MAP.md must contain:
+
+- canonical components
+- responsibilities
+- ownership matrix
+- legacy classification
+- checker bindings
+
+
+Writing rules:
+
+- Production-grade documentation.
+- Markdown.
+- Clear authoritative language.
+- No speculation.
+- No unnecessary architecture additions.
+- Preserve current Lentra master plan.
+- Do not invent parallel systems.
+
+After editing:
+show summary of changes only.
+
