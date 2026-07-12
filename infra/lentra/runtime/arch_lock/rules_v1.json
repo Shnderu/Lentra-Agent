@@ -1,29 +1,142 @@
 {
-  "version": "v1.2",
+  "version": "v2.0",
+  "adr": "infra/ADR_ARCH_LOCK_RULE_MIGRATION_V1.md",
+  "note": "Phase 2 rule migration: enforcement target is the canonical spine (API -> Pipeline -> GatewayV3 -> Market Intelligence -> Decision), not the historical graph. Non-blocking until Phase 4. Engines consuming this file must skip unknown rule types with a warning, never crash.",
   "rules": [
     {
-      "id": "NO_RUNTIME_IMPORT_IN_CORE",
+      "id": "NO_UPWARD_IMPORT_FROM_INTELLIGENCE",
       "type": "import_block",
       "deny_prefixes": [
+        "lentra.api.",
+        "lentra.bot.",
+        "lentra.telegram.",
         "lentra.runtime."
       ],
       "scope": [
-        "lentra.core."
-      ]
+        "lentra.core.market_intelligence.",
+        "lentra.core.engines."
+      ],
+      "why": "Constitution 7.2 / 11.7: dependencies point downward only; intelligence never imports delivery or runtime layers. Replaces NO_RUNTIME_IMPORT_IN_CORE and NO_CROSS_MARKET_INTELLIGENCE_TO_RUNTIME with one direction invariant. Scope excludes core.pipeline so the canonical facade may wrap the pipeline."
     },
     {
-      "id": "NO_CROSS_MARKET_INTELLIGENCE_TO_RUNTIME",
-      "type": "import_block",
-      "deny_edges": [
-        "lentra.core.market_intelligence -> lentra.runtime"
-      ]
+      "id": "CANONICAL_SPINE_INTEGRITY",
+      "type": "require_imports",
+      "module": "lentra.api.pipeline.search_pipeline",
+      "require": [
+        "lentra.runtime.bootstrap.gateway_v3",
+        "lentra.core.market_intelligence.market.market_service",
+        "lentra.core.market_intelligence.engines.risk_engine",
+        "lentra.core.market_intelligence.engines.dedup_engine",
+        "lentra.core.market_intelligence.ranking.unified_ranking_engine",
+        "lentra.core.market_intelligence.decision.decision_layer"
+      ],
+      "also": [
+        {
+          "type": "allowed_importers",
+          "target": "lentra.api.pipeline.search_pipeline",
+          "allow": [
+            "lentra.api.pipeline",
+            "lentra.core.pipeline.canonical_search_pipeline"
+          ]
+        },
+        {
+          "type": "allowed_importers",
+          "target": "lentra.runtime.bootstrap.gateway_v3",
+          "allow": [
+            "lentra.api.pipeline.search_pipeline"
+          ]
+        }
+      ],
+      "why": "CHECK-001/002/003: api/pipeline/search_pipeline.py is the single production pipeline and the only caller of build_gateway_v3; the canonical market_intelligence modules are wired in. Constitution 3, 4, 11.1, 11.2."
     },
     {
-      "id": "NO_API_TO_CORE_BACKFLOW",
+      "id": "LEGACY_INTELLIGENCE_ISOLATION",
       "type": "import_block",
-      "deny_edges": [
-        "lentra.api -> lentra.core"
-      ]
+      "deny_prefixes": [
+        "lentra.services.search_pipeline",
+        "lentra.bot.services.search_pipeline",
+        "lentra.bot.features.rent_search.",
+        "lentra.api.pipeline_legacy",
+        "lentra.api.pipeline_bootstrap",
+        "lentra.core.market_intelligence.gateway",
+        "lentra.core.market_intelligence.build",
+        "lentra.services.intelligence_gateway",
+        "lentra.runtime.intelligence.",
+        "lentra.runtime.bootstrap.wiring",
+        "lentra.runtime.bootstrap.graph_attach",
+        "lentra.runtime.bootstrap.main",
+        "lentra.worker.engine",
+        "lentra.core.market_intelligence.pricing.market_service",
+        "lentra.core.market_intelligence.market_intelligence_engine",
+        "lentra.core.market_intelligence.engines.market_intelligence_engine",
+        "lentra.core.market_intelligence.risk.",
+        "lentra.core.market_intelligence.dedup.dedup_engine",
+        "lentra.core.market_intelligence.dedup.unified_dedup_engine",
+        "lentra.core.market_intelligence.ranking.ranking_engine_v3",
+        "lentra.core.market_intelligence.decision.ranking_engine",
+        "lentra.core.market_intelligence.decision.ai_decision_engine",
+        "lentra.core.market_intelligence.decision_layer",
+        "lentra.bot.ux.ranking",
+        "lentra.domain.",
+        "lentra.rent.",
+        "lentra.pipeline.",
+        "lentra.application.",
+        "lentra.ranking.",
+        "lentra.property."
+      ],
+      "scope": [
+        "lentra.api.",
+        "lentra.bot.",
+        "lentra.worker.",
+        "lentra.core.",
+        "lentra.runtime."
+      ],
+      "why": "CHECK-004, Constitution 8.1: no new imports into legacy. Covers legacy gateways (IntelligenceGateway contour), old MarketService, old pipelines, old ranking/risk/dedup/decision contours. Deny entries persist as tombstones after deletion batches. Deliberately NOT denied: dedup.dedup_index (canonical internal), engines.risk_engine / engines.dedup_engine (canonical; note engines.risk EngineV3 variant is removed via Deletion Manifest batch B, not by prefix rule, to avoid colliding with engines.risk_engine)."
+    },
+    {
+      "id": "RANKING_AUTHORITY",
+      "type": "allowed_importers",
+      "target": "lentra.core.market_intelligence.ranking.",
+      "allow": [
+        "lentra.api.pipeline.search_pipeline",
+        "lentra.core.market_intelligence.ranking"
+      ],
+      "why": "CHECK-005, Constitution 11.4: UnifiedRankingEngine is the only external ranking authority; MarketRankingEngine is reachable only from inside the ranking package or via the pipeline."
+    },
+    {
+      "id": "RISK_VETO_INTEGRITY",
+      "type": "require_imports",
+      "module": "lentra.core.market_intelligence.decision.decision_layer",
+      "require_inputs": [
+        "risk_verdict"
+      ],
+      "pipeline_wiring": {
+        "module": "lentra.api.pipeline.search_pipeline",
+        "must_wire": [
+          "lentra.core.market_intelligence.engines.risk_engine",
+          "lentra.core.market_intelligence.decision.decision_layer"
+        ]
+      },
+      "why": "CHECK-006, Constitution 6.3 / 11.5: RiskEngine participates in the pipeline and DecisionLayer consumes the risk verdict; the veto is binding and may not be bypassed, sampled, or made advisory."
+    },
+    {
+      "id": "NO_DELIVERY_INTELLIGENCE",
+      "type": "import_block",
+      "deny_prefixes": [
+        "lentra.core.market_intelligence.",
+        "lentra.core.engines."
+      ],
+      "scope": [
+        "lentra.api.routes.",
+        "lentra.bot.",
+        "lentra.telegram."
+      ],
+      "why": "Constitution 11.6: delivery and presentation layers (api routes, bot, telegram) never import intelligence engines directly; the only entry is the pipeline."
     }
-  ]
+  ],
+  "removed": {
+    "NO_API_TO_CORE_BACKFLOW": "False violation: the canonical pipeline (api/pipeline/search_pipeline.py) legitimately imports core.market_intelligence — that import path IS the spine (Constitution 3). ADR section 2.",
+    "NO_RUNTIME_IMPORT_IN_CORE": "Superseded by NO_UPWARD_IMPORT_FROM_INTELLIGENCE (rescoped).",
+    "NO_CROSS_MARKET_INTELLIGENCE_TO_RUNTIME": "Superseded by NO_UPWARD_IMPORT_FROM_INTELLIGENCE (rescoped)."
+  }
 }
