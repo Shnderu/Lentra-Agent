@@ -1,25 +1,24 @@
 # ============================================================
-# RENT SEARCH PIPELINE V2 - CLEAN SAFE VERSION
+# RENT SEARCH PIPELINE V3 - MARKET INTELLIGENCE RANKING
 # ============================================================
 
-from lentra.bot.features.rent_search.ranking.ranking_service import RankingService
+from lentra.core.market_intelligence.ranking.ranking_adapter import (
+    RankingAdapter
+)
 
 
 class SearchPipeline:
     """
-    Clean pipeline without any shell injection artifacts.
+    Search pipeline.
+
+    Ranking responsibility delegated to
+    Market Intelligence OS.
     """
 
     def __init__(self):
-        self.ranker = RankingService()
+        self.ranker = RankingAdapter()
 
     def run(self, query: str, candidates: list):
-        """
-        Executes search pipeline:
-        1. receives candidates
-        2. ranks them
-        3. returns sorted results
-        """
 
         if not candidates:
             return []
@@ -30,5 +29,5 @@ class SearchPipeline:
             "query": query,
             "results": ranked,
             "count": len(ranked),
-            "mode": "safe_pipeline_v2"
+            "mode": "market_intelligence_ranking_v1"
         }
