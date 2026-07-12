@@ -1,21 +1,37 @@
 from lentra.rent.runtime.observability.tracer.trace_recorder import TraceRecorder
 from lentra.rent.runtime.observability.metrics.metrics import Metrics
 
+from lentra.core.pipeline.canonical_search_pipeline import (
+    CanonicalSearchPipeline
+)
+
+from lentra.core.pipeline.canonical_entrypoint import (
+    CanonicalSearchEntrypoint
+)
+
 
 class RentSearchApplicationService:
     """
     Application orchestration layer.
 
-    Telegram and other delivery channels
-    must call this service instead of owning
-    search workflow logic.
+    Delivery channels call this service.
+
+    Search intelligence belongs to
+    Canonical Market Intelligence pipeline.
     """
 
-    def __init__(self, connector):
+    def __init__(self, connector=None):
 
         self.connector = connector
+
         self.tracer = TraceRecorder()
         self.metrics = Metrics()
+
+        pipeline = CanonicalSearchPipeline()
+
+        self.entrypoint = CanonicalSearchEntrypoint(
+            pipeline
+        )
 
 
     async def search(
@@ -28,56 +44,40 @@ class RentSearchApplicationService:
         )
 
 
-        n0 = "search_request_received"
-
         self.tracer.node(
-            n0,
+            "search_request_received",
             payload
         )
 
 
-        query = {
-            "text": payload.get("text"),
-            "user_id": payload.get("user_id")
-        }
+        query = payload.get(
+            "text",
+            ""
+        )
 
-
-        n1 = "connector_call"
 
         self.tracer.node(
-            n1,
-            query
-        )
-
-        self.tracer.edge(
-            n0,
-            n1
-        )
-
-
-        result = await self.connector.call(
-            query
-        )
-
-
-        n2 = "connector_result"
-
-        self.tracer.node(
-            n2,
+            "market_intelligence_pipeline",
             {
-                "items": len(
-                    result.get(
-                        "items",
-                        []
-                    )
-                )
+                "query": query
             }
         )
 
 
-        self.tracer.edge(
-            n1,
-            n2
+        result = self.entrypoint.execute(
+            {
+                "query": query
+            }
+        )
+
+
+        self.tracer.node(
+            "market_intelligence_result",
+            {
+                "count": len(result)
+                if isinstance(result, list)
+                else 1
+            }
         )
 
 
@@ -89,5 +89,6 @@ class RentSearchApplicationService:
         return {
             "result": result,
             "trace": self.tracer.dump(),
-            "metrics": self.metrics.dump()
+            "metrics": self.metrics.dump(),
+            "mode": "market_intelligence_canonical_v1"
         }
