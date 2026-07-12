@@ -1,23 +1,34 @@
 # ============================================================
-# RENT SEARCH PIPELINE V4 - APPLICATION BOUNDARY
+# RENT SEARCH PIPELINE LEGACY COMPATIBILITY V5
 # ============================================================
 
-from lentra.application.rent_search.ranking import (
-    RentSearchRankingService
-)
+"""
+LEGACY PIPELINE
+
+This module is kept only for backward compatibility.
+
+Canonical runtime path:
+
+API
+ |
+CanonicalSearchEntrypoint
+ |
+CanonicalSearchPipeline
+ |
+Market Intelligence Core
+
+
+This legacy delivery pipeline must not own:
+- ranking
+- market intelligence
+- decision logic
+"""
 
 
 class SearchPipeline:
-    """
-    Search pipeline.
-
-    Delivery layer delegates ranking
-    through application boundary.
-    """
 
     def __init__(self):
-
-        self.ranker = RentSearchRankingService()
+        pass
 
 
     def run(
@@ -30,14 +41,9 @@ class SearchPipeline:
             return []
 
 
-        ranked = self.ranker.rank(
-            candidates
-        )
-
-
         return {
             "query": query,
-            "results": ranked,
-            "count": len(ranked),
-            "mode": "market_intelligence_ranking_v1"
+            "results": candidates,
+            "count": len(candidates),
+            "mode": "legacy_passthrough"
         }

@@ -1,19 +1,36 @@
-from lentra.core.market_intelligence.ranking.ranking_adapter import (
+# ============================================================
+# RENT SEARCH RANKING SERVICE LEGACY COMPATIBILITY V2
+# ============================================================
+
+"""
+LEGACY APPLICATION FACADE
+
+Ranking authority is owned by:
+
+lentra.core.market_intelligence.ranking
+
+This module exists only to preserve
+old application imports.
+"""
+
+
+from lentra.application.rent_search.ranking_adapter import (
     RankingAdapter
 )
 
 
 class RentSearchRankingService:
-    """
-    Application boundary for rent search ranking.
-
-    Delivery layer must not access
-    Market Intelligence directly.
-    """
 
     def __init__(self):
+
         self.ranker = RankingAdapter()
 
-    def rank(self, items):
 
-        return self.ranker.rank(items)
+    def rank(
+        self,
+        items
+    ):
+
+        return self.ranker.rank(
+            items
+        )
