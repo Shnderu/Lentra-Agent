@@ -1,9 +1,9 @@
 # ============================================================
-# RENT SEARCH PIPELINE V3 - MARKET INTELLIGENCE RANKING
+# RENT SEARCH PIPELINE V4 - APPLICATION BOUNDARY
 # ============================================================
 
-from lentra.core.market_intelligence.ranking.ranking_adapter import (
-    RankingAdapter
+from lentra.application.rent_search.ranking import (
+    RentSearchRankingService
 )
 
 
@@ -11,19 +11,29 @@ class SearchPipeline:
     """
     Search pipeline.
 
-    Ranking responsibility delegated to
-    Market Intelligence OS.
+    Delivery layer delegates ranking
+    through application boundary.
     """
 
     def __init__(self):
-        self.ranker = RankingAdapter()
 
-    def run(self, query: str, candidates: list):
+        self.ranker = RentSearchRankingService()
+
+
+    def run(
+        self,
+        query: str,
+        candidates: list
+    ):
 
         if not candidates:
             return []
 
-        ranked = self.ranker.rank(candidates)
+
+        ranked = self.ranker.rank(
+            candidates
+        )
+
 
         return {
             "query": query,
