@@ -4,7 +4,7 @@ from dataclasses import dataclass
 class RoutingMapLock:
     pricing_engine: str = "lentra.core.market.pricing_engine.PricingEngine"
     dedup_engine: str = "lentra.core.market_intelligence.dedup.unified_dedup_engine.UnifiedDedupEngine"
-    risk_engine: str = "lentra.core.market_intelligence.risk.risk_engine_v2.RiskEngineV2"
+    risk_engine: str = "lentra.core.market_intelligence.engines.risk_engine.RiskEngine"
     expat_engine: str = "lentra.core.market_intelligence.expat.expat_score_engine.ExpatScoreEngine"
 
     legacy_dedup_adapter: str = "legacy::removed"
