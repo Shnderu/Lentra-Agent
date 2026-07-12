@@ -1,12 +1,12 @@
 import time
 import os
-from lentra.runtime.bootstrap.wiring_safe import build_gateway
+from lentra.runtime.bootstrap.gateway_v3 import build_gateway_v3
 
 
 def main():
     print("[WORKER] START")
 
-    gateway = build_gateway()
+    gateway = build_gateway_v3()
 
     print("[WORKER] gateway initialized")
 

@@ -1,8 +1,8 @@
-from lentra.core.market_intelligence.build import build_intelligence_gateway
+from lentra.runtime.bootstrap.gateway_v3 import build_gateway_v3
 
 
 def get_gateway():
-    return build_intelligence_gateway()
+    return build_gateway_v3()
 
 
 class Dispatcher:

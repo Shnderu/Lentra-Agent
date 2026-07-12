@@ -1,6 +1,6 @@
 from typing import Any, Dict
 
-from lentra.runtime.bootstrap.wiring_safe import build_gateway
+from lentra.runtime.bootstrap.gateway_v3 import build_gateway_v3
 
 
 class Orchestrator:
@@ -20,7 +20,7 @@ class Orchestrator:
 
 def build_orchestrator():
 
-    gateway = build_gateway()
+    gateway = build_gateway_v3()
 
     return Orchestrator(
         gateway=gateway

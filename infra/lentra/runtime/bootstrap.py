@@ -1,7 +1,7 @@
-from lentra.core.market_intelligence.build import build_intelligence_gateway
+from lentra.runtime.bootstrap.gateway_v3 import build_gateway_v3
 
 
 def init_runtime():
     return {
-        "gateway": build_intelligence_gateway()
+        "gateway": build_gateway_v3()
     }
