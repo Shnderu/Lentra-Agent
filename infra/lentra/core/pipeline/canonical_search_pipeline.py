@@ -1,13 +1,11 @@
 from typing import Dict, Any
 
-from lentra.api.pipeline.search_pipeline import SearchPipeline
-
 
 class CanonicalSearchPipeline:
     """
     CANONICAL SEARCH FACADE
 
-    ARCH RULE:
+    Architecture boundary:
 
     API
       |
@@ -19,21 +17,32 @@ class CanonicalSearchPipeline:
       |
       v
     SearchPipeline
+      |
+      v
+    Market Intelligence OS
 
-    This class MUST NOT contain business logic.
-
-    SearchPipeline is the single source of truth.
+    This layer contains no business logic.
     """
 
-    def __init__(self):
 
-        self.pipeline = SearchPipeline()
+    def __init__(
+        self,
+        pipeline=None
+    ):
+
+        if pipeline is not None:
+            self.pipeline = pipeline
+
+        else:
+            from lentra.api.pipeline.search_pipeline import SearchPipeline
+
+            self.pipeline = SearchPipeline()
 
 
     def run(
         self,
         payload: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    ):
 
         return self.pipeline.run(
             payload
