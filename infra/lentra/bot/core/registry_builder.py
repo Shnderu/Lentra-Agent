@@ -1,10 +1,24 @@
 from lentra.bot.core.feature_registry import FeatureRegistry
 
 
-def build_registry() -> FeatureRegistry:
+def build_registry(
+    rent_search_handler=None
+) -> FeatureRegistry:
+
     registry = FeatureRegistry()
 
-    # TODO: регистрация feature handlers
-    registry.register("fallback", lambda ctx: {"status": "fallback"})
+    registry.register(
+        "fallback",
+        lambda ctx: {
+            "status": "fallback"
+        }
+    )
+
+    if rent_search_handler:
+
+        registry.register(
+            "rent_search",
+            rent_search_handler
+        )
 
     return registry
