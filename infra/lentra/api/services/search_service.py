@@ -11,7 +11,6 @@ from lentra.core.pipeline.canonical_search_pipeline import (
 from lentra.core.pipeline.canonical_entrypoint import (
     CanonicalSearchEntrypoint,
 )
-from lentra.api.pipeline.search_pipeline import SearchPipeline
 
 
 class SearchService:
@@ -42,11 +41,7 @@ class SearchService:
 
         adapter = SearchAdapter()
 
-        search_pipeline = SearchPipeline()
-
-        self.pipeline = CanonicalSearchPipeline(
-            search_pipeline
-        )
+        self.pipeline = CanonicalSearchPipeline()
 
         self.entrypoint = CanonicalSearchEntrypoint(
             self.pipeline

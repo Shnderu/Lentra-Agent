@@ -2,15 +2,24 @@
 # RENT REPOSITORY ADAPTER LAYER
 # ============================================================
 
-from lentra.bot.features.rent_search.repository import RentRepository as _RealRentRepository
+from lentra.rent.repository import RentRepository as _BaseRentRepository
 
 
-class RentRepository(_RealRentRepository):
+class RentRepository(_BaseRentRepository):
     """
-    Adapter layer to preserve legacy DI contracts.
+    Canonical rent repository adapter.
 
-    Keeps old architecture imports working while real logic
-    lives in bot.features.rent_search.
+    Repository layer must not depend on delivery layers.
+
+    Dependency direction:
+
+        bot
+          |
+          v
+        application
+          |
+          v
+        rent.repository
     """
 
     pass
