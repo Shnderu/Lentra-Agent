@@ -120,6 +120,29 @@ the production graph:
 | `infra/lentra/api/v1/debug_api.py` |
 | `infra/lentra/api/v1/concierge_api_class.py` |
 
+### 3.9 Legacy rent_search tree (whole subtree)
+
+Added per `ARCH_LOCK_PHASE3_SOAK_REPORT.md` §3.4 note 2: ~45 of the 69
+`LEGACY_INTELLIGENCE_ISOLATION` baseline hits are legacy-to-legacy edges
+*internal* to this tree; they vanish wholesale with its deletion. Deleting
+only single files from it (the previous §3.1 entry) would leave the rest of
+the internal edges standing and break the expected single large drop in the
+violation counter.
+
+| Path | Evidence |
+|---|---|
+| `infra/lentra/bot/features/rent_search/` (entire tree) | Legacy feature contour outside the canonical flow (Constitution §3, §8); all internal edges are legacy-to-legacy; production bot path (`bot/main.py`, `bot/handlers/handlers.py`) does not depend on it. Subsumes the §3.1 entry `bot/features/rent_search/pipeline/search_pipeline.py`. |
+
+External importers of this tree (`bot/handlers/rent_handler.py`,
+`bot/handlers/router_builder.py`) are NOT part of this batch — their import
+lines are code edits inside the production bot package and are recorded in
+§8 (Grandfathered Baseline) until the next migration step.
+
+Expected violation counter after Batch B (incl. §3.9): **84 → 28**
+(45 tree-internal edges + 11 Batch-B importer edges removed; see
+`ARCH_LOCK_PHASE3_SOAK_REPORT.md` §1). After Batch A the counter must
+stay at **84** — Batch A is non-code debris and produces no import edges.
+
 ## 4. Batch C — Conditional deletions (risk: MEDIUM, decision required first)
 
 Blocked on the fate of `lentra-telegram.service` (the parallel
@@ -181,3 +204,43 @@ Per `ARCHITECTURE_CLEANUP_PLAN.md` §4, deletion is step 3 of 3:
 3. Only then: execute batches A → B → C → D, one batch per commit, with
    service restart + health check between batches, and a rollback point
    (git tag) before each batch.
+
+---
+
+## 8. Grandfathered Baseline (temporarily permitted)
+
+The following **11** dry-run violations from the frozen Phase 3 baseline
+(`ARCH_LOCK_PHASE3_SOAK_REPORT.md` §1) belong to **no batch** (not A, not B,
+not C). They are **temporarily permitted** until the next migration step
+(post-Batch-C / Phase 4 enforcement scoping). This section declares no new
+rules, changes no rules, and authorizes no deletions — it is a standing
+allow-list of *known old* edges so that the counter expectation after
+Batch B (28 = 17 Batch-C edges + these 11) is explicit and any edge NOT
+listed here or in a batch is treated as a regression.
+
+| # | Module (importer) | Forbidden edge (target) | Rule |
+|---|---|---|---|
+| 1 | `lentra/api/services/search_service.py` | `api.pipeline.search_pipeline` | `CANONICAL_SPINE_INTEGRITY.also[0]` |
+| 2 | `lentra/core/bootstrap/__init__.py` | `core.bootstrap.bootstrap_intelligence_system` | `NO_LEGACY_BOOTSTRAP_CONTOUR` |
+| 3 | `lentra/core/bootstrap/bootstrap_intelligence_system.py` | `market_intelligence.gateway.intelligence_gateway` | `LEGACY_INTELLIGENCE_ISOLATION` |
+| 4 | `lentra/core/bootstrap/bootstrap_intelligence_system.py` | `market_intelligence.gateway.intelligence_gateway` | `NO_LEGACY_GATEWAY_CONTOUR` |
+| 5 | `lentra/core/market_intelligence/graph/graph_adapter.py` | `market_intelligence.gateway.graph_adapter` | `LEGACY_INTELLIGENCE_ISOLATION` |
+| 6 | `lentra/core/market_intelligence/graph/graph_adapter.py` | `market_intelligence.gateway.graph_adapter` | `NO_LEGACY_GATEWAY_CONTOUR` |
+| 7 | `lentra/runtime/intelligence/intelligence_runtime.py` | `runtime.intelligence.intelligence_enforcer` | `LEGACY_INTELLIGENCE_ISOLATION` |
+| 8 | `lentra/runtime/bootstrap/worker_main.py` | `runtime.bootstrap.wiring_safe` | `NO_LEGACY_GATEWAY_BUILDERS` |
+| 9 | `lentra/bot/services/search_service.py` | `domain.property.search` | `LEGACY_INTELLIGENCE_ISOLATION` |
+| 10 | `lentra/bot/handlers/rent_handler.py` | `bot.features.rent_search.handler` | `LEGACY_INTELLIGENCE_ISOLATION` |
+| 11 | `lentra/bot/handlers/router_builder.py` | `bot.features.rent_search.service` | `LEGACY_INTELLIGENCE_ISOLATION` |
+
+Notes:
+
+- Rows 10–11 will start failing at import time once Batch B §3.9 removes
+  the `rent_search` tree; retiring those two import lines is a code edit
+  inside the production bot package and is therefore deferred to the next
+  migration step, not smuggled into a deletion batch.
+- Row 1 is the known legacy `search_service` hit
+  (`ARCH_LOCK_PHASE3_SOAK_REPORT.md` §3.4 note 1) — not a spine false
+  positive.
+- This list may only **shrink** (per SOAK exit criteria: "baseline file of
+  remaining grandfathered hits ... may only shrink"). Adding to it requires
+  a superseding ADR.
