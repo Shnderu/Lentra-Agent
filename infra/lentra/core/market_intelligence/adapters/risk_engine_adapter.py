@@ -9,18 +9,27 @@ class RiskEngineAdapter:
     with Market Intelligence RiskEngine.
 
     Data Layer expects:
+
         risk_score
         risk_level
         signals
 
-    MI RiskEngine provides:
+    Market Intelligence provides:
+
         fraud_score
         level
         signals
     """
 
-    def __init__(self, engine):
+
+    def __init__(
+        self,
+        engine
+    ):
+
         self.engine = engine
+
+
 
     def evaluate(
         self,
@@ -29,19 +38,24 @@ class RiskEngineAdapter:
         duplicate_count: int = 0,
     ) -> dict:
 
+
         context = {
             "market_stats": market_stats or {},
             "duplicate_count": duplicate_count,
         }
 
+
         result = self.engine.evaluate(
-            payload
+            payload,
+            context
         )
+
 
         risk = result.get(
             "risk",
             {}
         )
+
 
         risk_score = float(
             risk.get(
@@ -50,27 +64,41 @@ class RiskEngineAdapter:
             )
         )
 
+
         risk_level = risk.get(
             "level",
             "unknown"
         )
+
 
         signals = risk.get(
             "signals",
             []
         )
 
+
         return {
+
             "risk_score": risk_score,
+
             "risk_level": risk_level,
+
             "signals": signals,
+
+
             "engine_result": EngineResult(
+
                 score=risk_score,
+
                 deviation=risk.get(
                     "deviation",
                     0.0
                 ),
+
                 signal=risk_level,
+
                 raw=risk,
-            ).to_dict(),
+
+            ).to_dict()
+
         }
