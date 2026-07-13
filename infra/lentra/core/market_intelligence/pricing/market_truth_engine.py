@@ -6,9 +6,19 @@ from lentra.core.market_intelligence.repository.market_snapshot_repository impor
 
 
 class MarketTruthEngine:
+    """
+    Market Truth Authority.
+
+    Responsibility:
+    - stabilize raw market prices
+    - remove price anomalies
+    - produce canonical market snapshot data
+
+    This layer does NOT decide.
+    It only produces market truth signals.
+    """
 
     def __init__(self):
-
         self.snapshot_repository = MarketSnapshotRepository()
 
 
@@ -20,7 +30,7 @@ class MarketTruthEngine:
         prices = [
             l.get("price")
             for l in listings
-            if l.get("price")
+            if l.get("price") is not None
         ]
 
 
@@ -28,9 +38,25 @@ class MarketTruthEngine:
 
             snapshot = {
 
+                "city": "unknown",
+
                 "median_price": None,
 
                 "mean_price": None,
+
+                "price_min": None,
+
+                "price_max": None,
+
+                "q1": None,
+
+                "q3": None,
+
+                "sample_size": 0,
+
+                "confidence": 0.0,
+
+                "market_health": "unknown",
 
                 "outliers_removed": 0,
 
@@ -45,7 +71,6 @@ class MarketTruthEngine:
             prices
         )
 
-
         mean = statistics.mean(
             prices
         )
@@ -59,7 +84,6 @@ class MarketTruthEngine:
         q1 = sorted_prices[
             len(sorted_prices) // 4
         ]
-
 
         q3 = sorted_prices[
             (len(sorted_prices) * 3) // 4
@@ -99,7 +123,6 @@ class MarketTruthEngine:
 
                 outliers += 1
 
-
             else:
 
                 listing["anomaly_flag"] = False
@@ -120,6 +143,39 @@ class MarketTruthEngine:
             )
 
 
+        clean_prices = [
+            item.get("price")
+            for item in clean
+            if item.get("price") is not None
+            and not item.get("anomaly_flag")
+        ]
+
+
+        if clean_prices:
+
+            confidence = min(
+                1.0,
+                len(clean_prices) / 20
+            )
+
+        else:
+
+            confidence = 0.0
+
+
+        if confidence >= 0.7:
+
+            market_health = "stable"
+
+        elif confidence >= 0.3:
+
+            market_health = "limited"
+
+        else:
+
+            market_health = "weak"
+
+
         snapshot = {
 
             "city": city,
@@ -128,9 +184,22 @@ class MarketTruthEngine:
 
             "mean_price": mean,
 
+            "price_min": min(prices),
+
+            "price_max": max(prices),
+
             "q1": q1,
 
             "q3": q3,
+
+            "sample_size": len(clean_prices),
+
+            "confidence": round(
+                confidence,
+                2
+            ),
+
+            "market_health": market_health,
 
             "outliers_removed": outliers,
 
