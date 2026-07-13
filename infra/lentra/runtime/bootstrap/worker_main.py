@@ -1,19 +1,18 @@
 import time
-import os
-from lentra.runtime.bootstrap.gateway_v3 import build_gateway_v3
 
 
 def main():
-    print("[WORKER] START")
+    print("[WORKER] START (disabled legacy runtime)")
 
-    gateway = build_gateway_v3()
+    # Legacy worker retired.
+    # Production execution path:
+    # PostgreSQL task queue -> recovery/runtime pipeline.
+    #
+    # This module intentionally does not initialize GatewayV3.
+    # See ARCHITECTURE_CLEANUP_PLAN and AUDIT_CURRENT_STATE_2026-07-13.
 
-    print("[WORKER] gateway initialized")
-
-    # HARD BLOCKING LOOP (keep process alive)
     while True:
         try:
-            # minimal heartbeat / future queue hook
             time.sleep(5)
 
         except KeyboardInterrupt:
