@@ -40,14 +40,28 @@ class RiskEngineAdapter:
 
 
         context = {
-            "market_stats": market_stats or {},
-            "duplicate_count": duplicate_count,
+
+            "market_stats":
+                market_stats or {},
+
+            "duplicate_count":
+                duplicate_count,
+
+        }
+
+
+        enriched_payload = {
+
+            **payload,
+
+            "_risk_context":
+                context,
+
         }
 
 
         result = self.engine.evaluate(
-            payload,
-            context
+            enriched_payload
         )
 
 
@@ -77,28 +91,54 @@ class RiskEngineAdapter:
         )
 
 
+        engine_result = EngineResult(
+
+            engine_name="market_risk_engine",
+
+            data={
+
+                "risk_score":
+                    risk_score,
+
+                "risk_level":
+                    risk_level,
+
+                "signals":
+                    signals,
+
+                "source":
+                    risk.get(
+                        "source",
+                        "unknown"
+                    ),
+
+            },
+
+            trace={
+
+                "adapter":
+                    "RiskEngineAdapter",
+
+                "duplicate_count":
+                    duplicate_count,
+
+            }
+
+        )
+
+
         return {
 
-            "risk_score": risk_score,
+            "risk_score":
+                risk_score,
 
-            "risk_level": risk_level,
+            "risk_level":
+                risk_level,
 
-            "signals": signals,
+            "signals":
+                signals,
 
-
-            "engine_result": EngineResult(
-
-                score=risk_score,
-
-                deviation=risk.get(
-                    "deviation",
-                    0.0
-                ),
-
-                signal=risk_level,
-
-                raw=risk,
-
-            ).to_dict()
+            "engine_result":
+                engine_result.__dict__
 
         }
