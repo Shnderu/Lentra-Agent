@@ -4,9 +4,6 @@ from datetime import datetime, timezone
 from lentra.runtime.bootstrap.gateway_v3 import build_gateway_v3
 from lentra.core.adapters.search_adapter import SearchAdapter
 
-from lentra.core.market_intelligence.engines.risk_engine import RiskEngine
-from lentra.core.market_intelligence.engines.dedup_engine import DedupEngine
-
 from lentra.core.market_intelligence.decision.decision_layer import DecisionLayer
 from lentra.core.market_intelligence.ranking.unified_ranking_engine import UnifiedRankingEngine
 from lentra.core.market_intelligence.contracts.listing_contract_guard import ListingContractGuard
@@ -36,10 +33,6 @@ class SearchPipeline:
         self.gateway = build_gateway_v3()
 
         self.adapter = SearchAdapter()
-
-        self.risk_engine = RiskEngine()
-
-        self.dedup_engine = DedupEngine()
 
         self.decision_layer = DecisionLayer()
 
@@ -299,12 +292,14 @@ class SearchPipeline:
             )
 
 
-            risk_result = self.risk_engine.evaluate(
+            risk_result = self.gateway.run_engine(
+                "risk",
                 context.copy()
             )
 
 
-            dedup_result = self.dedup_engine.evaluate(
+            dedup_result = self.gateway.run_engine(
+                "dedup",
                 context.copy()
             )
 
