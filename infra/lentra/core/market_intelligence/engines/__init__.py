@@ -5,13 +5,3 @@ from .dedup_engine import DedupEngine
 from .area_engine import AreaEngine
 
 from .safe_engine_wrapper import SafeEngineWrapper
-
-
-def build_engines():
-    return {
-        "pricing": SafeEngineWrapper(PricingEngine()),
-        "risk": SafeEngineWrapper(RiskEngine()),
-        "signals": SafeEngineWrapper(SignalsEngine()),
-        "dedup": SafeEngineWrapper(DedupEngine()),
-        "area": SafeEngineWrapper(AreaEngine()),
-    }
