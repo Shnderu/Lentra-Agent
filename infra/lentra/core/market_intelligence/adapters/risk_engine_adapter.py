@@ -93,7 +93,7 @@ class RiskEngineAdapter:
 
         engine_result = EngineResult(
 
-            engine_name="market_risk_engine",
+            engine_name="risk_engine",
 
             data={
 
