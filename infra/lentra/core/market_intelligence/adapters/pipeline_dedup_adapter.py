@@ -1,7 +1,7 @@
 from typing import List, Dict, Any
 
-from lentra.core.market_intelligence.dedup.dedup_index import (
-    DedupIndex
+from lentra.core.market_intelligence.engines.dedup_engine import (
+    DedupEngine,
 )
 
 
@@ -9,20 +9,26 @@ class PipelineDedupAdapter:
     """
     ARCH V2 CONTRACT BOUNDARY
 
-    Data Layer:
+    Data Layer contract:
+
         deduplicate(listings)
             ->
         {"clusters": [...]}
 
-    Market Intelligence:
-        DedupIndex V4
-            ->
-        entity resolution
-        duplicate intelligence
+    Market Intelligence authority:
+
+        DedupEngine
+            |
+            +--> DedupIndex V4
+            +--> Entity Resolution
+            +--> Object Memory
     """
 
+
     def __init__(self):
-        self.index = DedupIndex()
+
+        self.engine = DedupEngine()
+
 
 
     def deduplicate(
@@ -30,59 +36,83 @@ class PipelineDedupAdapter:
         listings: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
 
+
         clusters = []
 
         processed = set()
 
 
+        evaluated = []
+
+
         for listing in listings:
 
-            listing_id = listing.get(
+            result = self.engine.evaluate(
+                listing
+            )
+
+            evaluated.append(
+                result
+            )
+
+
+        for item in evaluated:
+
+            listing_id = item.get(
                 "id"
             )
+
 
             if listing_id in processed:
                 continue
 
 
-            result = self.index.analyze(
-                listing
+            dedup = item.get(
+                "dedup",
+                {}
             )
 
 
-            matches = result.get(
+            matches = dedup.get(
                 "matches",
                 []
             )
 
 
-            cluster_items = [
-                listing
+            cluster = [
+                item
             ]
 
-            cluster_items.extend(
+
+            cluster.extend(
                 matches
             )
 
 
-            for item in cluster_items:
+            for member in cluster:
 
-                item_id = item.get(
+                member_id = member.get(
                     "id"
                 )
 
-                if item_id:
+                if member_id:
+
                     processed.add(
-                        item_id
+                        member_id
                     )
 
 
             clusters.append(
-                cluster_items
+                cluster
             )
 
 
         return {
-            "clusters": clusters,
-            "status": "ok"
+
+            "clusters":
+                clusters,
+
+            "status":
+                "ok"
+
         }
