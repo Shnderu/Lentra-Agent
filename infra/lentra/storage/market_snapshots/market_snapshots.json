@@ -9670,5 +9670,61 @@
         "anomaly_flag": false
       }
     ]
+  },
+  {
+    "created_at": "2026-07-13T08:51:07.792819",
+    "city": "da_nang",
+    "median_price": 16000000.0,
+    "mean_price": 16000000.0,
+    "price_min": 15000000.0,
+    "price_max": 17000000.0,
+    "q1": 15000000.0,
+    "q3": 17000000.0,
+    "sample_size": 2,
+    "confidence": 0.1,
+    "market_health": "weak",
+    "outliers_removed": 0,
+    "clean_listings": [
+      {
+        "id": "1",
+        "price_vnd": 15000000.0,
+        "city": "da_nang",
+        "anomaly_flag": false
+      },
+      {
+        "id": "2",
+        "price_vnd": 17000000.0,
+        "city": "da_nang",
+        "anomaly_flag": false
+      }
+    ]
+  },
+  {
+    "created_at": "2026-07-13T08:52:38.925614",
+    "city": "da_nang",
+    "median_price": 16000000.0,
+    "mean_price": 16000000.0,
+    "price_min": 15000000.0,
+    "price_max": 17000000.0,
+    "q1": 15000000.0,
+    "q3": 17000000.0,
+    "sample_size": 2,
+    "confidence": 0.1,
+    "market_health": "weak",
+    "outliers_removed": 0,
+    "clean_listings": [
+      {
+        "id": "1",
+        "price_vnd": 15000000.0,
+        "city": "da_nang",
+        "anomaly_flag": false
+      },
+      {
+        "id": "2",
+        "price_vnd": 17000000.0,
+        "city": "da_nang",
+        "anomaly_flag": false
+      }
+    ]
   }
 ]
