@@ -1,38 +1,72 @@
 from typing import Dict, Any
 
 from lentra.core.market_intelligence.engine_wrapper import EngineWrapper
-from lentra.core.market_intelligence.engines.risk_engine import RiskEngine
-from lentra.core.market_intelligence.engines.dedup_engine import DedupEngine
-from lentra.core.observability.observability_engine_v1 import ObservabilityEngineV1
+
+from lentra.core.engines.area_engine import AreaEngine
+from lentra.core.engines.market_intelligence_engine import (
+    MarketIntelligenceEngine,
+)
+
+from lentra.core.market_intelligence.engines.risk_engine import (
+    RiskEngine,
+)
+
+from lentra.core.market_intelligence.engines.dedup_engine import (
+    DedupEngine,
+)
+
+from lentra.core.observability.observability_engine_v1 import (
+    ObservabilityEngineV1,
+)
 
 
 class GatewayV3:
     """
-    Gateway V3 orchestration layer.
+    Canonical Lentra engine routing layer.
 
     Responsibility:
-    - routing only
-    - no business logic
+    - register engines
+    - route execution
+    - observability wrapping
+
+    MUST NOT:
+    - contain business logic
+    - calculate intelligence
+    - modify engine results
     """
 
     def __init__(self):
+
         self.engines: Dict[str, Any] = {}
+
         self.obs = ObservabilityEngineV1()
 
-    def register(self, name: str, engine_cls):
+
+    def register(
+        self,
+        name: str,
+        engine_cls
+    ):
 
         engine = engine_cls()
 
+
         if hasattr(engine, "run"):
+
             fn = engine.run
 
+
         elif hasattr(engine, "evaluate"):
+
             fn = engine.evaluate
 
+
         else:
+
             raise RuntimeError(
                 f"engine_has_no_entrypoint:{name}"
             )
+
 
         self.engines[name] = EngineWrapper(
             name,
@@ -40,7 +74,10 @@ class GatewayV3:
             self.obs
         )
 
+
         return self
+
+
 
     def run_engine(
         self,
@@ -49,26 +86,46 @@ class GatewayV3:
     ) -> Dict[str, Any]:
 
         if name not in self.engines:
+
             return {
                 "error": f"engine_not_found:{name}",
                 "fallback": True
             }
 
-        return self.engines[name](context)
+
+        return self.engines[name](
+            context
+        )
+
 
 
 def build_gateway_v3():
 
     gateway = GatewayV3()
 
+
+    gateway.register(
+        "market_intelligence",
+        MarketIntelligenceEngine
+    )
+
+
+    gateway.register(
+        "area",
+        AreaEngine
+    )
+
+
     gateway.register(
         "risk",
         RiskEngine
     )
 
+
     gateway.register(
         "dedup",
         DedupEngine
     )
+
 
     return gateway
