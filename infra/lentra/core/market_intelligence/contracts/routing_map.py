@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+
 @dataclass(frozen=True)
 class RoutingMap:
     pricing_engine: str
@@ -17,8 +18,19 @@ class RoutingMap:
 
 def build_routing_map() -> RoutingMap:
     return RoutingMap(
-        pricing_engine="lentra.core.market.pricing_engine.PricingEngine",
-        dedup_engine="lentra.core.market_intelligence.dedup.unified_dedup_engine.UnifiedDedupEngine",
-        risk_engine="lentra.core.market_intelligence.engines.risk_engine.RiskEngine",
-        expat_engine="lentra.core.market_intelligence.expat.expat_score_engine.ExpatScoreEngine",
+        pricing_engine=(
+            "lentra.core.market_intelligence.engines.pricing_engine.PricingEngine"
+        ),
+
+        dedup_engine=(
+            "lentra.core.market_intelligence.dedup.unified_dedup_engine.UnifiedDedupEngine"
+        ),
+
+        risk_engine=(
+            "lentra.core.market_intelligence.engines.risk_engine.RiskEngine"
+        ),
+
+        expat_engine=(
+            "lentra.core.market_intelligence.expat.expat_score_engine.ExpatScoreEngine"
+        ),
     )
