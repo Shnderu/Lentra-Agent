@@ -1,27 +1,48 @@
-from typing import Any, Dict
+"""
+Legacy API pipeline bootstrap.
 
-from lentra.runtime.bootstrap.gateway_v3 import build_gateway_v3
+Retired:
+    direct GatewayV3 initialization
+
+Canonical API execution path:
+
+    API
+      ->
+    SearchPipeline
+      ->
+    GatewayV3
+      ->
+    Market Intelligence Core
+
+This module remains as compatibility placeholder.
+"""
+
+
+from typing import Any, Dict
 
 
 class Orchestrator:
     """
-    API orchestration layer.
+    Compatibility wrapper.
 
-    Core intelligence:
-    RegistryV3 + FusionEngineV2
+    Deprecated:
+        legacy gateway orchestration
     """
 
-    def __init__(self, gateway: Dict[str, Any]):
+    def __init__(self, gateway: Dict[str, Any] | None = None):
         self.gateway = gateway
 
     def execute(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        if self.gateway is None:
+            return {
+                "status": "retired",
+                "message": "Use canonical SearchPipeline execution path"
+            }
+
         return self.gateway["handle"](request)
 
 
 def build_orchestrator():
-
-    gateway = build_gateway_v3()
-
     return Orchestrator(
-        gateway=gateway
+        gateway=None
     )
