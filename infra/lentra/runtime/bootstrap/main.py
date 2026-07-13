@@ -1,17 +1,27 @@
 """
-Runtime bootstrap layer (ARCH LOCK SAFE)
-DO NOT import core.bootstrap
-"""
+Runtime bootstrap layer.
 
-from lentra.runtime.bootstrap.gateway_v3 import build_gateway_v3
+Legacy bootstrap entrypoint retired.
+
+Canonical execution path:
+
+    SearchPipeline
+        ->
+    GatewayV3
+        ->
+    Market Intelligence engines
+        ->
+    DecisionLayer
+
+This module is kept only for compatibility with
+bootstrap_lock metadata.
+"""
 
 
 def main():
-    # runtime entry must NOT depend on core.bootstrap
-    gateway = build_gateway_v3()
-
     return {
-        "gateway": gateway
+        "gateway": None,
+        "status": "retired"
     }
 
 
