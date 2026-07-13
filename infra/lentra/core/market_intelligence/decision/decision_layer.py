@@ -3,21 +3,51 @@ from typing import Dict, Any
 
 class DecisionLayer:
     """
-    Decision Layer v2.1
+    Decision Layer v2.2
 
-    PRINCIPLE:
+    Single authority for final market intelligence decision.
 
-    - Risk has authority over ranking
-    - Ranking selects quality among trusted objects
-    - Decision aggregates market intelligence
-
-    Signals:
-    - pricing intelligence
-    - market opportunity
-    - area intelligence
-    - ranking
-    - risk
+    Responsibilities:
+    - aggregate market signals
+    - apply risk authority gate
+    - combine ranking, pricing and area signals
     """
+
+
+    def build_from_signals(
+        self,
+        market: Dict[str, Any],
+        risk: Dict[str, Any],
+        area: Dict[str, Any],
+        ranking_score: float = 0.5,
+    ) -> Dict[str, Any]:
+
+        risk_data = risk.get(
+            "risk",
+            {}
+        )
+
+        fraud_score = risk_data.get(
+            "fraud_score",
+            0.5
+        )
+
+        return self.build(
+            {
+                "signals": {
+                    "pricing": market,
+                    "area": area
+                },
+
+                "ranking": {
+                    "score": ranking_score
+                },
+
+                "risk": {
+                    "risk_level": fraud_score
+                }
+            }
+        )
 
 
     def build(
@@ -57,18 +87,15 @@ class DecisionLayer:
             0.5
         )
 
-
         area_score = area.get(
             "score",
             0.5
         )
 
-
         risk_score = risk.get(
             "risk_level",
             0.5
         )
-
 
         ranking_score = ranking.get(
             "score",
@@ -80,7 +107,6 @@ class DecisionLayer:
             "difference_percent",
             0
         )
-
 
         price_direction = pricing.get(
             "direction",
@@ -95,22 +121,15 @@ class DecisionLayer:
             price_direction == "under"
             and difference_percent <= -25
         ):
-
             opportunity_bonus = 0.15
-
 
         elif (
             price_direction == "under"
             and difference_percent <= -10
         ):
-
             opportunity_bonus = 0.07
 
 
-
-        # =========================
-        # RISK AUTHORITY GATE
-        # =========================
 
         if risk_score >= 0.7:
 
@@ -123,75 +142,65 @@ class DecisionLayer:
                     4
                 ),
 
+                "reason": "Высокий риск объявления.",
+
                 "components": {
 
                     "ranking": ranking_score,
-
                     "pricing": pricing_score,
-
                     "area": area_score,
-
                     "risk": risk_score
 
                 },
 
-                "reason": "Высокий риск объявления.",
-
                 "signals": signals,
-
                 "risk": risk,
-
                 "ranking": ranking
 
             }
 
 
+
         if risk_score >= 0.45:
+
+            score = (
+                pricing_score * 0.4
+                +
+                area_score * 0.2
+                +
+                ranking_score * 0.2
+                +
+                (1 - risk_score) * 0.2
+            )
+
 
             return {
 
                 "decision": "REVIEW",
 
                 "decision_score": round(
-                    (
-                        pricing_score * 0.4
-                        +
-                        area_score * 0.2
-                        +
-                        ranking_score * 0.2
-                        +
-                        (1 - risk_score) * 0.2
-                    ),
+                    score,
                     4
                 ),
+
+                "reason": "Средний риск. Требуется проверка.",
 
                 "components": {
 
                     "ranking": ranking_score,
-
                     "pricing": pricing_score,
-
                     "area": area_score,
-
                     "risk": risk_score
 
                 },
 
-                "reason": "Средний риск. Требуется проверка.",
-
                 "signals": signals,
-
                 "risk": risk,
-
                 "ranking": ranking
 
             }
 
 
-
-        # =========================
-        # TRUSTED OBJECT SCORING
-        # =========================
 
         final_score = (
 
@@ -217,17 +226,13 @@ class DecisionLayer:
 
 
         if final_score >= 0.75:
-
             decision = "ACCEPT"
 
         elif final_score >= 0.5:
-
             decision = "REVIEW"
 
         else:
-
             decision = "REJECT"
-
 
 
         return {
@@ -242,23 +247,18 @@ class DecisionLayer:
             "components": {
 
                 "ranking": ranking_score,
-
                 "pricing": pricing_score,
-
                 "area": area_score,
-
                 "risk": risk_score,
-
                 "opportunity_bonus": opportunity_bonus
 
             },
 
-            "reason": "Решение сформировано по модели доверия и рыночной ценности.",
+            "reason":
+                "Решение сформировано по модели доверия и рыночной ценности.",
 
             "signals": signals,
-
             "risk": risk,
-
             "ranking": ranking
 
         }

@@ -137,75 +137,6 @@ class SearchPipeline:
         )
 
 
-    def _build_decision(
-        self,
-        market: Dict[str, Any],
-        risk: Dict[str, Any],
-        area: Dict[str, Any],
-        ranking_score: float = 0.5,
-    ) -> Dict[str, Any]:
-
-        risk_data = risk.get(
-            "risk",
-            {}
-        )
-
-        fraud_score = risk_data.get(
-            "fraud_score",
-            0.5
-        )
-
-        risk_level = risk_data.get(
-            "level",
-            "medium"
-        )
-
-
-        decision = self.decision_layer.build(
-            {
-                "signals": {
-                    "pricing": market,
-                    "area": area
-                },
-
-                "ranking": {
-                    "score": ranking_score
-                },
-
-                "risk": {
-                    "risk_level": fraud_score
-                }
-            }
-        )
-
-
-        return {
-
-            "action": decision.get(
-                "decision",
-                "REVIEW"
-            ),
-
-            "score": decision.get(
-                "decision_score",
-                0.5
-            ),
-
-            "confidence": round(
-                1 - self._risk_penalty(
-                    risk_level
-                ),
-                2
-            ),
-
-            "reason":
-                "Решение сформировано Market Intelligence Decision Layer.",
-
-            "decision_layer": decision
-
-        }
-
-
     def run(
         self,
         payload: Dict[str, Any]
@@ -483,7 +414,7 @@ class SearchPipeline:
                 0.5
             )
 
-            item["decision"] = self._build_decision(
+            item["decision"] = self.decision_layer.build_from_signals(
                 item["market"],
                 item["risk"],
                 item["area"],
