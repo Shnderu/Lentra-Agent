@@ -2,7 +2,7 @@ from typing import Dict, Any
 
 from lentra.core.market_intelligence.engine_wrapper import EngineWrapper
 
-from lentra.core.engines.area_engine import AreaEngine
+from lentra.core.market_intelligence.engines.area_engine import AreaEngine
 from lentra.core.market_intelligence.engines.market_intelligence_engine import (
     MarketIntelligenceEngine,
 )
