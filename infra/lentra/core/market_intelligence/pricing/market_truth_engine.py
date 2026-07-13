@@ -11,15 +11,14 @@ class MarketTruthEngine:
 
     Responsibility:
     - stabilize raw market prices
-    - remove price anomalies
-    - produce canonical market snapshot data
+    - remove anomalies
+    - produce canonical market snapshot
 
-    This layer does NOT decide.
-    It only produces market truth signals.
+    Canonical price:
+    - price_vnd
 
-    Canonical price contract:
-    - price_vnd is primary
-    - price is legacy fallback
+    Legacy:
+    - price fallback only
     """
 
     def __init__(self):
@@ -35,13 +34,13 @@ class MarketTruthEngine:
         if listing.get("price_vnd") is not None:
 
             return float(
-                listing.get("price_vnd")
+                listing["price_vnd"]
             )
 
         if listing.get("price") is not None:
 
             return float(
-                listing.get("price")
+                listing["price"]
             )
 
         return None
@@ -52,10 +51,34 @@ class MarketTruthEngine:
         listings: list
     ) -> dict:
 
+
+        normalized = []
+
+
+        for listing in listings:
+
+            price = self._get_price(
+                listing
+            )
+
+            if price is None:
+                continue
+
+
+            item = dict(
+                listing
+            )
+
+            item["price_vnd"] = price
+
+            normalized.append(
+                item
+            )
+
+
         prices = [
-            self._get_price(l)
-            for l in listings
-            if self._get_price(l) is not None
+            item["price_vnd"]
+            for item in normalized
         ]
 
 
@@ -85,7 +108,7 @@ class MarketTruthEngine:
 
                 "outliers_removed": 0,
 
-                "clean_listings": listings
+                "clean_listings": []
 
             }
 
@@ -107,20 +130,21 @@ class MarketTruthEngine:
 
 
         q1 = sorted_prices[
-            len(sorted_prices) // 4
+            len(sorted_prices)//4
         ]
 
+
         q3 = sorted_prices[
-            (len(sorted_prices) * 3) // 4
+            (len(sorted_prices)*3)//4
         ]
 
 
         iqr = q3 - q1
 
 
-        low = q1 - 1.5 * iqr
+        low = q1 - (1.5 * iqr)
 
-        high = q3 + 1.5 * iqr
+        high = q3 + (1.5 * iqr)
 
 
         clean = []
@@ -128,16 +152,9 @@ class MarketTruthEngine:
         outliers = 0
 
 
-        for listing in listings:
+        for listing in normalized:
 
-            price = self._get_price(
-                listing
-            )
-
-
-            if price is None:
-
-                continue
+            price = listing["price_vnd"]
 
 
             if price < low or price > high:
@@ -158,47 +175,42 @@ class MarketTruthEngine:
             )
 
 
-        city = "unknown"
+        clean_prices = [
 
-        if clean:
+            item["price_vnd"]
 
-            city = clean[0].get(
-                "city",
-                "unknown"
+            for item in clean
+
+            if not item.get(
+                "anomaly_flag"
             )
 
-
-        clean_prices = [
-            self._get_price(item)
-            for item in clean
-            if self._get_price(item) is not None
-            and not item.get("anomaly_flag")
         ]
 
 
-        if clean_prices:
-
-            confidence = min(
-                1.0,
-                len(clean_prices) / 20
-            )
-
-        else:
-
-            confidence = 0.0
+        confidence = min(
+            1.0,
+            len(clean_prices)/20
+        )
 
 
         if confidence >= 0.7:
 
-            market_health = "stable"
+            health = "stable"
 
         elif confidence >= 0.3:
 
-            market_health = "limited"
+            health = "limited"
 
         else:
 
-            market_health = "weak"
+            health = "weak"
+
+
+        city = clean[0].get(
+            "city",
+            "unknown"
+        )
 
 
         snapshot = {
@@ -224,7 +236,7 @@ class MarketTruthEngine:
                 2
             ),
 
-            "market_health": market_health,
+            "market_health": health,
 
             "outliers_removed": outliers,
 
