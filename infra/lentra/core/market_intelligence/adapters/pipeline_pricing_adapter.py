@@ -1,4 +1,4 @@
-from lentra.core.market.vietnam_market import build_market_index
+from typing import List, Dict, Any
 
 from lentra.core.market_intelligence.engines.pricing_engine import (
     PricingEngine,
@@ -39,9 +39,67 @@ class PipelinePricingAdapter:
             )
 
 
-        return build_market_index(
-            listings
+        prices = [
+
+            item.get(
+                "price"
+            )
+
+            for item in listings
+
+            if item.get(
+                "price"
+            )
+
+        ]
+
+
+        if not prices:
+
+            return {
+                "market_price": 0,
+                "average_price": 0,
+                "sample_size": 0
+            }
+
+
+        average_price = sum(
+            prices
+        ) / len(
+            prices
         )
+
+
+        return {
+
+            "market_price":
+                round(
+                    average_price,
+                    2
+                ),
+
+            "average_price":
+                round(
+                    average_price,
+                    2
+                ),
+
+            "sample_size":
+                len(
+                    prices
+                ),
+
+            "price_min":
+                min(
+                    prices
+                ),
+
+            "price_max":
+                max(
+                    prices
+                )
+
+        }
 
 
 
@@ -51,22 +109,24 @@ class PipelinePricingAdapter:
         market_stats: dict
     ) -> dict:
 
+
         payload = {
             **item
         }
 
 
         market_price = (
+
             market_stats.get(
                 "market_price"
             )
+
             or market_stats.get(
                 "average_price"
             )
-            or market_stats.get(
-                "avg"
-            )
+
             or 0
+
         )
 
 
@@ -88,20 +148,26 @@ class PipelinePricingAdapter:
 
 
         return {
-            "market_price": market_price,
 
-            "pricing_score": pricing.get(
-                "score",
-                0.5
-            ),
+            "market_price":
+                market_price,
 
-            "price_delta": pricing.get(
-                "delta",
-                0
-            ),
+            "pricing_score":
+                pricing.get(
+                    "score",
+                    0.5
+                ),
 
-            "price_deviation": pricing.get(
-                "deviation",
-                0
-            )
+            "price_delta":
+                pricing.get(
+                    "delta",
+                    0
+                ),
+
+            "price_deviation":
+                pricing.get(
+                    "deviation",
+                    0
+                )
+
         }
