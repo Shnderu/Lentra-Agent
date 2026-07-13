@@ -1,17 +1,64 @@
-from lentralication.search.pipeline import execute_search
+from lentra.api.pipeline import run_pipeline
+
+from lentra.telegram.router.intent_router import IntentRouter
 
 
-def route(chat_id, event):
+_intent_router = IntentRouter()
+
+
+def route(event):
+
     """
-    TRANSPORT LAYER ONLY
+    Telegram transport adapter.
+
+    Search execution goes through canonical API pipeline.
     """
 
-    event_type = event.get("type")
+    event_type = event.get(
+        "type"
+    )
 
     if event_type == "search":
-        return execute_search(event.get("payload", {}), state=event.get("state"))
+
+        payload = event.get(
+            "payload",
+            {}
+        )
+
+        result = run_pipeline(
+            payload
+        )
+
+        return {
+            "screen": "search_results",
+            "state": result
+        }
+
 
     return {
         "ok": True,
         "type": "noop"
     }
+
+
+
+def detect_intent(
+    state,
+    payload,
+    callback_data
+):
+    """
+    Compatibility adapter for callback layer.
+
+    Callback layer historically imported this function.
+    Intent detection is delegated to canonical telegram router.
+    """
+
+    text = (
+        callback_data
+        or ""
+    )
+
+    return _intent_router.detect(
+        text
+    )
