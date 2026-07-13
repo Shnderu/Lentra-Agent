@@ -1,6 +1,4 @@
-from statistics import median
-from typing import Dict, Any
-
+from typing import List, Dict, Any
 
 from lentra.core.market_intelligence.engines.pricing_engine import (
     PricingEngine,
@@ -11,16 +9,22 @@ class PipelinePricingAdapter:
     """
     Data Layer pricing boundary.
 
-    Market segmentation V1:
+    Responsibility:
 
-    market bucket:
-        city + property_type
+        clusters
+            ->
+        market statistics
+            ->
+        PricingEngine interpretation
 
-    Example:
+    IMPORTANT:
+    Market truth ownership belongs to MarketService.
+    This adapter only prepares pricing context
+    for compatibility with the ingestion pipeline.
 
-        Da Nang + studio
-        Da Nang + apartment
-
+    Currency contract:
+        primary: price_vnd
+        legacy fallback: price
     """
 
     def __init__(self):
@@ -28,42 +32,13 @@ class PipelinePricingAdapter:
         self.engine = PricingEngine()
 
 
-    def _prepare_listing(
-        self,
-        item: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def _get_price(self, item: dict):
 
-        payload = {
-            **item
-        }
-
-        if "price" not in payload:
-
-            payload["price"] = payload.get(
-                "price_vnd",
-                0
-            )
-
-        return payload
-
-
-    def _market_key(
-        self,
-        item: Dict[str, Any]
-    ) -> str:
-
-        city = (
-            item.get("location", {})
-            .get("city")
-            or "unknown"
-        ).lower()
-
-        property_type = (
-            item.get("property_type")
-            or "unknown"
-        ).lower()
-
-        return f"{city}:{property_type}"
+        return (
+            item.get("price_vnd")
+            if item.get("price_vnd") is not None
+            else item.get("price")
+        )
 
 
     def build_market(
@@ -71,53 +46,80 @@ class PipelinePricingAdapter:
         clusters: list
     ) -> dict:
 
-        buckets = {}
-
+        listings = []
 
         for cluster in clusters:
-
-            for item in cluster:
-
-                payload = self._prepare_listing(
-                    item
-                )
-
-                key = self._market_key(
-                    payload
-                )
-
-                buckets.setdefault(
-                    key,
-                    []
-                ).append(
-                    payload.get(
-                        "price"
-                    )
-                )
+            listings.extend(
+                cluster
+            )
 
 
-        markets = {}
+        prices = [
+            self._get_price(item)
+            for item in listings
+            if self._get_price(item) is not None
+        ]
 
 
-        for key, prices in buckets.items():
+        if not prices:
 
-            prices = [
-                p for p in prices
-                if p
-            ]
-
-            if not prices:
-                continue
-
-            markets[key] = {
-                "market_price": median(prices),
-                "sample_size": len(prices),
-                "price_min": min(prices),
-                "price_max": max(prices)
+            return {
+                "market_price_vnd": 0,
+                "average_price_vnd": 0,
+                "sample_size": 0
             }
 
 
-        return markets
+        average_price = sum(
+            prices
+        ) / len(
+            prices
+        )
+
+
+        return {
+
+            "market_price_vnd":
+                round(
+                    average_price,
+                    2
+                ),
+
+            "average_price_vnd":
+                round(
+                    average_price,
+                    2
+                ),
+
+            # backward compatibility
+            "market_price":
+                round(
+                    average_price,
+                    2
+                ),
+
+            "average_price":
+                round(
+                    average_price,
+                    2
+                ),
+
+            "sample_size":
+                len(
+                    prices
+                ),
+
+            "price_min":
+                min(
+                    prices
+                ),
+
+            "price_max":
+                max(
+                    prices
+                )
+
+        }
 
 
     def evaluate(
@@ -127,35 +129,40 @@ class PipelinePricingAdapter:
     ) -> dict:
 
 
-        payload = self._prepare_listing(
-            item
+        payload = {
+            **item
+        }
+
+
+        market_price = (
+
+            market_stats.get(
+                "market_price_vnd"
+            )
+
+            or market_stats.get(
+                "market_price"
+            )
+
+            or market_stats.get(
+                "average_price_vnd"
+            )
+
+            or 0
+
         )
 
 
-        key = self._market_key(
-            payload
-        )
+        payload["market_price_vnd"] = market_price
 
-
-        market = market_stats.get(
-            key,
-            {}
-        )
-
-
-        market_price = market.get(
-            "market_price",
-            0
-        )
-
-
+        # keep compatibility for PricingEngine
         payload["market_price"] = market_price
 
 
         result = self.engine.evaluate(
             payload,
             {
-                "market_stats": market
+                "market_stats": market_stats
             }
         )
 
@@ -166,29 +173,31 @@ class PipelinePricingAdapter:
         )
 
 
-        deviation = pricing.get(
-            "deviation",
-            0
-        )
-
-
         return {
 
-            "market_price": market_price,
+            "market_price_vnd":
+                market_price,
 
-            "pricing_score": pricing.get(
-                "score",
-                0.5
-            ),
+            # compatibility field
+            "market_price":
+                market_price,
 
-            "price_delta": pricing.get(
-                "delta",
-                0
-            ),
+            "pricing_score":
+                pricing.get(
+                    "score",
+                    0.5
+                ),
 
-            "deviation_pct": deviation,
+            "price_delta":
+                pricing.get(
+                    "delta",
+                    0
+                ),
 
-            "price_deviation": deviation,
+            "price_deviation":
+                pricing.get(
+                    "deviation",
+                    0
+                )
 
-            "market_segment": key
         }
