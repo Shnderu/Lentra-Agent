@@ -93,10 +93,11 @@ class DuplicateClusterEngine:
                         "source",
                         ""
                     ) == "agency",
-                    x.get(
-                        "description",
-                        ""
-                    ).__len__()
+                    len(
+                        x.get(
+                            "description"
+                        ) or ""
+                    )
                 ),
             reverse=True
         )[0]
