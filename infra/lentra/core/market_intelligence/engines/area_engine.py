@@ -1,55 +1,75 @@
 from typing import Dict, Any
 
+from lentra.core.engines.base_engine import BaseEngine
 
-class AreaEngine:
+
+class AreaEngine(BaseEngine):
     """
-    V3 SAFE AREA ENGINE
+    Canonical Market Intelligence Area Engine.
 
+    Contract:
     input:
-        accumulated result dict
+        context dict
 
     output:
-        enriched result dict
+        normalized area intelligence dict
 
     Responsibility:
-    - use normalized city context
-    - provide area intelligence contract
+    - detect city context
+    - provide area confidence score
     """
 
-    def evaluate(
+
+    def run(
         self,
-        result: Dict[str, Any]
+        ctx: Dict[str, Any]
     ) -> Dict[str, Any]:
 
-        if not isinstance(result, dict):
-            result = {}
-
-        city = result.get(
-            "city"
-        )
-
-        query = result.get(
+        query = ctx.get(
             "query",
             ""
         )
 
+        city = ctx.get(
+            "city"
+        )
+
+
         if city:
+
             detected = city
 
+
         elif "da nang" in query.lower():
+
             detected = "da_nang"
 
+
         else:
+
             detected = "unknown"
 
 
-        result["area"] = {
 
-            "detected": detected,
+        return {
+
+            "score": 0.5,
 
             "city": detected,
 
-            "status": "ok"
-        }
+            "country":
+                "Vietnam"
+                if detected == "da_nang"
+                else "unknown",
 
-        return result
+            "area": {
+
+                "detected": detected,
+
+                "status": "ok"
+
+            },
+
+            "version": "area_v3_canonical"
+
+        }

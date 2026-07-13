@@ -34,7 +34,7 @@ SPINE_MODULES = {
     "lentra.core.pipeline.canonical_search_pipeline",
     "lentra.runtime.bootstrap.gateway_v3",
     "lentra.core.market_intelligence.engines.market_intelligence_engine",
-    "lentra.core.engines.area_engine",
+    "lentra.core.market_intelligence.engines.area_engine",
     "lentra.core.engines.base_engine",
     "lentra.core.market_intelligence.market.market_service",
     "lentra.core.market_intelligence.engines.risk_engine",
