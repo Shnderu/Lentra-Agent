@@ -16,10 +16,35 @@ class MarketTruthEngine:
 
     This layer does NOT decide.
     It only produces market truth signals.
+
+    Canonical price contract:
+    - price_vnd is primary
+    - price is legacy fallback
     """
 
     def __init__(self):
+
         self.snapshot_repository = MarketSnapshotRepository()
+
+
+    def _get_price(
+        self,
+        listing: dict
+    ):
+
+        if listing.get("price_vnd") is not None:
+
+            return float(
+                listing.get("price_vnd")
+            )
+
+        if listing.get("price") is not None:
+
+            return float(
+                listing.get("price")
+            )
+
+        return None
 
 
     def stabilize(
@@ -28,9 +53,9 @@ class MarketTruthEngine:
     ) -> dict:
 
         prices = [
-            l.get("price")
+            self._get_price(l)
             for l in listings
-            if l.get("price") is not None
+            if self._get_price(l) is not None
         ]
 
 
@@ -105,8 +130,8 @@ class MarketTruthEngine:
 
         for listing in listings:
 
-            price = listing.get(
-                "price"
+            price = self._get_price(
+                listing
             )
 
 
@@ -144,9 +169,9 @@ class MarketTruthEngine:
 
 
         clean_prices = [
-            item.get("price")
+            self._get_price(item)
             for item in clean
-            if item.get("price") is not None
+            if self._get_price(item) is not None
             and not item.get("anomaly_flag")
         ]
 

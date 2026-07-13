@@ -3,68 +3,158 @@ from typing import Dict, Optional
 
 class GeoClassifier:
     """
-    VIETNAM GEO CLASSIFIER (RULE-BASED)
+    VIETNAM GEO CLASSIFIER V2
 
     Output:
     - country
-    - region (North / Central / South)
+    - region
     - city
-    - district (optional heuristic pass later)
+    - district
 
-    IMPORTANT:
-    - no external dependencies
-    - no ML
-    - deterministic mapping only
+    Deterministic rule-based classifier.
     """
+
 
     REGION_MAP = {
         "North": {
-            "hanoi", "hai phong", "bac ninh", "ninh binh", "ha noi"
+            "hanoi",
+            "ha noi",
+            "hai phong",
+            "bac ninh",
+            "ninh binh"
         },
+
         "Central": {
-            "da nang", "hue", "hoi an", "nha trang"
+            "da nang",
+            "hue",
+            "hoi an",
+            "nha trang"
         },
+
         "South": {
-            "ho chi minh", "ho chi minh city", "hcm", "saigon",
-            "can tho", "vung tau", "bien hoa"
+            "ho chi minh",
+            "ho chi minh city",
+            "hcm",
+            "saigon",
+            "can tho",
+            "vung tau"
         }
     }
 
-    def classify(self, raw_location: str) -> Dict[str, Optional[str]]:
+
+    DISTRICT_MAP = {
+
+        "da nang": {
+            "son tra",
+            "my khe",
+            "my an",
+            "hai chau",
+            "ngu hanh son",
+            "cam le"
+        },
+
+        "ho chi minh": {
+            "district 1",
+            "district 2",
+            "district 3",
+            "binh thanh",
+            "thao dien"
+        },
+
+        "hanoi": {
+            "tay ho",
+            "ba dinh",
+            "cau giay",
+            "dong da"
+        }
+    }
+
+
+    def classify(
+        self,
+        raw_location: str
+    ) -> Dict[str, Optional[str]]:
+
         if not raw_location:
             return self._empty()
 
+
         text = raw_location.lower()
 
-        region = self._detect_region(text)
-        city = self._detect_city(text)
 
         return {
+
             "country": "Vietnam",
-            "region": region,
-            "city": city,
-            "district": None  # reserved for later enrichment layer
+
+            "region":
+                self._detect_region(text),
+
+            "city":
+                self._detect_city(text),
+
+            "district":
+                self._detect_district(text)
         }
 
-    def _detect_region(self, text: str) -> Optional[str]:
+
+
+    def _detect_region(
+        self,
+        text: str
+    ) -> Optional[str]:
+
         for region, keywords in self.REGION_MAP.items():
-            for k in keywords:
-                if k in text:
+
+            for keyword in keywords:
+
+                if keyword in text:
                     return region
+
         return None
 
-    def _detect_city(self, text: str) -> Optional[str]:
-        # explicit city extraction (simple heuristic layer)
-        for region_keywords in self.REGION_MAP.values():
-            for city in region_keywords:
+
+
+    def _detect_city(
+        self,
+        text: str
+    ) -> Optional[str]:
+
+        for keywords in self.REGION_MAP.values():
+
+            for city in keywords:
+
                 if city in text:
                     return city.title()
+
         return None
 
+
+
+    def _detect_district(
+        self,
+        text: str
+    ) -> Optional[str]:
+
+        for city, districts in self.DISTRICT_MAP.items():
+
+            for district in districts:
+
+                if district in text:
+                    return district.title()
+
+        return None
+
+
+
     def _empty(self):
+
         return {
+
             "country": "Vietnam",
+
             "region": None,
+
             "city": None,
+
             "district": None
         }
