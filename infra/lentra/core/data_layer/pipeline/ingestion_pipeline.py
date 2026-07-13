@@ -11,6 +11,10 @@ from lentra.core.market_intelligence.adapters.pipeline_pricing_adapter import (
     PipelinePricingAdapter
 )
 
+from lentra.core.market_intelligence.adapters.pipeline_area_adapter import (
+    PipelineAreaAdapter
+)
+
 from lentra.core.market_intelligence.engines.risk_engine import (
     RiskEngine
 )
@@ -36,6 +40,9 @@ class IngestionPipeline:
     MARKET INTELLIGENCE PRICING
         |
         v
+    MARKET INTELLIGENCE AREA
+        |
+        v
     MARKET INTELLIGENCE RISK
     """
 
@@ -50,6 +57,8 @@ class IngestionPipeline:
 
         self.pricing = PipelinePricingAdapter()
 
+        self.area = PipelineAreaAdapter()
+
         self.risk = RiskEngineAdapter(
             RiskEngine()
         )
@@ -62,8 +71,6 @@ class IngestionPipeline:
 
         normalized_items = []
 
-
-        # 1. normalize + persist
 
         for item in raw_items:
 
@@ -80,8 +87,6 @@ class IngestionPipeline:
             )
 
 
-        # 2. dedup intelligence
-
         dedup_result = self.deduper.deduplicate(
             normalized_items
         )
@@ -92,8 +97,6 @@ class IngestionPipeline:
         )
 
 
-        # 3. pricing intelligence
-
         market_stats = self.pricing.build_market(
             clusters
         )
@@ -101,8 +104,6 @@ class IngestionPipeline:
 
         enriched = []
 
-
-        # 4. risk intelligence
 
         for cluster in clusters:
 
@@ -125,8 +126,19 @@ class IngestionPipeline:
                 }
 
 
+                area_eval = self.area.evaluate(
+                    item_with_price
+                )
+
+
+                item_with_area = {
+                    **item_with_price,
+                    **area_eval
+                }
+
+
                 risk_eval = self.risk.evaluate(
-                    item_with_price,
+                    item_with_area,
                     market_stats,
                     duplicate_count
                 )
@@ -134,7 +146,7 @@ class IngestionPipeline:
 
                 enriched.append(
                     {
-                        **item_with_price,
+                        **item_with_area,
 
                         "risk_score": risk_eval.get(
                             "risk_score",
