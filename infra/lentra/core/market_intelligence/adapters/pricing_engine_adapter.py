@@ -4,33 +4,78 @@ from lentra.core.contracts.engine_result import EngineResult
 class PricingEngineAdapter:
     """
     ARCH V2 CONTRACT BOUNDARY
+
+    Bridges Market Intelligence PricingEngine
+    into unified engine contract.
     """
 
     def __init__(self, engine):
         self.engine = engine
 
-    def evaluate(self, payload: dict, context: dict = None) -> dict:
+
+    def evaluate(
+        self,
+        payload: dict,
+        context: dict = None
+    ) -> dict:
+
         context = context or {}
 
-        raw = self.engine.evaluate(payload, context)
+        raw = self.engine.evaluate(
+            payload,
+            context
+        )
 
-        deviation = raw.get("deviation_pct", 0.0)
 
-        signal = self._signal(deviation)
+        pricing = raw.get(
+            "pricing",
+            {}
+        )
+
+
+        deviation = float(
+            pricing.get(
+                "deviation",
+                0.0
+            )
+        )
+
+
+        score = float(
+            pricing.get(
+                "score",
+                0.5
+            )
+        )
+
+
+        signal = self._signal(
+            deviation
+        )
+
 
         return EngineResult(
-            score=self._score(deviation),
+            score=score,
             deviation=deviation,
             signal=signal,
             raw=raw
         ).to_dict()
 
-    def _signal(self, deviation: float) -> str:
-        if deviation > 20:
-            return "risk"
-        if deviation > 10:
-            return "hold"
-        return "buy"
 
-    def _score(self, deviation: float) -> float:
-        return min(deviation / 30.0, 1.0)
+    def _signal(
+        self,
+        deviation: float
+    ) -> str:
+
+        deviation_abs = abs(
+            deviation
+        )
+
+
+        if deviation_abs > 0.20:
+            return "risk"
+
+        if deviation_abs > 0.10:
+            return "hold"
+
+        return "buy"
