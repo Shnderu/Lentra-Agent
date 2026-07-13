@@ -1,16 +1,23 @@
-from lentra.core.ingestion.normalizers.listing_normalizer import normalize as ingestion_normalize
+from lentra.core.market_intelligence.normalization.listing_normalizer import (
+    ListingNormalizer,
+)
 
 
 class UnifiedNormalizer:
     """
     SINGLE normalization entry point.
+
+    Delegates to ListingNormalizer facade.
     """
 
+    def __init__(self):
+        self.normalizer = ListingNormalizer()
+
     def normalize(self, item: dict):
-        # ingestion normalization (primary truth)
-        item = ingestion_normalize(item)
+        normalized = self.normalizer.normalize(item)
 
-        # minimal safety cleanup
-        item["price"] = float(item.get("price") or 0)
+        normalized["price"] = float(
+            normalized.get("price") or 0
+        )
 
-        return item
+        return normalized
