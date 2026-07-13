@@ -5,22 +5,19 @@ class UserExplanationEngine:
     """
     Converts internal intelligence signals
     into user-facing rental explanation.
+
+    Compatible with DecisionLayer v2 contract:
+    decision:
+        {
+            "decision": "ACCEPT|REVIEW|REJECT",
+            "decision_score": float
+        }
     """
 
     def explain(
         self,
         card: Dict[str, Any]
     ) -> str:
-
-        price = card.get(
-            "price",
-            0
-        )
-
-        market_price = card.get(
-            "market_price",
-            0
-        )
 
         difference = card.get(
             "difference_percent",
@@ -31,6 +28,9 @@ class UserExplanationEngine:
             "risk",
             {}
         )
+
+        if not isinstance(risk, dict):
+            risk = {}
 
         risk_level = risk.get(
             "level",
@@ -47,9 +47,24 @@ class UserExplanationEngine:
             {}
         )
 
-        action = decision.get(
-            "action",
+        if not isinstance(decision, dict):
+            decision = {}
+
+        action = (
+            decision.get(
+                "decision"
+            )
+            or
+            decision.get(
+                "action"
+            )
+            or
             "REVIEW"
+        )
+
+        score = decision.get(
+            "decision_score",
+            0
         )
 
 
@@ -57,9 +72,10 @@ class UserExplanationEngine:
 
             return (
                 "🔴 Лучше избегать.\n\n"
-                "Объявление имеет высокий риск. "
-                "Не рекомендуется без проверки владельца "
-                "и просмотра объекта."
+                "Объявление имеет высокий риск "
+                "или низкую рыночную ценность.\n\n"
+                f"Уровень уверенности решения: "
+                f"{round(score * 100)}%."
             )
 
 
@@ -72,6 +88,11 @@ class UserExplanationEngine:
                     f"✓ цена ниже рынка на {abs(difference)}%"
                 )
 
+            elif difference <= 5:
+                reasons.append(
+                    "✓ цена соответствует рынку"
+                )
+
             if risk_level == "low":
                 reasons.append(
                     "✓ низкий риск объявления"
@@ -79,14 +100,14 @@ class UserExplanationEngine:
 
             if duplicates == 0:
                 reasons.append(
-                    "✓ не найдено подозрительных дублей"
+                    "✓ подозрительные дубли не обнаружены"
                 )
 
             return (
                 "🟢 Хорошее предложение.\n\n"
                 + "\n".join(reasons)
                 + "\n\n"
-                "Рекомендуется проверить объект перед оплатой."
+                f"Уверенность решения: {round(score * 100)}%."
             )
 
 
@@ -98,7 +119,7 @@ class UserExplanationEngine:
             )
         else:
             reasons.append(
-                "Цена соответствует рынку"
+                "Цена находится в рыночном диапазоне"
             )
 
         if duplicates > 0:
@@ -106,9 +127,14 @@ class UserExplanationEngine:
                 f"Найдено похожих объявлений: {duplicates}"
             )
 
+        if risk_level != "unknown":
+            reasons.append(
+                f"Риск объявления: {risk_level}"
+            )
+
         return (
             "🟡 Требует проверки.\n\n"
             + "\n".join(reasons)
             + "\n\n"
-            "Перед арендой стоит сравнить альтернативы."
+            f"Уверенность решения: {round(score * 100)}%."
         )
