@@ -1,5 +1,5 @@
 from typing import List, Dict, Any
-from lentra.bot.features.rent_search.contracts import RentSearchItem
+from lentra.application.rent_search.contracts import RentSearchItem
 
 
 def map_to_cards(raw: List[Dict[str, Any]]) -> List[RentSearchItem]:

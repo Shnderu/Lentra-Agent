@@ -45,7 +45,7 @@ SPINE_MODULES = {
     "lentra.core.market_intelligence.decision.decision_layer",
 }
 
-MAX_LOGGED_PER_RULE = 5
+MAX_LOGGED_PER_RULE = 1000
 
 
 # ---------------------------------------------------------------- loading

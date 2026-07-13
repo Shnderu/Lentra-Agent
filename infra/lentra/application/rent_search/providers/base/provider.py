@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from lentra.bot.features.rent_search.application.dto.search_context import SearchContext
-from lentra.bot.features.rent_search.contracts.rent_item import RentSearchItem
+from lentra.application.rent_search.dto.search_context import SearchContext
+from lentra.application.rent_search.contracts.rent_item import RentSearchItem
 
 
 class RentProvider(ABC):

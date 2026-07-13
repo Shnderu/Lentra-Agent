@@ -1,5 +1,5 @@
 import re
-from lentra.bot.features.rent_search.application.dto.search_context import SearchContext
+from lentra.application.rent_search.dto.search_context import SearchContext
 
 
 class QueryParser:

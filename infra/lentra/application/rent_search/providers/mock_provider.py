@@ -1,7 +1,7 @@
 from typing import List
-from lentra.bot.features.rent_search.providers.base import RentProvider
-from lentra.bot.features.rent_search.contracts import RentSearchItem
-from lentra.bot.features.rent_search.application.dto.search_context import SearchContext
+from lentra.application.rent_search.providers.base import RentProvider
+from lentra.application.rent_search.contracts import RentSearchItem
+from lentra.application.rent_search.dto.search_context import SearchContext
 
 
 class MockProvider(RentProvider):

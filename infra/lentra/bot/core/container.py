@@ -2,7 +2,9 @@ from lentra.bot.core.intent_router import IntentRouter
 from lentra.bot.core.intent_resolver import IntentResolver
 from lentra.bot.core.feature_registry import FeatureRegistry
 
-from lentra.bot.features.rent_search.service import RentSearchService
+from lentra.application.rent_search.service import (
+    RentSearchApplicationService
+)
 
 
 class Container:
@@ -18,7 +20,7 @@ class Container:
 
         self.feature_registry = FeatureRegistry()
 
-        self.rent_search_service = RentSearchService(
+        self.rent_search_service = RentSearchApplicationService(
             connector
         )
 

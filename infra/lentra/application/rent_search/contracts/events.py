@@ -4,7 +4,7 @@ from typing import Optional
 
 @dataclass
 class RentEvent:
-    event_type: str   # "impression" | "click"
+    event_type: str
 
     query: str
     city: Optional[str]

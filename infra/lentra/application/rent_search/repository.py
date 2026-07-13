@@ -1,4 +1,4 @@
-from lentra.bot.features.rent_search.data.provider import RentDataProvider
+from lentra.application.rent_search.data.provider import RentDataProvider
 
 
 class RentRepository:

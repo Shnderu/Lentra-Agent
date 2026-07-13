@@ -1,9 +1,13 @@
-from lentra.bot.features.rent_search.service import RentSearchService
+from lentra.application.rent_search.service import (
+    RentSearchApplicationService,
+)
 
 
 def build_main_router(container):
 
-    service = container.rent_search_service
+    service = RentSearchApplicationService(
+        container.connector
+    )
 
     class Router:
 
@@ -19,11 +23,14 @@ def build_main_router(container):
                 if container.trace:
                     container.trace.node("route_rent_search")
 
-                # 🔥 FIX: inject trace into service
                 service.trace = container.trace
 
-                return await service.search(update.get("payload", {}))
+                return await service.search(
+                    update.get("payload", {})
+                )
 
-            return {"text": "unknown intent"}
+            return {
+                "text": "unknown intent"
+            }
 
     return Router()
