@@ -1,3 +1,8 @@
-from .main import main
+"""
+Runtime bootstrap package.
 
-__all__ = ["main"]
+No implicit imports.
+Entrypoints must be imported explicitly.
+"""
+
+__all__ = []

@@ -2,26 +2,30 @@ from aiogram import Router, F
 from aiogram.types import Message
 
 from lentra.bot.features.base.context import FeatureContext
-from lentra.application.rent_search.service import (
-    RentSearchApplicationService
-)
 
 
 router = Router()
 
-service = RentSearchApplicationService()
-
 
 def setup_rent_handler(container) -> Router:
-    global service
-
-    service = container.rent_search_service
 
     return router
 
 
 @router.message(F.text)
 async def handle_rent(message: Message):
+
+    container = getattr(
+        router,
+        "container",
+        None
+    )
+
+    if container is None:
+        await message.answer(
+            "Runtime container not initialized"
+        )
+        return
 
     ctx = FeatureContext(
         message=message,
@@ -32,7 +36,7 @@ async def handle_rent(message: Message):
         }
     )
 
-    result = await service.search(
+    result = await container.rent_search_service.search(
         {
             "text": ctx.text,
             "intent": ctx.intent,

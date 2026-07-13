@@ -2,27 +2,26 @@ from lentra.bot.core.intent_router import IntentRouter
 from lentra.bot.core.intent_resolver import IntentResolver
 from lentra.bot.core.feature_registry import FeatureRegistry
 
-from lentra.application.rent_search.service import (
-    RentSearchApplicationService
-)
+from lentra.bot.ports.rent_search import RentSearchPort
 
 
 class Container:
     """
     Runtime dependency container.
 
-    Single composition root for bot delivery layer.
+    Delivery layer composition root.
+
+    Bot depends only on ports.
     """
 
-    def __init__(self, connector):
+    def __init__(
+        self,
+        rent_search_service: RentSearchPort
+    ):
 
-        self.connector = connector
+        self.rent_search_service = rent_search_service
 
         self.feature_registry = FeatureRegistry()
-
-        self.rent_search_service = RentSearchApplicationService(
-            connector
-        )
 
         self._register_features()
 
@@ -47,6 +46,7 @@ class Container:
                 }
             )
 
+
         self.feature_registry.register(
             "rent_search",
             rent_search_entry
@@ -61,8 +61,10 @@ class Container:
         )
 
 
-def build_container(connector):
+def build_container(
+    rent_search_service: RentSearchPort
+):
 
     return Container(
-        connector
+        rent_search_service
     )
