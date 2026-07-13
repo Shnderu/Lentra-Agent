@@ -179,6 +179,8 @@ class IngestionPipeline:
                 enriched
             ),
 
+            "items": enriched,
+
             "status": "ok"
         }
 
