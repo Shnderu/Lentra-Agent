@@ -39,20 +39,11 @@
       "typing"
     ],
     "/opt/lentra/infra/lentra/rent/repository.py": [],
-    "/opt/lentra/infra/lentra/rent/search_pipeline.py": [
-      "lentra.rent.quality.engine",
-      "lentra.rent.search_pipeline"
-    ],
     "/opt/lentra/infra/lentra/rent/domain_v1.py": [
       "typing"
     ],
     "/opt/lentra/infra/lentra/rent/subscriptions.py": [
       "time",
-      "typing"
-    ],
-    "/opt/lentra/infra/lentra/rent/alert_engine.py": [
-      "asyncio",
-      "lentra.rent.search_pipeline",
       "typing"
     ],
     "/opt/lentra/infra/lentra/rent/normalization_engine.py": [
@@ -90,11 +81,6 @@
       "abc",
       "typing"
     ],
-    "/opt/lentra/infra/lentra/rent/features/rent_search/service.py": [
-      "lentra.rent.connectors.default_connector",
-      "lentra.rent.quality.pipeline",
-      "typing"
-    ],
     "/opt/lentra/infra/lentra/rent/quality/models.py": [
       "dataclasses"
     ],
@@ -103,9 +89,6 @@
       "lentra.rent.quality.filters.noise_filter",
       "lentra.rent.quality.scoring.source_reputation"
     ],
-    "/opt/lentra/infra/lentra/rent/quality/pipeline.py": [
-      "typing"
-    ],
     "/opt/lentra/infra/lentra/rent/quality/scoring/source_reputation.py": [],
     "/opt/lentra/infra/lentra/rent/quality/filters/duplicate.py": [
       "hashlib"
@@ -113,7 +96,7 @@
     "/opt/lentra/infra/lentra/rent/quality/filters/noise_filter.py": [],
     "/opt/lentra/infra/lentra/rent/repositories/__init__.py": [],
     "/opt/lentra/infra/lentra/rent/repositories/rent_repository.py": [
-      "lentra.bot.features.rent_search.repository"
+      "lentra.rent.repository"
     ],
     "/opt/lentra/infra/lentra/rent/repositories/base.py": [],
     "/opt/lentra/infra/lentra/rent/ranking/engine/ranking_engine.py": [
@@ -176,15 +159,6 @@
       "lentra.rent.ranking.engine.ranking_engine"
     ],
     "/opt/lentra/infra/lentra/rent/aggregation/engine/merge_engine.py": [],
-    "/opt/lentra/infra/lentra/ml/embeddings.py": [
-      "hashlib",
-      "numpy"
-    ],
-    "/opt/lentra/infra/lentra/ml/embedding_service.py": [
-      "hashlib",
-      "json",
-      "typing"
-    ],
     "/opt/lentra/infra/lentra/ml/similarity.py": [
       "math",
       "typing"
@@ -192,39 +166,6 @@
     "/opt/lentra/infra/lentra/ml/predictor.py": [
       "joblib",
       "numpy"
-    ],
-    "/opt/lentra/infra/lentra/ml/retrain.py": [
-      "lentra.ml.dataset_builder",
-      "lentra.ml.train_model",
-      "os"
-    ],
-    "/opt/lentra/infra/lentra/ml/dataset_builder.py": [
-      "os",
-      "pandas",
-      "sqlalchemy"
-    ],
-    "/opt/lentra/infra/lentra/ml/vector_store.py": [
-      "lentra.ml.embeddings",
-      "os",
-      "sqlalchemy"
-    ],
-    "/opt/lentra/infra/lentra/ml/backfill_embeddings.py": [
-      "json",
-      "lentra.ml.embedding_service",
-      "psycopg2"
-    ],
-    "/opt/lentra/infra/lentra/ml/query_embedding_service.py": [
-      "lentra.ml.embedding_service"
-    ],
-    "/opt/lentra/infra/lentra/ml/vector_search.py": [
-      "lentra.ml.embeddings",
-      "os",
-      "sqlalchemy"
-    ],
-    "/opt/lentra/infra/lentra/ml/train_model.py": [
-      "joblib",
-      "pandas",
-      "sklearn.ensemble"
     ],
     "/opt/lentra/infra/lentra/events/models.py": [
       "dataclasses",
@@ -255,17 +196,43 @@
       "lentra.events.models"
     ],
     "/opt/lentra/infra/lentra/application/contracts/guards.py": [],
-    "/opt/lentra/infra/lentra/application/search/logger.py": [
-      "time"
+    "/opt/lentra/infra/lentra/application/rent_search/__init__.py": [],
+    "/opt/lentra/infra/lentra/application/rent_search/service.py": [
+      "lentra.core.pipeline.canonical_entrypoint",
+      "lentra.core.pipeline.canonical_search_pipeline",
+      "lentra.rent.runtime.observability.metrics.metrics",
+      "lentra.rent.runtime.observability.tracer.trace_recorder"
     ],
-    "/opt/lentra/infra/lentra/application/search/pipeline.py": [
-      "lentra.domain.property.search",
-      "lentralication.contracts.guards",
-      "lentralication.search.logger",
-      "time"
+    "/opt/lentra/infra/lentra/application/rent_search/contract/request.py": [
+      "dataclasses",
+      "typing"
     ],
-    "/opt/lentra/infra/lentra/application/search/search_service.py": [
-      "lentra.domain.property.search"
+    "/opt/lentra/infra/lentra/application/rent_search/contract/response.py": [
+      "dataclasses",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/application/rent_search/contract/__init__.py": [
+      "request",
+      "response"
+    ],
+    "/opt/lentra/infra/lentra/application/rent_search/contracts/events.py": [
+      "dataclasses",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/application/rent_search/contracts/__init__.py": [
+      "events",
+      "rent_item"
+    ],
+    "/opt/lentra/infra/lentra/application/rent_search/contracts/rent_item.py": [
+      "dataclasses",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/application/rent_search/adapters/rent_search_adapter.py": [
+      "lentra.application.rent_search.service"
+    ],
+    "/opt/lentra/infra/lentra/application/rent_search/dto/search_query.py": [
+      "dataclasses",
+      "typing"
     ],
     "/opt/lentra/infra/lentra/state/models.py": [
       "dataclasses",
@@ -363,9 +330,7 @@
       "lentra.telegram.connectors.telegram_event_listener"
     ],
     "/opt/lentra/infra/lentra/telegram/worker_fix_snippet.py": [],
-    "/opt/lentra/infra/lentra/telegram/dispatcher.py": [
-      "lentra.core.market_intelligence.build"
-    ],
+    "/opt/lentra/infra/lentra/telegram/dispatcher.py": [],
     "/opt/lentra/infra/lentra/telegram/state/store.py": [
       "datetime",
       "json",
@@ -413,7 +378,8 @@
     "/opt/lentra/infra/lentra/telegram/worker/executor.py": [],
     "/opt/lentra/infra/lentra/telegram/intent/mapper.py": [],
     "/opt/lentra/infra/lentra/telegram/intent/router.py": [
-      "lentralication.search.pipeline"
+      "lentra.api.pipeline",
+      "lentra.telegram.router.intent_router"
     ],
     "/opt/lentra/infra/lentra/telegram/ui/renderer.py": [
       "typing"
@@ -556,7 +522,11 @@
       "sqlalchemy"
     ],
     "/opt/lentra/infra/lentra/bot/main.py": [
-      "lentra.runtime.contracts"
+      "aiogram",
+      "asyncio",
+      "lentra.bot.config",
+      "lentra.bot.handlers.handlers",
+      "logging"
     ],
     "/opt/lentra/infra/lentra/bot/config.py": [
       "dotenv",
@@ -566,6 +536,9 @@
       "asyncio"
     ],
     "/opt/lentra/infra/lentra/bot/__init__.py": [],
+    "/opt/lentra/infra/lentra/bot/ports/rent_search.py": [
+      "typing"
+    ],
     "/opt/lentra/infra/lentra/bot/adapters/telegram_update_adapter.py": [],
     "/opt/lentra/infra/lentra/bot/events/registry.py": [
       "lentra.bot.events.bus.bus"
@@ -614,6 +587,10 @@
       "dataclasses",
       "typing"
     ],
+    "/opt/lentra/infra/lentra/bot/cards/intelligence.py": [
+      "dataclasses",
+      "typing"
+    ],
     "/opt/lentra/infra/lentra/bot/cards/renderer.py": [
       "lentra.bot.cards.builder",
       "lentra.bot.ux.keyboard"
@@ -623,11 +600,13 @@
       "typing"
     ],
     "/opt/lentra/infra/lentra/bot/cards/__init__.py": [
-      "builder",
-      "detail",
-      "renderer"
+      "intelligence",
+      "intelligence_renderer"
     ],
     "/opt/lentra/infra/lentra/bot/cards/detail.py": [],
+    "/opt/lentra/infra/lentra/bot/cards/intelligence_renderer.py": [
+      "lentra.bot.cards.intelligence"
+    ],
     "/opt/lentra/infra/lentra/bot/workers/price_watcher.py": [
       "asyncio",
       "lentra.bot.events.registry"
@@ -640,14 +619,13 @@
     ],
     "/opt/lentra/infra/lentra/bot/fsm/states.py": [],
     "/opt/lentra/infra/lentra/bot/interactions/router.py": [
+      "lentra.ai_control.telegram_ai_bridge",
       "lentra.bot.core.state_machine",
       "lentra.bot.services.ux_state",
       "lentra.bot.state.state_store"
     ],
     "/opt/lentra/infra/lentra/bot/interactions/parser.py": [],
-    "/opt/lentra/infra/lentra/bot/handlers/router_builder.py": [
-      "lentra.bot.features.rent_search.service"
-    ],
+    "/opt/lentra/infra/lentra/bot/handlers/router_builder.py": [],
     "/opt/lentra/infra/lentra/bot/handlers/filters.py": [
       "aiogram"
     ],
@@ -663,9 +641,9 @@
     "/opt/lentra/infra/lentra/bot/handlers/handlers.py": [
       "aiogram",
       "aiogram.types",
-      "lentra.bot.core.fsm",
-      "lentra.bot.services.registry",
-      "lentra.bot.services.search_pipeline"
+      "httpx",
+      "lentra.bot.cards.intelligence_renderer",
+      "logging"
     ],
     "/opt/lentra/infra/lentra/bot/handlers/__init__.py": [],
     "/opt/lentra/infra/lentra/bot/handlers/instrumentation.py": [
@@ -675,8 +653,7 @@
     "/opt/lentra/infra/lentra/bot/handlers/rent_handler.py": [
       "aiogram",
       "aiogram.types",
-      "lentra.bot.features.base.context",
-      "lentra.bot.features.rent_search.handler"
+      "lentra.bot.features.base.context"
     ],
     "/opt/lentra/infra/lentra/bot/connectors/default_connector.py": [],
     "/opt/lentra/infra/lentra/bot/connectors/__init__.py": [],
@@ -698,134 +675,12 @@
       "lentra.bot.features.base.context"
     ],
     "/opt/lentra/infra/lentra/bot/features/rent_search/models.py": [],
-    "/opt/lentra/infra/lentra/bot/features/rent_search/mapper.py": [
-      "lentra.bot.features.rent_search.contracts",
-      "typing"
-    ],
     "/opt/lentra/infra/lentra/bot/features/rent_search/contracts.py": [
       "dataclasses",
       "typing"
     ],
-    "/opt/lentra/infra/lentra/bot/features/rent_search/handler.py": [
-      "lentra.bot.features.base.context"
-    ],
-    "/opt/lentra/infra/lentra/bot/features/rent_search/repository.py": [
-      "lentra.bot.features.rent_search.data.provider"
-    ],
     "/opt/lentra/infra/lentra/bot/features/rent_search/__init__.py": [],
-    "/opt/lentra/infra/lentra/bot/features/rent_search/feature.py": [
-      "lentra.bot.features.rent_search.service"
-    ],
-    "/opt/lentra/infra/lentra/bot/features/rent_search/service.py": [
-      "lentra.rent.runtime.observability.metrics.metrics",
-      "lentra.rent.runtime.observability.tracer.trace_recorder"
-    ],
-    "/opt/lentra/infra/lentra/bot/features/rent_search/contract/request.py": [
-      "dataclasses",
-      "typing"
-    ],
-    "/opt/lentra/infra/lentra/bot/features/rent_search/contract/response.py": [
-      "dataclasses",
-      "typing"
-    ],
-    "/opt/lentra/infra/lentra/bot/features/rent_search/contract/__init__.py": [
-      "request",
-      "response"
-    ],
-    "/opt/lentra/infra/lentra/bot/features/rent_search/contracts/events.py": [
-      "dataclasses",
-      "typing"
-    ],
-    "/opt/lentra/infra/lentra/bot/features/rent_search/contracts/__init__.py": [
-      "rent_item"
-    ],
-    "/opt/lentra/infra/lentra/bot/features/rent_search/contracts/rent_item.py": [
-      "dataclasses",
-      "typing"
-    ],
-    "/opt/lentra/infra/lentra/bot/features/rent_search/application/use_cases/query_parser.py": [
-      "lentra.bot.features.rent_search.application.dto.search_context",
-      "re"
-    ],
-    "/opt/lentra/infra/lentra/bot/features/rent_search/application/aggregator/rent_aggregator.py": [
-      "asyncio",
-      "lentra.bot.features.rent_search.application.dto.search_context",
-      "lentra.bot.features.rent_search.application.services.normalizer",
-      "lentra.bot.features.rent_search.contracts.rent_item",
-      "lentra.bot.features.rent_search.providers.base.provider",
-      "typing"
-    ],
-    "/opt/lentra/infra/lentra/bot/features/rent_search/application/dto/search_query.py": [
-      "dataclasses",
-      "typing"
-    ],
-    "/opt/lentra/infra/lentra/bot/features/rent_search/application/dto/search_context.py": [
-      "dataclasses",
-      "typing"
-    ],
-    "/opt/lentra/infra/lentra/bot/features/rent_search/pipeline/search_pipeline.py": [
-      "lentra.bot.features.rent_search.ranking.ranking_service"
-    ],
-    "/opt/lentra/infra/lentra/bot/features/rent_search/pipeline/provider_factory.py": [
-      "lentra.bot.features.rent_search.providers.sea.sea_provider",
-      "lentra.bot.features.rent_search.providers.sea.thailand_provider",
-      "lentra.bot.features.rent_search.providers.social.social_provider"
-    ],
     "/opt/lentra/infra/lentra/bot/features/rent_search/router/__init__.py": [],
-    "/opt/lentra/infra/lentra/bot/features/rent_search/providers/mock_provider.py": [
-      "lentra.bot.features.rent_search.application.dto.search_context",
-      "lentra.bot.features.rent_search.contracts",
-      "lentra.bot.features.rent_search.providers.base",
-      "typing"
-    ],
-    "/opt/lentra/infra/lentra/bot/features/rent_search/providers/scraper/scraper_provider.py": [
-      "asyncio",
-      "lentra.bot.features.rent_search.application.dto.search_context",
-      "lentra.bot.features.rent_search.contracts.rent_item",
-      "lentra.bot.features.rent_search.providers.base.provider",
-      "lentra.rent.connectors.scraper_connector",
-      "typing"
-    ],
-    "/opt/lentra/infra/lentra/bot/features/rent_search/providers/social/social_provider.py": [
-      "lentra.bot.features.rent_search.application.dto.search_context",
-      "lentra.bot.features.rent_search.contracts.rent_item",
-      "lentra.bot.features.rent_search.providers.base.provider",
-      "typing"
-    ],
-    "/opt/lentra/infra/lentra/bot/features/rent_search/providers/sea/thailand_provider.py": [
-      "lentra.bot.features.rent_search.application.dto.search_context",
-      "lentra.bot.features.rent_search.contracts.rent_item",
-      "lentra.bot.features.rent_search.providers.base.provider",
-      "typing"
-    ],
-    "/opt/lentra/infra/lentra/bot/features/rent_search/providers/sea/sea_provider.py": [
-      "asyncio",
-      "lentra.bot.features.rent_search.application.dto.search_context",
-      "lentra.bot.features.rent_search.contracts",
-      "lentra.bot.features.rent_search.providers.base.provider",
-      "lentra.bot.features.rent_search.providers.scraper.scraper_provider",
-      "lentra.bot.features.rent_search.providers.sea.thailand_provider",
-      "lentra.bot.features.rent_search.providers.sea.vietnam_provider",
-      "lentra.bot.features.rent_search.providers.social.social_provider",
-      "typing"
-    ],
-    "/opt/lentra/infra/lentra/bot/features/rent_search/providers/sea/vietnam_provider.py": [
-      "asyncio",
-      "lentra.bot.features.rent_search.application.dto.search_context",
-      "lentra.bot.features.rent_search.contracts.rent_item",
-      "lentra.bot.features.rent_search.providers.base.provider",
-      "lentra.rent.connectors.scraper_connector",
-      "typing"
-    ],
-    "/opt/lentra/infra/lentra/bot/features/rent_search/providers/base/provider.py": [
-      "abc",
-      "lentra.bot.features.rent_search.application.dto.search_context",
-      "lentra.bot.features.rent_search.contracts.rent_item",
-      "typing"
-    ],
-    "/opt/lentra/infra/lentra/bot/features/rent_search/providers/base/__init__.py": [
-      "provider"
-    ],
     "/opt/lentra/infra/lentra/bot/features/rent_search/domain/__init__.py": [],
     "/opt/lentra/infra/lentra/bot/features/rent_search/domain/search_context.py": [
       "dataclasses",
@@ -834,13 +689,6 @@
     "/opt/lentra/infra/lentra/bot/features/rent_search/domain/value_objects/__init__.py": [],
     "/opt/lentra/infra/lentra/bot/features/rent_search/domain/services/__init__.py": [],
     "/opt/lentra/infra/lentra/bot/features/rent_search/ranking/ranking_service.py": [],
-    "/opt/lentra/infra/lentra/bot/features/rent_search/data/provider.py": [
-      "typing"
-    ],
-    "/opt/lentra/infra/lentra/bot/features/rent_search/data/mock_provider.py": [
-      "provider",
-      "typing"
-    ],
     "/opt/lentra/infra/lentra/bot/features/rent_search/knowledge/cities.py": [],
     "/opt/lentra/infra/lentra/bot/features/rent_search/knowledge/__init__.py": [],
     "/opt/lentra/infra/lentra/bot/features/registry/feature_keys.py": [],
@@ -879,12 +727,7 @@
       "typing"
     ],
     "/opt/lentra/infra/lentra/bot/services/registry.py": [
-      "lentra.bot.services.search_service",
-      "lentra.bot.state.state_store",
-      "os"
-    ],
-    "/opt/lentra/infra/lentra/bot/services/search_pipeline.py": [
-      "time"
+      "lentra.bot.state.state_store"
     ],
     "/opt/lentra/infra/lentra/bot/services/formatter.py": [
       "lentra.bot.services.registry",
@@ -894,10 +737,6 @@
       "lentra.bot.ux.actions",
       "lentra.bot.ux.cards",
       "lentra.bot.ux.renderer"
-    ],
-    "/opt/lentra/infra/lentra/bot/services/search_service.py": [
-      "lentra.db.session",
-      "lentra.domain.property.search"
     ],
     "/opt/lentra/infra/lentra/bot/runtime/trace.py": [
       "time",
@@ -917,7 +756,8 @@
     "/opt/lentra/infra/lentra/bot/core/container.py": [
       "lentra.bot.core.feature_registry",
       "lentra.bot.core.intent_resolver",
-      "lentra.bot.core.intent_router"
+      "lentra.bot.core.intent_router",
+      "lentra.bot.ports.rent_search"
     ],
     "/opt/lentra/infra/lentra/bot/core/snapshot.py": [
       "hashlib"
@@ -1028,30 +868,21 @@
       "lentra.core.contracts.v1.retry_policy",
       "lentra.core.contracts.v1.task_state",
       "lentra.core.contracts.v1.task_state_service",
-      "lentra.core.pipeline.pipeline",
+      "lentra.core.pipeline.worker_search_entrypoint",
       "lentra.storage.db",
       "time",
       "traceback"
-    ],
-    "/opt/lentra/infra/lentra/worker/engine.py": [
-      "lentra.core.di.container"
-    ],
-    "/opt/lentra/infra/lentra/worker/runtime.py": [
-      "lentra.rent.domain_v1"
     ],
     "/opt/lentra/infra/lentra/worker/run.py": [
       "lentra.worker.queue_worker"
     ],
     "/opt/lentra/infra/lentra/worker/queue_worker.py": [
       "json",
-      "lentra.core.pipeline.pipeline",
+      "lentra.core.pipeline.worker_search_entrypoint",
       "lentra.worker.queue",
       "lentra.worker.result_store",
       "time",
       "traceback"
-    ],
-    "/opt/lentra/infra/lentra/worker/loop.py": [
-      "lentra.runtime.intelligence_gateway"
     ],
     "/opt/lentra/infra/lentra/ratelimit/limiter.py": [
       "collections",
@@ -1086,6 +917,178 @@
       "lentra.agent.monitor.market_state",
       "lentra.agent.monitor.price_tracker",
       "lentra.agent.planner.planner"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/change_policy.py": [],
+    "/opt/lentra/infra/lentra/ai_control/aider_deterministic_executor.py": [
+      "lentra.ai_control.execution.execution_sandbox_v1",
+      "shlex",
+      "subprocess"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/graph_aider_bridge_cli.py": [
+      "lentra.ai_control.graph_aider_bridge",
+      "sys"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/task_router.py": [
+      "aider_gateway"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/aider_gateway.py": [
+      "change_policy",
+      "pathlib",
+      "subprocess"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/aider_cli.py": [
+      "lentra.ai_control.aider_executor",
+      "sys"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/aider_executor.py": [
+      "__future__",
+      "os",
+      "subprocess",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/graph_aider_bridge.py": [
+      "__future__",
+      "lentra.ai_control.aider_executor",
+      "lentra.core.market_intelligence.graph_v2.file_registry",
+      "lentra.core.market_intelligence.graph_v2.router",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/telegram_ai_bridge.py": [],
+    "/opt/lentra/infra/lentra/ai_control/verification/verification_layer_v5.py": [
+      "ast",
+      "lentra.ai_control.verification.verification_layer_v2",
+      "os",
+      "subprocess",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/verification/verification_layer_v2.py": [
+      "ast",
+      "json",
+      "os",
+      "subprocess",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/verification/verification_layer_v3.py": [
+      "lentra.ai_control.verification.verification_layer_v2",
+      "os",
+      "subprocess",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/verification/verification_layer_v7.py": [
+      "ast",
+      "copy",
+      "json",
+      "lentra.ai_control.verification.verification_layer_v2",
+      "os",
+      "subprocess",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/verification/verification_layer_v8.py": [
+      "copy",
+      "lentra.ai_control.verification.verification_layer_v7",
+      "math",
+      "subprocess",
+      "time",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/verification/verification_layer_v4.py": [
+      "ast",
+      "copy",
+      "lentra.ai_control.verification.verification_layer_v2",
+      "os",
+      "subprocess",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/verification/verification_layer_v6.py": [
+      "ast",
+      "json",
+      "lentra.ai_control.verification.verification_layer_v2",
+      "os",
+      "subprocess",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/verification/verification_layer_v9.py": [
+      "lentra.ai_control.verification.verification_layer_v8",
+      "subprocess",
+      "time",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/verification/verification_layer_v1.py": [
+      "ast",
+      "os",
+      "subprocess",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/execution/execution_sandbox_v1.py": [
+      "dataclasses",
+      "subprocess"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/execution/__init__.py": [],
+    "/opt/lentra/infra/lentra/ai_control/execution/ledger/execution_ledger_v1.py": [
+      "datetime",
+      "hashlib",
+      "json"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/execution/policy/execution_policy_v1.py": [
+      "dataclasses",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/execution/replay/replay_engine_v1.py": [
+      "dataclasses",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/bridge/bridge_v4_with_replay.py": [
+      "lentra.ai_control.bridge.bridge_v4",
+      "lentra.ai_control.execution.ledger.execution_ledger_v1",
+      "lentra.ai_control.execution.replay.replay_engine_v1"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/bridge/bridge_v4_pipeline.py": [
+      "lentra.ai_control.bridge.bridge_v4"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/bridge/bridge_layer.py": [
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/bridge/auto_checkpoint.py": [
+      "datetime",
+      "subprocess"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/bridge/__init__.py": [],
+    "/opt/lentra/infra/lentra/ai_control/bridge/bridge_v4.py": [
+      "lentra.ai_control.bridge.bridge_v3",
+      "lentra.ai_control.execution.execution_sandbox_v1",
+      "lentra.ai_control.runtime.controlled_runtime_v1",
+      "lentra.ai_control.runtime.git_guard_v1"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/bridge/bridge_v3.py": [
+      "dataclasses",
+      "lentra.ai_control.bridge.bridge_layer",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/journal/execution_journal_v1.py": [
+      "__future__",
+      "datetime",
+      "json",
+      "os",
+      "pathlib",
+      "typing",
+      "uuid"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/journal/__init__.py": [],
+    "/opt/lentra/infra/lentra/ai_control/runtime/runtime_executor_adapter_v1.py": [
+      "lentra.ai_control.aider_deterministic_executor"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/runtime/git_guard_v1.py": [
+      "subprocess"
+    ],
+    "/opt/lentra/infra/lentra/ai_control/runtime/__init__.py": [],
+    "/opt/lentra/infra/lentra/ai_control/runtime/controlled_runtime_v1.py": [
+      "dataclasses",
+      "lentra.ai_control.aider_deterministic_executor",
+      "lentra.ai_control.execution.ledger.execution_ledger_v1",
+      "lentra.ai_control.execution.policy.execution_policy_v1",
+      "lentra.core.market_intelligence.memory.market_memory_v1",
+      "lentra.core.market_intelligence.risk.risk_calibration_v1",
+      "typing"
     ],
     "/opt/lentra/infra/lentra/scripts/seed_v2.py": [
       "psycopg2",
@@ -1139,7 +1142,6 @@
     "/opt/lentra/infra/lentra/domain/search/feedback_cache.py": [
       "collections"
     ],
-    "/opt/lentra/infra/lentra/domain/search/engine.py": [],
     "/opt/lentra/infra/lentra/domain/search/text_similarity.py": [
       "difflib",
       "re"
@@ -1201,10 +1203,6 @@
       "lentra.core.feature_store"
     ],
     "/opt/lentra/infra/lentra/domain/property/repository.py": [],
-    "/opt/lentra/infra/lentra/domain/property/search.py": [
-      "lentra.data.adapter",
-      "lentra.domain.property.ranking"
-    ],
     "/opt/lentra/infra/lentra/domain/property/__init__.py": [],
     "/opt/lentra/infra/lentra/domain/property/ingestion.py": [],
     "/opt/lentra/infra/lentra/repositories/apartment_repo.py": [
@@ -1222,9 +1220,6 @@
     "/opt/lentra/infra/lentra/repositories/base.py": [
       "sqlalchemy.orm"
     ],
-    "/opt/lentra/infra/lentra/ranking/property_ranker.py": [
-      "lentra.property.models"
-    ],
     "/opt/lentra/infra/lentra/api/health.py": [
       "fastapi"
     ],
@@ -1234,17 +1229,15 @@
     "/opt/lentra/infra/lentra/api/gateway.py": [
       "typing"
     ],
-    "/opt/lentra/infra/lentra/api/search_handler_patch.py": [
-      "lentra.core.market_intelligence.search.search_validator",
-      "lentra.services.intelligence_gateway"
-    ],
     "/opt/lentra/infra/lentra/api/main.py": [
       "fastapi",
+      "lentra.api.app_patch",
+      "lentra.api.routes.miniapp",
+      "lentra.api.routes.search",
       "uvicorn"
     ],
     "/opt/lentra/infra/lentra/api/pipeline_bootstrap.py": [
-      "lentra.core.graph_v2.engines.registry",
-      "lentra.core.market_intelligence.engines.market_intelligence_engine"
+      "typing"
     ],
     "/opt/lentra/infra/lentra/api/startup_check.py": [
       "lentra.scenarios.registry"
@@ -1263,9 +1256,6 @@
       "fastapi",
       "lentra.core.runtime_trace_registry"
     ],
-    "/opt/lentra/infra/lentra/api/ingestion_entry_v8.py": [
-      "lentra.core.market_intelligence.ingestion.ingestion_router_v8"
-    ],
     "/opt/lentra/infra/lentra/api/app_patch.py": [
       "fastapi"
     ],
@@ -1273,19 +1263,12 @@
       "lentra.core.market_intelligence.output.facade"
     ],
     "/opt/lentra/infra/lentra/api/deps.py": [
-      "lentra.db.repositories.apartment_repo",
-      "lentra.db.services.search_service",
       "lentra.db.session",
       "sqlalchemy.orm",
       "typing"
     ],
     "/opt/lentra/infra/lentra/api/feedback.py": [
       "lentra.core.market_intelligence.output.facade"
-    ],
-    "/opt/lentra/infra/lentra/api/pipeline.py": [
-      "lentra.api.pipeline_bootstrap",
-      "lentra.core.observability.replay_engine",
-      "typing"
     ],
     "/opt/lentra/infra/lentra/api/debug_trace.py": [
       "fastapi"
@@ -1319,27 +1302,45 @@
     "/opt/lentra/infra/lentra/api/search/mapper.py": [
       "lentra.api.search.schema"
     ],
-    "/opt/lentra/infra/lentra/api/search/router.py": [
-      "lentra.api.schemas.search_request",
-      "lentra.api.schemas.search_response",
-      "lentralication.search.pipeline"
-    ],
     "/opt/lentra/infra/lentra/api/search/search_api.py": [
-      "lentra.core.ai.concierge.ranker.ranking_engine",
+      "lentra.core.adapters.search_adapter",
       "lentra.core.ai.semantic_search.embeddings.embedding_engine",
       "lentra.core.ai.semantic_search.vector_store.vector_store",
-      "lentra.core.pipeline.pipeline"
+      "lentra.core.pipeline.canonical_entrypoint",
+      "lentra.core.pipeline.canonical_search_pipeline",
+      "lentra.core.pipeline.search_pipeline"
     ],
     "/opt/lentra/infra/lentra/api/search/schema.py": [
       "dataclasses",
       "typing"
     ],
     "/opt/lentra/infra/lentra/api/pipeline/search_pipeline.py": [
+      "datetime",
+      "lentra.core.adapters.search_adapter",
+      "lentra.core.market_intelligence.contracts.listing_contract_guard",
+      "lentra.core.market_intelligence.decision.decision_layer",
+      "lentra.core.market_intelligence.engines.dedup_engine",
+      "lentra.core.market_intelligence.engines.risk_engine",
+      "lentra.core.market_intelligence.history.price_observation",
+      "lentra.core.market_intelligence.market.market_service",
+      "lentra.core.market_intelligence.output.object_intelligence_card",
+      "lentra.core.market_intelligence.ranking.unified_ranking_engine",
+      "lentra.core.market_intelligence.repository.market_snapshot_repository",
+      "lentra.core.market_intelligence.verdict.market_verdict_engine",
       "lentra.runtime.bootstrap.gateway_v3",
       "typing"
     ],
+    "/opt/lentra/infra/lentra/api/pipeline/__init__.py": [
+      "search_pipeline"
+    ],
     "/opt/lentra/infra/lentra/api/routes/admin.py": [
       "fastapi"
+    ],
+    "/opt/lentra/infra/lentra/api/routes/miniapp.py": [
+      "fastapi",
+      "lentra.api.pipeline",
+      "lentra.api.schemas.miniapp",
+      "lentra.api.schemas.miniapp_object"
     ],
     "/opt/lentra/infra/lentra/api/routes/search.py": [
       "fastapi",
@@ -1358,24 +1359,15 @@
       "fastapi"
     ],
     "/opt/lentra/infra/lentra/api/v1/concierge_api_class.py": [
-      "lentra.core.pipeline.pipeline"
+      "lentra.core.pipeline.canonical_entrypoint",
+      "lentra.core.pipeline.canonical_search_pipeline",
+      "lentra.core.pipeline.search_pipeline"
     ],
     "/opt/lentra/infra/lentra/api/v1/debug_api.py": [
       "fastapi",
-      "lentra.core.pipeline.pipeline"
-    ],
-    "/opt/lentra/infra/lentra/api/services/gateway.py": [
-      "lentra.core.product_router"
-    ],
-    "/opt/lentra/infra/lentra/api/services/search_service.py": [
-      "lentra.agent.core.agent",
-      "lentra.agent.core.intent",
-      "lentra.cache.services.search_cache",
-      "lentra.events.service",
-      "lentra.observability.service",
-      "lentra.rent.domain_v1",
-      "lentra.state.storage.memory",
-      "time"
+      "lentra.core.pipeline.canonical_entrypoint",
+      "lentra.core.pipeline.canonical_search_pipeline",
+      "lentra.core.pipeline.search_pipeline"
     ],
     "/opt/lentra/infra/lentra/api/schemas/search_response.py": [
       "pydantic",
@@ -1383,6 +1375,13 @@
     ],
     "/opt/lentra/infra/lentra/api/schemas/response.py": [
       "typing"
+    ],
+    "/opt/lentra/infra/lentra/api/schemas/miniapp.py": [
+      "pydantic",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/api/schemas/miniapp_object.py": [
+      "pydantic"
     ],
     "/opt/lentra/infra/lentra/api/schemas/search.py": [
       "typing"
@@ -1471,7 +1470,6 @@
       "random"
     ],
     "/opt/lentra/infra/lentra/services/premium.py": [],
-    "/opt/lentra/infra/lentra/services/search_pipeline.py": [],
     "/opt/lentra/infra/lentra/services/telegram_notifier.py": [
       "os",
       "requests"
@@ -1489,9 +1487,6 @@
       "lentra.services.telegram_notifier"
     ],
     "/opt/lentra/infra/lentra/services/user_context.py": [],
-    "/opt/lentra/infra/lentra/services/__init__.py": [
-      "search_service"
-    ],
     "/opt/lentra/infra/lentra/services/alert_engine.py": [
       "os",
       "sqlalchemy"
@@ -1513,11 +1508,6 @@
       "lentra.core.market_intelligence.pipeline.intelligence_pipeline_orchestrator"
     ],
     "/opt/lentra/infra/lentra/services/scoring.py": [],
-    "/opt/lentra/infra/lentra/services/search_service.py": [
-      "lentra.repositories.apartment_repository",
-      "lentra.services.scoring",
-      "typing"
-    ],
     "/opt/lentra/infra/lentra/services/market_intelligence.py": [],
     "/opt/lentra/infra/lentra/services/intelligence_aggregator.py": [
       "typing"
@@ -1573,7 +1563,7 @@
     ],
     "/opt/lentra/infra/lentra/runtime/guard.py": [],
     "/opt/lentra/infra/lentra/runtime/bootstrap.py": [
-      "lentra.core.market_intelligence.build"
+      "lentra.runtime.bootstrap.gateway_v3"
     ],
     "/opt/lentra/infra/lentra/runtime/dag_policy.py": [],
     "/opt/lentra/infra/lentra/runtime/contracts/envelope.py": [
@@ -1585,7 +1575,6 @@
       "envelope"
     ],
     "/opt/lentra/infra/lentra/runtime/trace/runtime_trace_layer.py": [],
-    "/opt/lentra/infra/lentra/runtime/context/runtime_context.py": [],
     "/opt/lentra/infra/lentra/runtime/graph/graph_executor.py": [
       "lentra.core.market_intelligence.graph.integration"
     ],
@@ -1593,25 +1582,9 @@
     "/opt/lentra/infra/lentra/runtime/bootstrap/wiring_safe_patch.py": [
       "lentra.core.market_intelligence.graph.graph_v2_builder"
     ],
-    "/opt/lentra/infra/lentra/runtime/bootstrap/wiring_safe.py": [
-      "lentra.core.market_intelligence.engines",
-      "lentra.core.market_intelligence.fusion.fusion_engine_v2",
-      "lentra.core.market_intelligence.isolation.engine_registry_v3"
-    ],
-    "/opt/lentra/infra/lentra/runtime/bootstrap/main.py": [
-      "lentra.core.market_intelligence.build"
-    ],
+    "/opt/lentra/infra/lentra/runtime/bootstrap/main.py": [],
     "/opt/lentra/infra/lentra/runtime/bootstrap/container.py": [
       "lentra.bot.core.feature_registry"
-    ],
-    "/opt/lentra/infra/lentra/runtime/bootstrap/wiring_v3.py": [
-      "lentra.core.market_intelligence.engines.area_engine",
-      "lentra.core.market_intelligence.engines.dedup_engine",
-      "lentra.core.market_intelligence.engines.pricing_engine",
-      "lentra.core.market_intelligence.engines.risk_engine",
-      "lentra.core.market_intelligence.engines.signals_engine",
-      "lentra.core.market_intelligence.registry.engine_registry_v3",
-      "typing"
     ],
     "/opt/lentra/infra/lentra/runtime/bootstrap/engine_isolator_patch_apply.py": [
       "lentra.core.market_intelligence.features.feature_governance_v2"
@@ -1629,13 +1602,14 @@
     ],
     "/opt/lentra/infra/lentra/runtime/bootstrap/gateway_v3.py": [
       "lentra.core.engines.area_engine",
-      "lentra.core.engines.engine_wrapper",
       "lentra.core.engines.market_intelligence_engine",
+      "lentra.core.market_intelligence.engine_wrapper",
+      "lentra.core.market_intelligence.engines.dedup_engine",
+      "lentra.core.market_intelligence.engines.risk_engine",
+      "lentra.core.observability.observability_engine_v1",
       "typing"
     ],
     "/opt/lentra/infra/lentra/runtime/bootstrap/worker_main.py": [
-      "lentra.runtime.bootstrap.wiring_safe",
-      "os",
       "time"
     ],
     "/opt/lentra/infra/lentra/runtime/bootstrap/boot_debug.py": [],
@@ -1650,20 +1624,12 @@
     "/opt/lentra/infra/lentra/runtime/bootstrap/trace_gateway.py": [
       "time"
     ],
-    "/opt/lentra/infra/lentra/runtime/bootstrap/wiring.py": [
-      "lentra.core.market_intelligence.engines.pricing_engine",
-      "lentra.core.market_intelligence.gateway.intelligence_gateway"
-    ],
     "/opt/lentra/infra/lentra/runtime/bootstrap/engine_wrapper.py": [],
     "/opt/lentra/infra/lentra/runtime/bootstrap/signal_normalizer_v2.py": [
       "typing"
     ],
-    "/opt/lentra/infra/lentra/runtime/bootstrap/__init__.py": [
-      "main"
-    ],
-    "/opt/lentra/infra/lentra/runtime/bootstrap/graph_attach.py": [
-      "lentra.runtime.bootstrap.wiring_safe"
-    ],
+    "/opt/lentra/infra/lentra/runtime/bootstrap/__init__.py": [],
+    "/opt/lentra/infra/lentra/runtime/bootstrap/graph_attach.py": [],
     "/opt/lentra/infra/lentra/runtime/bootstrap/bootstrap_lock.py": [],
     "/opt/lentra/infra/lentra/runtime/bootstrap/engine_isolator.py": [],
     "/opt/lentra/infra/lentra/runtime/control_panel/api.py": [],
@@ -1673,9 +1639,15 @@
     ],
     "/opt/lentra/infra/lentra/runtime/control_panel/__init__.py": [],
     "/opt/lentra/infra/lentra/runtime/arch_lock/governor.py": [
-      "lentra.runtime.arch_lock.arch_lock_runner",
-      "lentra.runtime.arch_lock.freezer",
-      "lentra.runtime.arch_lock.seal_engine"
+      "lentra.runtime.arch_lock.firewall",
+      "lentra.runtime.arch_lock.policy_engine",
+      "lentra.runtime.arch_lock.rule_loader"
+    ],
+    "/opt/lentra/infra/lentra/runtime/arch_lock/rule_loader.py": [
+      "ast",
+      "json",
+      "lentra.runtime.arch_lock.v2_rules",
+      "os"
     ],
     "/opt/lentra/infra/lentra/runtime/arch_lock/governor_evolution_bridge.py": [
       "lentra.runtime.arch_lock.arch_state_engine",
@@ -1698,19 +1670,40 @@
       "hashlib",
       "os"
     ],
+    "/opt/lentra/infra/lentra/runtime/arch_lock/policy_engine.py": [
+      "typing"
+    ],
     "/opt/lentra/infra/lentra/runtime/arch_lock/arch_state_engine.py": [
       "hashlib",
       "json",
       "time"
     ],
-    "/opt/lentra/infra/lentra/runtime/arch_lock/arch_lock_runner.py": [
-      "lentra.runtime.arch_lock.firewall",
-      "lentra.runtime.dag_check",
+    "/opt/lentra/infra/lentra/runtime/arch_lock/ast_rewriter.py": [
+      "ast"
+    ],
+    "/opt/lentra/infra/lentra/runtime/arch_lock/backup_manager.py": [
+      "datetime",
       "os",
-      "sys"
+      "shutil"
+    ],
+    "/opt/lentra/infra/lentra/runtime/arch_lock/arch_lock_runner.py": [
+      "lentra.runtime.arch_lock.governor"
+    ],
+    "/opt/lentra/infra/lentra/runtime/arch_lock/git_checkpoint.py": [
+      "datetime",
+      "subprocess"
     ],
     "/opt/lentra/infra/lentra/runtime/arch_lock/arch_freeze_runner.py": [
       "lentra.runtime.arch_lock.freezer"
+    ],
+    "/opt/lentra/infra/lentra/runtime/arch_lock/patch_planner.py": [
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/runtime/arch_lock/aider_operating_layer.py": [],
+    "/opt/lentra/infra/lentra/runtime/arch_lock/v2_policy_engine.py": [
+      "ast",
+      "dataclasses",
+      "typing"
     ],
     "/opt/lentra/infra/lentra/runtime/arch_lock/evolution_engine.py": [
       "difflib",
@@ -1720,32 +1713,54 @@
       "lentra.runtime.arch_lock.arch_lock_runner",
       "lentra.runtime.arch_lock.self_repair_engine"
     ],
-    "/opt/lentra/infra/lentra/runtime/arch_lock/firewall.py": [
-      "ast"
+    "/opt/lentra/infra/lentra/runtime/arch_lock/arch_lock_v2_runner.py": [
+      "lentra.runtime.arch_lock.v2_policy_engine",
+      "lentra.runtime.arch_lock.v2_remediation.engine"
     ],
+    "/opt/lentra/infra/lentra/runtime/arch_lock/firewall.py": [],
     "/opt/lentra/infra/lentra/runtime/arch_lock/rollback_tree.py": [
       "json"
     ],
     "/opt/lentra/infra/lentra/runtime/arch_lock/boot_seal_check.py": [
       "lentra.runtime.arch_lock.seal_engine"
     ],
+    "/opt/lentra/infra/lentra/runtime/arch_lock/remediation_engine.py": [
+      "typing"
+    ],
     "/opt/lentra/infra/lentra/runtime/arch_lock/repair_reporter.py": [
       "lentra.runtime.arch_lock.governor_repair_bridge"
     ],
+    "/opt/lentra/infra/lentra/runtime/arch_lock/v2_rules.py": [],
     "/opt/lentra/infra/lentra/runtime/arch_lock/seal_engine.py": [
       "json",
       "lentra.runtime.arch_lock.sealed_graph"
     ],
-    "/opt/lentra/infra/lentra/runtime/intelligence/intelligence_enforcer.py": [],
-    "/opt/lentra/infra/lentra/runtime/intelligence/intelligence_gateway.py": [
-      "lentra.core.market_intelligence.decision.market_decision_core"
+    "/opt/lentra/infra/lentra/runtime/arch_lock/patch_executor.py": [
+      "lentra.runtime.arch_lock.ast_rewriter",
+      "lentra.runtime.arch_lock.backup_manager"
     ],
-    "/opt/lentra/infra/lentra/runtime/intelligence/intelligence_runtime.py": [
-      "lentra.runtime.intelligence.intelligence_enforcer"
+    "/opt/lentra/infra/lentra/runtime/arch_lock/patch_engine.py": [
+      "dataclasses",
+      "typing"
     ],
-    "/opt/lentra/infra/lentra/runtime/intelligence/intelligence_pipeline_runtime.py": [
-      "lentra.core.market_intelligence.pipeline.intelligence_pipeline_orchestrator",
-      "lentra.runtime.observability.runtime_trace_audit"
+    "/opt/lentra/infra/lentra/runtime/arch_lock/git_workflow.py": [
+      "datetime",
+      "subprocess"
+    ],
+    "/opt/lentra/infra/lentra/runtime/arch_lock/v2_remediation/runner.py": [
+      "lentra.runtime.arch_lock.firewall",
+      "lentra.runtime.arch_lock.v2_remediation.types",
+      "os"
+    ],
+    "/opt/lentra/infra/lentra/runtime/arch_lock/v2_remediation/engine.py": [
+      "dataclasses",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/runtime/arch_lock/v2_remediation/types.py": [],
+    "/opt/lentra/infra/lentra/runtime/arch_lock/v2_remediation/__init__.py": [],
+    "/opt/lentra/infra/lentra/runtime/arch_lock/v2_remediation/planner.py": [
+      "dataclasses",
+      "typing"
     ],
     "/opt/lentra/infra/lentra/runtime/execution/execution_dag.py": [
       "collections"
@@ -1768,6 +1783,58 @@
     ],
     "/opt/lentra/infra/lentra/runtime/observability/runtime_trace_audit.py": [],
     "/opt/lentra/infra/lentra/runtime/observability/runtime_trace_v1.py": [],
+    "/opt/lentra/infra/lentra/runtime/archaeology/models.py": [
+      "dataclasses",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/runtime/archaeology/classifier.py": [
+      "pathlib"
+    ],
+    "/opt/lentra/infra/lentra/runtime/archaeology/entrypoints.py": [
+      "pathlib"
+    ],
+    "/opt/lentra/infra/lentra/runtime/archaeology/scanner.py": [
+      "pathlib",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/runtime/archaeology/domain_classifier.py": [
+      "pathlib"
+    ],
+    "/opt/lentra/infra/lentra/runtime/archaeology/graph.py": [
+      "models",
+      "parser",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/runtime/archaeology/engine.py": [
+      "classifier",
+      "domain_classifier",
+      "entrypoints",
+      "graph",
+      "reachability",
+      "reporter",
+      "scanner"
+    ],
+    "/opt/lentra/infra/lentra/runtime/archaeology/runtime_trace.py": [
+      "ast",
+      "pathlib"
+    ],
+    "/opt/lentra/infra/lentra/runtime/archaeology/cli.py": [
+      "engine",
+      "runtime_trace"
+    ],
+    "/opt/lentra/infra/lentra/runtime/archaeology/reporter.py": [],
+    "/opt/lentra/infra/lentra/runtime/archaeology/layer_classifier.py": [
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/runtime/archaeology/reachability.py": [
+      "collections"
+    ],
+    "/opt/lentra/infra/lentra/runtime/archaeology/__init__.py": [],
+    "/opt/lentra/infra/lentra/runtime/archaeology/parser.py": [
+      "ast",
+      "pathlib",
+      "typing"
+    ],
     "/opt/lentra/infra/lentra/storage/models.py": [
       "datetime",
       "sqlalchemy",
@@ -1877,12 +1944,6 @@
       "lentra.db.repositories.apartment_repo"
     ],
     "/opt/lentra/infra/lentra/db/services/__init__.py": [],
-    "/opt/lentra/infra/lentra/db/services/search_service.py": [
-      "dataclasses",
-      "lentra.db.models.apartment",
-      "lentra.db.repositories.apartment_repo",
-      "typing"
-    ],
     "/opt/lentra/infra/lentra/core/registry.py": [],
     "/opt/lentra/infra/lentra/core/normalizer.py": [],
     "/opt/lentra/infra/lentra/core/modes.py": [],
@@ -1911,16 +1972,8 @@
     ],
     "/opt/lentra/infra/lentra/core/_safe_imports.py": [],
     "/opt/lentra/infra/lentra/core/system_guard.py": [],
-    "/opt/lentra/infra/lentra/core/__init__.py": [
-      "context",
-      "executor"
-    ],
+    "/opt/lentra/infra/lentra/core/__init__.py": [],
     "/opt/lentra/infra/lentra/core/ranker.py": [],
-    "/opt/lentra/infra/lentra/core/product_router.py": [
-      "lentra.agent.core.agent",
-      "lentra.api.services.search_service",
-      "lentra.core.modes"
-    ],
     "/opt/lentra/infra/lentra/core/safe_writer.py": [
       "pathlib",
       "re"
@@ -2052,10 +2105,7 @@
     ],
     "/opt/lentra/infra/lentra/core/adapters/search_adapter.py": [
       "json",
-      "typing"
-    ],
-    "/opt/lentra/infra/lentra/core/search/search_engine.py": [
-      "lentra.core.explanation.explanation_engine",
+      "lentra.core.market_intelligence.normalization.listing_normalizer",
       "typing"
     ],
     "/opt/lentra/infra/lentra/core/config/feature_flags.py": [
@@ -2064,18 +2114,9 @@
     "/opt/lentra/infra/lentra/core/gateway/flow_glue.py": [
       "lentra.core.contracts.v1"
     ],
-    "/opt/lentra/infra/lentra/core/ingestion/ingestion_engine.py": [
-      "lentra.api.search.search_api",
-      "lentra.core.ingestion.normalizers.listing_normalizer",
-      "lentra.core.ingestion.sources.facebook",
-      "lentra.core.market_intelligence.dedup.dedup_v2"
-    ],
     "/opt/lentra/infra/lentra/core/ingestion/normalizers/listing_normalizer.py": [],
     "/opt/lentra/infra/lentra/core/ingestion/sources/facebook.py": [],
     "/opt/lentra/infra/lentra/core/ingestion/sources/base.py": [],
-    "/opt/lentra/infra/lentra/core/market_intelligence/decision_layer.py": [
-      "typing"
-    ],
     "/opt/lentra/infra/lentra/core/market_intelligence/gateway.py": [
       "lentra.core.contracts.pipeline_context",
       "lentra.core.market_intelligence.signals.signals_engine_v1",
@@ -2083,9 +2124,6 @@
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/patch_step_h_pipeline.py": [
       "lentra.core.market_intelligence.contracts.listing_contract_guard"
-    ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/build.py": [
-      "lentra.core.market_intelligence.gateway.intelligence_gateway"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/api.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/patch_step_h_integration.py": [
@@ -2097,12 +2135,7 @@
       "typing"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/event_bus.py": [],
-    "/opt/lentra/infra/lentra/core/market_intelligence/market_intelligence_engine.py": [
-      "lentra.core.market.pricing_engine",
-      "lentra.core.market_intelligence.dedup.unified_dedup_engine",
-      "lentra.core.market_intelligence.expat.expat_score_engine",
-      "lentra.core.market_intelligence.gateway.intelligence_gateway",
-      "lentra.core.market_intelligence.risk.risk_engine_adapter",
+    "/opt/lentra/infra/lentra/core/market_intelligence/engine_output_normalizer.py": [
       "typing"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/__init__.py": [],
@@ -2110,6 +2143,9 @@
       "dataclasses"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/signals_fallback.py": [],
+    "/opt/lentra/infra/lentra/core/market_intelligence/intelligence_normalizer.py": [
+      "typing"
+    ],
     "/opt/lentra/infra/lentra/core/market_intelligence/engine_isolator.py": [
       "typing"
     ],
@@ -2142,11 +2178,6 @@
     "/opt/lentra/infra/lentra/core/market_intelligence/isolation/aggregator.py": [
       "typing"
     ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/isolation/engine_registry_v3.py": [
-      "__future__",
-      "inspect",
-      "typing"
-    ],
     "/opt/lentra/infra/lentra/core/market_intelligence/isolation/engine_adapter.py": [
       "typing"
     ],
@@ -2164,6 +2195,10 @@
     "/opt/lentra/infra/lentra/core/market_intelligence/contracts/engine_lock.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/contracts/contract_intelligence_engine.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/contracts/search_contract.py": [
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/contracts/intelligence_result.py": [
+      "dataclasses",
       "typing"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/contracts/coherence_runtime.py": [
@@ -2201,9 +2236,6 @@
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/contracts/object_builder.py": [
       "lentra.core.market_intelligence.contracts.market_object"
-    ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/contracts/risk_engine_contract.py": [
-      "typing"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/contracts/dedup_engine_contract.py": [
       "typing"
@@ -2266,19 +2298,44 @@
       "typing"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/trace/runtime_trace_audit.py": [],
+    "/opt/lentra/infra/lentra/core/market_intelligence/mapping/__init__.py": [],
+    "/opt/lentra/infra/lentra/core/market_intelligence/mapping/property_market_mapper.py": [
+      "lentra.core.market_intelligence.models.listing",
+      "lentra.core.market_intelligence.models.market_object",
+      "lentra.core.market_intelligence.object_model.property_object"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/repository/market_snapshot_repository.py": [
+      "datetime",
+      "json",
+      "pathlib",
+      "typing"
+    ],
     "/opt/lentra/infra/lentra/core/market_intelligence/repository/cluster_repository.py": [
       "lentra.storage.db"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/adapters/pipeline_pricing_adapter.py": [
+      "lentra.core.market_intelligence.engines.pricing_engine",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/adapters/pipeline_area_adapter.py": [
+      "lentra.core.market_intelligence.expat.expat_score_engine",
+      "typing"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/adapters/pricing_engine_adapter.py": [
       "lentra.core.contracts.engine_result"
     ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/adapters/dedup_engine_adapter.py": [
-      "lentra.core.contracts.engine_result"
+    "/opt/lentra/infra/lentra/core/market_intelligence/adapters/pipeline_dedup_adapter.py": [
+      "lentra.core.market_intelligence.dedup.dedup_index",
+      "typing"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/adapters/risk_engine_adapter.py": [
       "lentra.core.contracts.engine_result"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/adapters/__init__.py": [],
+    "/opt/lentra/infra/lentra/core/market_intelligence/adapters/market_object_pricing_adapter.py": [
+      "lentra.core.market_intelligence.engines.pricing_engine",
+      "lentra.core.market_intelligence.models.market_object"
+    ],
     "/opt/lentra/infra/lentra/core/market_intelligence/enrichment/enrichment_layer.py": [
       "typing"
     ],
@@ -2312,16 +2369,16 @@
     "/opt/lentra/infra/lentra/core/market_intelligence/search/search_events.py": [
       "lentra.core.market_intelligence.events.event_bus"
     ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/search/nlp/query_parser.py": [
-      "re"
-    ],
     "/opt/lentra/infra/lentra/core/market_intelligence/search/rankers/scorer.py": [
       "typing"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/search/rankers/__init__.py": [
       "scorer"
     ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/search/parsers/query_parser.py": [],
+    "/opt/lentra/infra/lentra/core/market_intelligence/search/parsers/query_parser.py": [
+      "lentra.core.market_intelligence.data.city_profiles",
+      "re"
+    ],
     "/opt/lentra/infra/lentra/core/market_intelligence/search/parsers/__init__.py": [
       "query_parser"
     ],
@@ -2338,45 +2395,51 @@
       "hashlib",
       "json"
     ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/gateway/safe_executor.py": [
-      "traceback"
-    ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/gateway/intelligence_gateway.py": [
-      "lentra.core.market_intelligence.engine_wrapper",
-      "lentra.core.market_intelligence.signals.providers.coupling_provider",
-      "lentra.core.market_intelligence.signals.providers.ranking_provider",
-      "lentra.core.market_intelligence.signals.providers.risk_provider",
-      "lentra.core.market_intelligence.signals.signals_engine_v1",
-      "lentra.core.observability.observability_engine_v1",
-      "typing"
-    ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/gateway/contract_lock.py": [],
-    "/opt/lentra/infra/lentra/core/market_intelligence/gateway/graph_guard.py": [],
-    "/opt/lentra/infra/lentra/core/market_intelligence/gateway/intelligence_gateway_patch_enrichment.py": [
-      "lentra.core.market_intelligence.enrichment.enrichment_layer"
-    ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/gateway/__init__.py": [
-      "intelligence_gateway"
-    ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/gateway/engine_isolator.py": [],
-    "/opt/lentra/infra/lentra/core/market_intelligence/gateway/intelligence_gateway_patch.py": [
-      "safe_executor"
-    ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/gateway/engine_injector.py": [
-      "lentra.core.market_intelligence.engines.engine_wrapper",
-      "typing"
-    ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/gateway/graph_adapter.py": [
-      "typing"
-    ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/ingestion/ingestion_router_v8.py": [
-      "lentra.services.intelligence_gateway"
-    ],
     "/opt/lentra/infra/lentra/core/market_intelligence/expat/expat_score_engine.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/expat/expat_engine_v2.py": [
       "lentra.core.market_intelligence.expat.expat_score_engine"
     ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/graph_v2/file_registry.py": [
+      "__future__",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/graph_v2/build_symbol_index.py": [
+      "lentra.core.market_intelligence.graph_v2.symbol_indexer"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/graph_v2/build_index.py": [
+      "__future__",
+      "dataclasses",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/graph_v2/signal_enricher.py": [
+      "lentra.core.market_intelligence.graph_v2.signal_enricher_contract"
+    ],
     "/opt/lentra/infra/lentra/core/market_intelligence/graph_v2/graph_builder.py": [
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/graph_v2/graph_index.py": [
+      "dataclasses"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/graph_v2/router.py": [
+      "lentra.core.market_intelligence.graph_v2.graph_index",
+      "lentra.core.market_intelligence.graph_v2.graph_selector",
+      "lentra.core.market_intelligence.graph_v2.signal_enricher"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/graph_v2/graph_selector.py": [],
+    "/opt/lentra/infra/lentra/core/market_intelligence/graph_v2/selector.py": [
+      "__future__",
+      "dataclasses",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/graph_v2/symbol_indexer.py": [
+      "__future__",
+      "ast",
+      "dataclasses",
+      "os",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/graph_v2/signal_enricher_contract.py": [
+      "dataclasses",
       "typing"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/negotiation/negotiation_engine.py": [
@@ -2387,7 +2450,16 @@
       "lentra.core.market_intelligence.steps.dedup_step",
       "lentra.core.market_intelligence.steps.risk_step"
     ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/pipeline/intelligence_pipeline_orchestrator.py": [],
+    "/opt/lentra/infra/lentra/core/market_intelligence/pipeline/intelligence_pipeline_orchestrator.py": [
+      "__future__",
+      "lentra.ai_control.aider_executor",
+      "lentra.core.market_intelligence.pipeline.file_scope_resolver",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/pipeline/file_scope_resolver.py": [
+      "__future__",
+      "typing"
+    ],
     "/opt/lentra/infra/lentra/core/market_intelligence/pipeline/execution_context.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/conflict/conflict_engine.py": [
       "typing"
@@ -2396,17 +2468,36 @@
       "time",
       "typing"
     ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/dedup/cluster_merge_engine.py": [],
-    "/opt/lentra/infra/lentra/core/market_intelligence/dedup/unified_dedup_engine.py": [
+    "/opt/lentra/infra/lentra/core/market_intelligence/dedup/similarity.py": [
       "typing"
     ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/dedup/unified_dedup_entry.py": [],
-    "/opt/lentra/infra/lentra/core/market_intelligence/dedup/dedup_engine.py": [],
+    "/opt/lentra/infra/lentra/core/market_intelligence/dedup/entity_resolver.py": [
+      "hashlib",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/dedup/dedup_engine.py": [
+      "hashlib",
+      "lentra.core.market_intelligence.dedup.fingerprint_index",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/dedup/cluster_engine.py": [
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/dedup/fingerprint_index.py": [
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/dedup/object_memory.py": [
+      "datetime",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/dedup/dedup_index.py": [
+      "lentra.core.market_intelligence.dedup.cluster_engine",
+      "lentra.core.market_intelligence.dedup.entity_resolver",
+      "lentra.core.market_intelligence.dedup.object_memory",
+      "lentra.core.market_intelligence.dedup.similarity",
+      "typing"
+    ],
     "/opt/lentra/infra/lentra/core/market_intelligence/explain/explanation_engine.py": [],
-    "/opt/lentra/infra/lentra/core/market_intelligence/context/pipeline_context.py": [
-      "dataclasses",
-      "typing"
-    ],
     "/opt/lentra/infra/lentra/core/market_intelligence/context/engine_context_v3.py": [
       "dataclasses",
       "typing"
@@ -2424,11 +2515,14 @@
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/forecast/price_forecast_engine.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/normalizer/safety_normalizer.py": [],
-    "/opt/lentra/infra/lentra/core/market_intelligence/normalization/listing_normalizer.py": [],
+    "/opt/lentra/infra/lentra/core/market_intelligence/normalization/listing_normalizer.py": [
+      "lentra.core.data_layer.normalization.engine",
+      "typing"
+    ],
     "/opt/lentra/infra/lentra/core/market_intelligence/normalization/source_tagging.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/normalization/confidence_normalizer.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/normalization/unified_normalizer.py": [
-      "lentra.core.ingestion.normalizers.listing_normalizer"
+      "lentra.core.market_intelligence.normalization.listing_normalizer"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/normalization/signal_normalizer.py": [
       "typing"
@@ -2454,7 +2548,6 @@
       "typing"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/fusion/fusion_engine_v2.py": [
-      "dataclasses",
       "typing"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/fusion/signal_fusion_engine.py": [
@@ -2487,6 +2580,29 @@
     "/opt/lentra/infra/lentra/core/market_intelligence/plugins/plugin_engine.py": [
       "lentra.core.market_intelligence.contracts.object_builder",
       "lentra.core.market_intelligence.plugins.plugin_registry"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/history/price_history_repository.py": [
+      "lentra.core.market_intelligence.history.price_observation",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/history/segment_intelligence.py": [
+      "statistics",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/history/market_movement.py": [
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/history/price_observation.py": [
+      "dataclasses",
+      "datetime",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/history/price_trend_analyzer.py": [
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/history/__init__.py": [
+      "price_history_repository",
+      "price_observation"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/visibility/event_model.py": [
       "dataclasses",
@@ -2535,7 +2651,7 @@
       "typing"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/graph/__init__.py": [
-      "market_graph_engine"
+      "integration"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/graph/graph_v2.py": [
       "dataclasses",
@@ -2548,7 +2664,7 @@
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/graph/intelligence_graph_runtime.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/graph/graph_adapter.py": [
-      "lentra.core.market_intelligence.gateway.graph_adapter"
+      "typing"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/geo/vietnam_geo_engine.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/output/assembler.py": [],
@@ -2568,6 +2684,10 @@
     "/opt/lentra/infra/lentra/core/market_intelligence/output/__init__.py": [
       "lentra.core.market_intelligence.output.facade_guarded"
     ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/output/object_intelligence_card.py": [
+      "lentra.core.market_intelligence.explanation.user_explanation_engine",
+      "typing"
+    ],
     "/opt/lentra/infra/lentra/core/market_intelligence/output/import_guard.py": [
       "typing"
     ],
@@ -2577,7 +2697,7 @@
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/output/binding_map.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/scoring/unified_score.py": [
-      "math"
+      "lentra.core.market_intelligence.models.market_object"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/scoring/unified_scoring_engine.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/steps/risk_fallback.py": [],
@@ -2613,7 +2733,13 @@
       "lentra.core.market_intelligence.models.listing",
       "lentra.core.market_intelligence.models.market_object"
     ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/explanation/user_explanation_engine.py": [
+      "typing"
+    ],
     "/opt/lentra/infra/lentra/core/market_intelligence/explanation/explanation_engine_v1.py": [
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/explanation/market_explanation_engine.py": [
       "typing"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/explanation/unified_explainer.py": [
@@ -2623,7 +2749,12 @@
     "/opt/lentra/infra/lentra/core/market_intelligence/signal/__init__.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/signal/signal_layer.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/pricing/engine.py": [],
+    "/opt/lentra/infra/lentra/core/market_intelligence/pricing/market_snapshot.py": [
+      "dataclasses",
+      "typing"
+    ],
     "/opt/lentra/infra/lentra/core/market_intelligence/pricing/market_truth_engine.py": [
+      "lentra.core.market_intelligence.repository.market_snapshot_repository",
       "statistics"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/pricing/__init__.py": [
@@ -2639,14 +2770,7 @@
       "dataclasses",
       "typing"
     ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/decision/ai_decision_engine.py": [
-      "lentra.core.market_intelligence.explanation.unified_explainer",
-      "lentra.core.market_intelligence.ranking.unified_ranking_engine",
-      "lentra.core.market_intelligence.risk.market_risk_engine",
-      "lentra.core.market_intelligence.verdict.verdict_engine"
-    ],
     "/opt/lentra/infra/lentra/core/market_intelligence/decision/local_verdict_resolver.py": [],
-    "/opt/lentra/infra/lentra/core/market_intelligence/decision/ranking_engine.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/decision/fusion.py": [
       "typing"
     ],
@@ -2677,34 +2801,22 @@
       "lentra.core.market_intelligence.ranking.ranking_engine"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/ranking/ranking_engine.py": [],
-    "/opt/lentra/infra/lentra/core/market_intelligence/ranking/ranking_engine_v3.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/ranking/unified_ranking_entry.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/ranking/__init__.py": [
       "ranking_engine"
     ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/risk/risk_engine_v2.py": [
-      "typing"
-    ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/risk/market_risk_engine.py": [],
-    "/opt/lentra/infra/lentra/core/market_intelligence/risk/risk_engine_adapter.py": [],
-    "/opt/lentra/infra/lentra/core/market_intelligence/risk/risk_adapter.py": [
-      "lentra.core.market_intelligence.risk.risk_engine_v2",
-      "typing"
-    ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/risk/risk_calibration_engine_v4.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/risk/scam_engine.py": [],
-    "/opt/lentra/infra/lentra/core/market_intelligence/risk/unified_risk_entry.py": [],
-    "/opt/lentra/infra/lentra/core/market_intelligence/risk/risk_engine.py": [],
+    "/opt/lentra/infra/lentra/core/market_intelligence/risk/risk_calibration_v1.py": [
+      "dataclasses",
+      "time",
+      "typing"
+    ],
     "/opt/lentra/infra/lentra/core/market_intelligence/risk/antiscam/antiscam_engine.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/policy/decision_policy_engine.py": [
       "typing"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/policy/signal_policy_kernel.py": [
       "typing"
-    ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/intelligence/intelligence_pipeline_v2.py": [
-      "lentra.core.market_intelligence.areas.area_engine_v2",
-      "lentra.core.market_intelligence.deduplication.dedup_engine_v2"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/area/market_segmentation_engine.py": [
       "collections",
@@ -2724,6 +2836,10 @@
       "collections",
       "math",
       "time"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/area/expat_area_intelligence_engine.py": [
+      "dataclasses",
+      "typing"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/area/area_score_engine.py": [
       "lentra.core.market_intelligence.models.market_object"
@@ -2763,6 +2879,20 @@
     "/opt/lentra/infra/lentra/core/market_intelligence/layers/aggregation/aggregator.py": [
       "lentra.core.market_intelligence.layers.aggregation.market_insight"
     ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/market/market_service.py": [
+      "lentra.core.market_intelligence.explanation.market_explanation_engine",
+      "lentra.core.market_intelligence.history.market_movement",
+      "lentra.core.market_intelligence.history.price_history_repository",
+      "lentra.core.market_intelligence.history.price_trend_analyzer",
+      "lentra.core.market_intelligence.history.segment_intelligence",
+      "lentra.core.market_intelligence.market.market_snapshot",
+      "lentra.core.market_intelligence.pricing.market_truth_engine"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/market/market_snapshot.py": [
+      "dataclasses",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/market/__init__.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/replay_engine/replay_engine.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/governance/contract_freeze_v1.py": [
       "typing"
@@ -2774,7 +2904,7 @@
       "typing"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/signals/signals_engine_v2.py": [
-      "lentra.core.pipeline.context",
+      "lentra.core.contracts.pipeline_context",
       "typing"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/signals/signal_registry.py": [
@@ -2839,8 +2969,15 @@
     "/opt/lentra/infra/lentra/core/market_intelligence/object_model/cluster_builder.py": [
       "collections"
     ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/object_model/property_market_mapper.py": [
+      "lentra.core.market_intelligence.builders.market_object_builder",
+      "lentra.core.market_intelligence.object_model.property_object"
+    ],
     "/opt/lentra/infra/lentra/core/market_intelligence/object_model/cluster_normalizer.py": [
       "hashlib"
+    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/candidates/repository.py": [
+      "typing"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/comparison/market_comparison_engine.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/learning/adaptive_weights.py": [],
@@ -2859,13 +2996,13 @@
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/ui/market_card_builder.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/verdict/market_verdict_engine.py": [
-      "lentra.core.market_intelligence.area.market_segmentation_engine",
-      "lentra.core.market_intelligence.area.micro_market_engine"
+      "typing"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/verdict/verdict_engine.py": [],
-    "/opt/lentra/infra/lentra/core/market_intelligence/stream_processor/stream_processor.py": [
-      "lentra.services.intelligence_gateway"
+    "/opt/lentra/infra/lentra/core/market_intelligence/data/city_profiles.py": [
+      "typing"
     ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/data/__init__.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/archaeology/archaeology_index.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/affordability/affordability_engine.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/utils/__init__.py": [],
@@ -2887,14 +3024,15 @@
     "/opt/lentra/infra/lentra/core/market_intelligence/engines/expat_engine.py": [
       "typing"
     ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/engines/dedup_engine.py": [],
+    "/opt/lentra/infra/lentra/core/market_intelligence/engines/dedup_engine.py": [
+      "hashlib",
+      "lentra.core.market_intelligence.dedup.dedup_index",
+      "typing"
+    ],
     "/opt/lentra/infra/lentra/core/market_intelligence/engines/engine_wrapper.py": [
       "lentra.core.observability.trace_collector",
       "time",
       "typing"
-    ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/engines/risk.py": [
-      "base"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/engines/_base.py": [
       "typing"
@@ -2902,11 +3040,12 @@
     "/opt/lentra/infra/lentra/core/market_intelligence/engines/wrapper_v3.py": [
       "lentra.core.market_intelligence.context.engine_context_v3"
     ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/engines/signals_engine.py": [],
+    "/opt/lentra/infra/lentra/core/market_intelligence/engines/signals_engine.py": [
+      "typing"
+    ],
     "/opt/lentra/infra/lentra/core/market_intelligence/engines/_compat.py": [
       "typing"
     ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/engines/market_intelligence_engine.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/engines/__init__.py": [
       "area_engine",
       "dedup_engine",
@@ -2915,7 +3054,9 @@
       "safe_engine_wrapper",
       "signals_engine"
     ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/engines/safe_engine_wrapper.py": [],
+    "/opt/lentra/infra/lentra/core/market_intelligence/engines/safe_engine_wrapper.py": [
+      "typing"
+    ],
     "/opt/lentra/infra/lentra/core/market_intelligence/engines/engine_adapter.py": [
       "lentra.core.market_intelligence.engines.engine_wrapper",
       "typing"
@@ -2923,11 +3064,15 @@
     "/opt/lentra/infra/lentra/core/market_intelligence/engines/base_engine.py": [
       "typing"
     ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/engines/risk_engine.py": [],
+    "/opt/lentra/infra/lentra/core/market_intelligence/engines/risk_engine.py": [
+      "typing"
+    ],
     "/opt/lentra/infra/lentra/core/market_intelligence/engines/signal_normalizer.py": [
       "typing"
     ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/engines/area_engine.py": [],
+    "/opt/lentra/infra/lentra/core/market_intelligence/engines/area_engine.py": [
+      "typing"
+    ],
     "/opt/lentra/infra/lentra/core/market_intelligence/engines/dedup.py": [
       "base"
     ],
@@ -2949,17 +3094,14 @@
       "lentra.core.market_intelligence.memory.signal_memory_store",
       "typing"
     ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/persona/persona_engine.py": [],
-    "/opt/lentra/infra/lentra/core/market_intelligence/registry/engine_assert.py": [],
-    "/opt/lentra/infra/lentra/core/market_intelligence/registry/engine_registry_v3.py": [
-      "lentra.core.market_intelligence.isolation.engine_isolator",
+    "/opt/lentra/infra/lentra/core/market_intelligence/memory/market_memory_v1.py": [
+      "dataclasses",
+      "time",
       "typing"
     ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/registry/engine_registry_v2.py": [
-      "lentra.core.market_intelligence.engines.engine_adapter"
-    ],
+    "/opt/lentra/infra/lentra/core/market_intelligence/persona/persona_engine.py": [],
+    "/opt/lentra/infra/lentra/core/market_intelligence/registry/engine_assert.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/registry/engine_registry.py": [
-      "dataclasses",
       "typing"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/stream/stream_broker.py": [
@@ -2995,7 +3137,10 @@
       "lentra.core.market_intelligence.engines.signals_engine",
       "typing"
     ],
-    "/opt/lentra/infra/lentra/core/pipeline/canonical_search_pipeline.py": [],
+    "/opt/lentra/infra/lentra/core/pipeline/canonical_search_pipeline.py": [
+      "lentra.api.pipeline.search_pipeline",
+      "typing"
+    ],
     "/opt/lentra/infra/lentra/core/pipeline/models.py": [
       "dataclasses",
       "typing"
@@ -3006,6 +3151,11 @@
     "/opt/lentra/infra/lentra/core/pipeline/safe_executor.py": [
       "time",
       "traceback",
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/core/pipeline/worker_search_entrypoint.py": [
+      "lentra.core.pipeline.canonical_entrypoint",
+      "lentra.core.pipeline.canonical_search_pipeline",
       "typing"
     ],
     "/opt/lentra/infra/lentra/core/pipeline/pipeline_v2_extension.py": [
@@ -3020,14 +3170,10 @@
     "/opt/lentra/infra/lentra/core/pipeline/canonical_entrypoint.py": [
       "typing"
     ],
-    "/opt/lentra/infra/lentra/core/pipeline/pipeline.py": [
-      "lentra.core.context.ai_context",
-      "lentra.core.data_layer.builders.task_builder",
-      "lentra.core.data_layer.data_layer",
-      "lentra.core.modules.decision.decision_module"
-    ],
     "/opt/lentra/infra/lentra/core/pipeline/__init__.py": [
-      "pipeline"
+      "canonical_entrypoint",
+      "canonical_search_pipeline",
+      "worker_search_entrypoint"
     ],
     "/opt/lentra/infra/lentra/core/pipeline/validator.py": [
       "lentra.core.dto.listing_dto",
@@ -3038,10 +3184,6 @@
       "time"
     ],
     "/opt/lentra/infra/lentra/core/pipeline/legacy_guard.py": [],
-    "/opt/lentra/infra/lentra/core/pipeline/context.py": [
-      "dataclasses",
-      "typing"
-    ],
     "/opt/lentra/infra/lentra/core/pipeline/hooks/index_hook.py": [
       "lentra.core.ai.semantic_search.embeddings.embedding_engine",
       "lentra.core.ai.semantic_search.vector_store.vector_store"
@@ -3058,10 +3200,6 @@
       "dataclasses",
       "typing",
       "uuid"
-    ],
-    "/opt/lentra/infra/lentra/core/context/ai_context.py": [
-      "dataclasses",
-      "typing"
     ],
     "/opt/lentra/infra/lentra/core/router/multi_scenario_router_v1.py": [
       "lentra.core.scenario.monetization_v1"
@@ -3129,12 +3267,6 @@
     "/opt/lentra/infra/lentra/core/bootstrap/bootstrap_enrichment.py": [
       "lentra.core.market_intelligence.enrichment.enrichment_layer"
     ],
-    "/opt/lentra/infra/lentra/core/bootstrap/__init__.py": [
-      "bootstrap_intelligence_system"
-    ],
-    "/opt/lentra/infra/lentra/core/bootstrap/bootstrap_intelligence_system.py": [
-      "lentra.core.market_intelligence.gateway.intelligence_gateway"
-    ],
     "/opt/lentra/infra/lentra/core/queue/task_model.py": [
       "dataclasses",
       "typing"
@@ -3177,10 +3309,6 @@
       "lentra.scenarios.rent_scenario_v1"
     ],
     "/opt/lentra/infra/lentra/core/explanation/explanation_engine.py": [
-      "typing"
-    ],
-    "/opt/lentra/infra/lentra/core/ranking/ranker.py": [
-      "lentra.core.v2.ranking.ranker_v2",
       "typing"
     ],
     "/opt/lentra/infra/lentra/core/policy/scenario_policy_v1.py": [],
@@ -3320,9 +3448,7 @@
       "dataclasses",
       "typing"
     ],
-    "/opt/lentra/infra/lentra/core/data_layer/data_layer.py": [],
     "/opt/lentra/infra/lentra/core/data_layer/__init__.py": [],
-    "/opt/lentra/infra/lentra/core/data_layer/builders/task_builder.py": [],
     "/opt/lentra/infra/lentra/core/data_layer/builders/__init__.py": [],
     "/opt/lentra/infra/lentra/core/data_layer/adapters/facebook.py": [
       "lentra.core.data_layer.adapters.base",
@@ -3348,19 +3474,18 @@
       "lentra.core.data_layer.ingestion.ingestion_engine"
     ],
     "/opt/lentra/infra/lentra/core/data_layer/pipeline/ingestion_pipeline.py": [
-      "lentra.core.data_layer.dedup.deduplicator",
       "lentra.core.data_layer.normalization.engine",
       "lentra.core.data_layer.store.persistence",
-      "lentra.core.market.pricing_engine",
-      "lentra.core.risk.risk_engine",
+      "lentra.core.market_intelligence.adapters.pipeline_area_adapter",
+      "lentra.core.market_intelligence.adapters.pipeline_dedup_adapter",
+      "lentra.core.market_intelligence.adapters.pipeline_pricing_adapter",
+      "lentra.core.market_intelligence.adapters.risk_engine_adapter",
+      "lentra.core.market_intelligence.engines.risk_engine",
       "typing"
     ],
-    "/opt/lentra/infra/lentra/core/data_layer/pipeline/run_pipeline.py": [
-      "lentra.core.data_layer.adapters.facebook",
-      "lentra.core.data_layer.adapters.local_sites",
-      "lentra.core.data_layer.adapters.telegram",
+    "/opt/lentra/infra/lentra/core/data_layer/pipeline/run_market_seed.py": [
       "lentra.core.data_layer.pipeline.ingestion_pipeline",
-      "lentra.core.search.search_engine"
+      "lentra.core.data_layer.seeds.market_seed_v1"
     ],
     "/opt/lentra/infra/lentra/core/data_layer/normalization/engine.py": [
       "lentra.core.data_layer.geo.classifier",
@@ -3368,6 +3493,9 @@
       "typing"
     ],
     "/opt/lentra/infra/lentra/core/data_layer/geo/classifier.py": [
+      "typing"
+    ],
+    "/opt/lentra/infra/lentra/core/data_layer/seeds/market_seed_v1.py": [
       "typing"
     ],
     "/opt/lentra/infra/lentra/core/data_layer/sources/facebook.py": [
@@ -3468,29 +3596,9 @@
       "sys",
       "time"
     ],
-    "/opt/lentra/infra/lentra/core/modules/negotiation/negotiation_module.py": [
-      "lentra.core.ai.concierge.negotiation.negotiation_engine"
-    ],
-    "/opt/lentra/infra/lentra/core/modules/forecast/forecast_module.py": [
-      "lentra.core.market_intelligence.forecast.price_forecast_engine"
-    ],
-    "/opt/lentra/infra/lentra/core/modules/decision/decision_module.py": [
-      "lentra.core.context.ai_context"
-    ],
-    "/opt/lentra/infra/lentra/core/modules/risk/risk_module.py": [
-      "lentra.core.market_intelligence.risk.antiscam.antiscam_engine"
-    ],
-    "/opt/lentra/infra/lentra/core/modules/market/market_module.py": [
-      "lentra.core.data_layer.builders.task_builder"
-    ],
-    "/opt/lentra/infra/lentra/core/modules/ai/ai_module.py": [
-      "typing"
-    ],
     "/opt/lentra/infra/lentra/core/modules/ui/ui_module.py": [
       "lentra.core.contracts.pipeline_context"
     ],
-    "/opt/lentra/infra/lentra/core/modules/persona/persona_module.py": [],
-    "/opt/lentra/infra/lentra/core/modules/personalization/persona_module.py": [],
     "/opt/lentra/infra/lentra/core/executor/dec_executor.py": [
       "lentra.core.graph.engine"
     ],
@@ -3600,5 +3708,5 @@
     ],
     "/opt/lentra/infra/lentra/tenancy/service.py": []
   },
-  "fingerprint": "7c0f836ec7700ef6a548c8feed655e3437d2b29fd1413ecf91d302acc938849a"
+  "fingerprint": "924e726129ca2a8955e4d514f9da013dc6f440248f83eef8304b38396ab10ec0"
 }
