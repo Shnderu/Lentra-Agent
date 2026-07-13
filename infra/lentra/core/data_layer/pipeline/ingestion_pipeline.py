@@ -4,7 +4,7 @@ from lentra.core.data_layer.normalization.engine import NormalizationEngine
 from lentra.core.data_layer.store.persistence import PersistenceLayer
 from lentra.core.data_layer.dedup.deduplicator import Deduplicator
 
-from lentra.core.market.pricing_engine import PricingEngine
+from lentra.core.market_intelligence.adapters.pipeline_pricing_adapter import PipelinePricingAdapter
 
 from lentra.core.market_intelligence.engines.risk_engine import RiskEngine
 from lentra.core.market_intelligence.adapters.risk_engine_adapter import (
@@ -36,7 +36,7 @@ class IngestionPipeline:
         self.store = PersistenceLayer()
         self.deduper = Deduplicator()
 
-        self.pricing = PricingEngine()
+        self.pricing = PipelinePricingAdapter()
 
         self.risk = RiskEngineAdapter(
             RiskEngine()
