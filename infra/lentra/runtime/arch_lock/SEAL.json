@@ -3051,11 +3051,7 @@
       "dedup_engine",
       "pricing_engine",
       "risk_engine",
-      "safe_engine_wrapper",
       "signals_engine"
-    ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/engines/safe_engine_wrapper.py": [
-      "typing"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/engines/engine_adapter.py": [
       "lentra.core.market_intelligence.engines.engine_wrapper",
@@ -3708,5 +3704,5 @@
     ],
     "/opt/lentra/infra/lentra/tenancy/service.py": []
   },
-  "fingerprint": "924e726129ca2a8955e4d514f9da013dc6f440248f83eef8304b38396ab10ec0"
+  "fingerprint": "f586c130420490a413a07e66b13813b5fd0e3845c2c705208837b7f4a2ac1e56"
 }

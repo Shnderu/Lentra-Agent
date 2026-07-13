@@ -1,17 +1,26 @@
 from typing import Dict, Any
-from lentra.core.engines.base_engine import BaseEngine
+
+from lentra.core.market_intelligence.engines.base_engine import BaseEngine
 
 
 class MarketIntelligenceEngine(BaseEngine):
     """
-    Market Intelligence Engine.
+    Canonical Market Intelligence gateway engine.
 
     Responsibility:
-    - compare listing price with market price
-    - produce normalized market interpretation
+    - interpret listing price against market truth
+    - provide pricing signal
+    - provide market deviation
+
+    Business intelligence remains inside:
+        market_service
+        market_truth_engine
     """
 
-    def run(self, ctx: Dict[str, Any]) -> Dict[str, Any]:
+    def run(
+        self,
+        ctx: Dict[str, Any]
+    ) -> Dict[str, Any]:
 
         price = ctx.get(
             "price",
@@ -24,7 +33,10 @@ class MarketIntelligenceEngine(BaseEngine):
         )
 
         if market_price:
-            difference = price - market_price
+
+            difference = (
+                price - market_price
+            )
 
             difference_percent = (
                 difference / market_price
@@ -35,18 +47,22 @@ class MarketIntelligenceEngine(BaseEngine):
             ) / 100
 
         else:
+
             difference = 0
             difference_percent = 0
             deviation = 0
 
 
         if difference_percent > 5:
+
             verdict = "overpriced"
 
         elif difference_percent < -5:
+
             verdict = "good_deal"
 
         else:
+
             verdict = "market_price"
 
 
