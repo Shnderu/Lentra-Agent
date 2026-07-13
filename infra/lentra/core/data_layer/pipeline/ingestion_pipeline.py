@@ -2,13 +2,21 @@ from typing import List, Dict, Any
 
 from lentra.core.data_layer.normalization.engine import NormalizationEngine
 from lentra.core.data_layer.store.persistence import PersistenceLayer
-from lentra.core.data_layer.dedup.deduplicator import Deduplicator
 
-from lentra.core.market_intelligence.adapters.pipeline_pricing_adapter import PipelinePricingAdapter
+from lentra.core.market_intelligence.adapters.pipeline_dedup_adapter import (
+    PipelineDedupAdapter
+)
 
-from lentra.core.market_intelligence.engines.risk_engine import RiskEngine
+from lentra.core.market_intelligence.adapters.pipeline_pricing_adapter import (
+    PipelinePricingAdapter
+)
+
+from lentra.core.market_intelligence.engines.risk_engine import (
+    RiskEngine
+)
+
 from lentra.core.market_intelligence.adapters.risk_engine_adapter import (
-    RiskEngineAdapter,
+    RiskEngineAdapter
 )
 
 
@@ -22,19 +30,23 @@ class IngestionPipeline:
     NORMALIZATION
         |
         v
-    DEDUP
+    MARKET INTELLIGENCE DEDUP
         |
         v
-    PRICING
+    MARKET INTELLIGENCE PRICING
         |
         v
     MARKET INTELLIGENCE RISK
     """
 
+
     def __init__(self):
+
         self.normalizer = NormalizationEngine()
+
         self.store = PersistenceLayer()
-        self.deduper = Deduplicator()
+
+        self.deduper = PipelineDedupAdapter()
 
         self.pricing = PipelinePricingAdapter()
 
@@ -52,6 +64,7 @@ class IngestionPipeline:
 
 
         # 1. normalize + persist
+
         for item in raw_items:
 
             normalized = self.normalizer.normalize(
@@ -67,15 +80,20 @@ class IngestionPipeline:
             )
 
 
-        # 2. dedup
+        # 2. dedup intelligence
+
         dedup_result = self.deduper.deduplicate(
             normalized_items
         )
 
-        clusters = dedup_result["clusters"]
+        clusters = dedup_result.get(
+            "clusters",
+            []
+        )
 
 
-        # 3. pricing
+        # 3. pricing intelligence
+
         market_stats = self.pricing.build_market(
             clusters
         )
@@ -84,7 +102,8 @@ class IngestionPipeline:
         enriched = []
 
 
-        # 4. risk scoring
+        # 4. risk intelligence
+
         for cluster in clusters:
 
             duplicate_count = len(
@@ -117,17 +136,20 @@ class IngestionPipeline:
                     {
                         **item_with_price,
 
-                        "risk_score": risk_eval[
-                            "risk_score"
-                        ],
+                        "risk_score": risk_eval.get(
+                            "risk_score",
+                            0.0
+                        ),
 
-                        "risk_level": risk_eval[
-                            "risk_level"
-                        ],
+                        "risk_level": risk_eval.get(
+                            "risk_level",
+                            "unknown"
+                        ),
 
-                        "risk_signals": risk_eval[
-                            "signals"
-                        ],
+                        "risk_signals": risk_eval.get(
+                            "signals",
+                            []
+                        ),
                     }
                 )
 
@@ -139,6 +161,10 @@ class IngestionPipeline:
 
             "clusters": len(
                 clusters
+            ),
+
+            "enriched": len(
+                enriched
             ),
 
             "status": "ok"
