@@ -1,5 +1,15 @@
-from lentra.runtime.bootstrap.gateway_v3 import build_gateway_v3
+"""
+Legacy graph attachment bootstrap.
+
+Retired:
+    direct GatewayV3 initialization
+
+Canonical execution path:
+    SearchPipeline -> GatewayV3 -> Engines
+
+This module remains as compatibility placeholder.
+"""
 
 
 def build_gateway_with_graph():
-    gateway = build_gateway_v3()
+    return None
