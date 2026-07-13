@@ -1,3 +1,4 @@
+from statistics import median
 from typing import List, Dict, Any
 
 from lentra.core.market_intelligence.engines.pricing_engine import (
@@ -9,20 +10,40 @@ class PipelinePricingAdapter:
     """
     Data Layer pricing boundary.
 
-    Keeps ingestion pipeline contract:
+    Converts:
 
-        build_market()
-        evaluate()
+        price_vnd
 
-    while routing intelligence into
-    Market Intelligence PricingEngine.
+    into Market Intelligence:
+
+        price
+
+    Delegates pricing evaluation
+    to PricingEngine.
     """
-
 
     def __init__(self):
 
         self.engine = PricingEngine()
 
+
+    def _prepare_listing(
+        self,
+        item: Dict[str, Any]
+    ) -> Dict[str, Any]:
+
+        payload = {
+            **item
+        }
+
+        if "price" not in payload:
+
+            payload["price"] = payload.get(
+                "price_vnd",
+                0
+            )
+
+        return payload
 
 
     def build_market(
@@ -32,11 +53,16 @@ class PipelinePricingAdapter:
 
         listings = []
 
+
         for cluster in clusters:
 
-            listings.extend(
-                cluster
-            )
+            for item in cluster:
+
+                listings.append(
+                    self._prepare_listing(
+                        item
+                    )
+                )
 
 
         prices = [
@@ -58,14 +84,12 @@ class PipelinePricingAdapter:
 
             return {
                 "market_price": 0,
-                "average_price": 0,
+                "median_price": 0,
                 "sample_size": 0
             }
 
 
-        average_price = sum(
-            prices
-        ) / len(
+        market_price = median(
             prices
         )
 
@@ -73,16 +97,10 @@ class PipelinePricingAdapter:
         return {
 
             "market_price":
-                round(
-                    average_price,
-                    2
-                ),
+                market_price,
 
-            "average_price":
-                round(
-                    average_price,
-                    2
-                ),
+            "median_price":
+                market_price,
 
             "sample_size":
                 len(
@@ -102,7 +120,6 @@ class PipelinePricingAdapter:
         }
 
 
-
     def evaluate(
         self,
         item: dict,
@@ -110,23 +127,14 @@ class PipelinePricingAdapter:
     ) -> dict:
 
 
-        payload = {
-            **item
-        }
+        payload = self._prepare_listing(
+            item
+        )
 
 
-        market_price = (
-
-            market_stats.get(
-                "market_price"
-            )
-
-            or market_stats.get(
-                "average_price"
-            )
-
-            or 0
-
+        market_price = market_stats.get(
+            "market_price",
+            0
         )
 
 
@@ -147,6 +155,12 @@ class PipelinePricingAdapter:
         )
 
 
+        deviation = pricing.get(
+            "deviation",
+            0
+        )
+
+
         return {
 
             "market_price":
@@ -164,10 +178,11 @@ class PipelinePricingAdapter:
                     0
                 ),
 
-            "price_deviation":
-                pricing.get(
-                    "deviation",
-                    0
-                )
+            # canonical search/API field
+            "deviation_pct":
+                deviation,
 
+            # backward compatibility
+            "price_deviation":
+                deviation
         }

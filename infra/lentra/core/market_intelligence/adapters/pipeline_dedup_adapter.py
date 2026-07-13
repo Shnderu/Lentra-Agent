@@ -1,7 +1,7 @@
 from typing import List, Dict, Any
 
-from lentra.core.market_intelligence.engines.dedup_engine import (
-    DedupEngine,
+from lentra.core.market_intelligence.dedup.dedup_index import (
+    DedupIndex
 )
 
 
@@ -9,26 +9,39 @@ class PipelineDedupAdapter:
     """
     ARCH V2 CONTRACT BOUNDARY
 
-    Data Layer contract:
+    Data Layer:
+        price_vnd
 
-        deduplicate(listings)
-            ->
-        {"clusters": [...]}
+    Market Intelligence:
+        price
 
-    Market Intelligence authority:
-
-        DedupEngine
-            |
-            +--> DedupIndex V4
-            +--> Entity Resolution
-            +--> Object Memory
+    Adapter responsibility:
+        convert Data Layer contract
+        into Market Intelligence contract.
     """
-
 
     def __init__(self):
 
-        self.engine = DedupEngine()
+        self.index = DedupIndex()
 
+
+    def _prepare_listing(
+        self,
+        listing: Dict[str, Any]
+    ) -> Dict[str, Any]:
+
+        item = {
+            **listing
+        }
+
+        if "price" not in item:
+
+            item["price"] = item.get(
+                "price_vnd",
+                0
+            )
+
+        return item
 
 
     def deduplicate(
@@ -36,83 +49,109 @@ class PipelineDedupAdapter:
         listings: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
 
-
         clusters = []
 
-        processed = set()
+        assigned = set()
 
 
-        evaluated = []
+        prepared_listings = [
 
-
-        for listing in listings:
-
-            result = self.engine.evaluate(
+            self._prepare_listing(
                 listing
             )
 
-            evaluated.append(
-                result
-            )
+            for listing in listings
+        ]
 
 
-        for item in evaluated:
+        for listing in prepared_listings:
 
-            listing_id = item.get(
+            listing_id = listing.get(
                 "id"
             )
 
-
-            if listing_id in processed:
+            if not listing_id:
                 continue
 
 
-            dedup = item.get(
-                "dedup",
-                {}
+            if listing_id in assigned:
+                continue
+
+
+            result = self.index.analyze(
+                listing
             )
 
 
-            matches = dedup.get(
+            matches = result.get(
                 "matches",
                 []
             )
 
 
-            cluster = [
-                item
-            ]
+            cluster_items = []
+
+            cluster_ids = set()
 
 
-            cluster.extend(
-                matches
-            )
+            def add_item(item):
 
+                item = self._prepare_listing(
+                    item
+                )
 
-            for member in cluster:
-
-                member_id = member.get(
+                item_id = item.get(
                     "id"
                 )
 
-                if member_id:
+                if not item_id:
+                    return
 
-                    processed.add(
-                        member_id
+
+                if item_id in cluster_ids:
+                    return
+
+
+                cluster_ids.add(
+                    item_id
+                )
+
+                cluster_items.append(
+                    item
+                )
+
+
+            add_item(
+                listing
+            )
+
+
+            for match in matches:
+
+                add_item(
+                    match
+                )
+
+
+            for item in cluster_items:
+
+                item_id = item.get(
+                    "id"
+                )
+
+                if item_id:
+
+                    assigned.add(
+                        item_id
                     )
 
 
             clusters.append(
-                cluster
+                cluster_items
             )
 
 
         return {
-
-            "clusters":
-                clusters,
-
-            "status":
-                "ok"
-
+            "clusters": clusters,
+            "status": "ok"
         }

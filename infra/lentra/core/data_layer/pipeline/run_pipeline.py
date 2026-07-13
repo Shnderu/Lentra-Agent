@@ -13,7 +13,7 @@ class PipelineRunner:
     def __init__(self):
         self.pipeline = IngestionPipeline()
 
-        self.search = SearchEngine(self.pipeline)
+        self.search_engine = SearchEngine(self.pipeline)
 
         self.adapters = [
             FacebookAdapter(),
@@ -32,7 +32,7 @@ class PipelineRunner:
         return result
 
     def search(self, query: dict):
-        return self.search.search(query)
+        return self.search_engine.search(query)
 
 
 if __name__ == "__main__":

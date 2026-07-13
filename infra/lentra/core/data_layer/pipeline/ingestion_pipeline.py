@@ -78,10 +78,6 @@ class IngestionPipeline:
                 item
             )
 
-            self.store.upsert(
-                normalized
-            )
-
             normalized_items.append(
                 normalized
             )
@@ -164,6 +160,12 @@ class IngestionPipeline:
                         ),
                     }
                 )
+
+
+        for item in enriched:
+            self.store.upsert(
+                item
+            )
 
 
         return {
