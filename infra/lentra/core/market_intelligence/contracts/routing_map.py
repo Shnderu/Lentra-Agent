@@ -23,7 +23,7 @@ def build_routing_map() -> RoutingMap:
         ),
 
         dedup_engine=(
-            "lentra.core.market_intelligence.dedup.unified_dedup_engine.UnifiedDedupEngine"
+            "lentra.core.market_intelligence.dedup.dedup_index.DedupIndex"
         ),
 
         risk_engine=(
