@@ -62,6 +62,113 @@ class SearchPipeline:
         )
 
 
+
+    def _extract_area_features(
+        self,
+        listing: Dict[str, Any]
+    ) -> list:
+
+        title = str(
+            listing.get(
+                "title",
+                ""
+            )
+        ).lower()
+
+
+        description = str(
+            listing.get(
+                "description",
+                ""
+            )
+        ).lower()
+
+
+        raw_location = listing.get(
+            "location",
+            ""
+        )
+
+
+        if isinstance(
+            raw_location,
+            dict
+        ):
+
+            location = " ".join(
+                str(v)
+                for v in raw_location.values()
+                if v
+            ).lower()
+
+        else:
+
+            location = str(
+                raw_location
+            ).lower()
+
+
+        text = " ".join(
+            [
+                title,
+                description,
+                location
+            ]
+        )
+
+
+        features = []
+
+
+        rules = {
+
+            "internet": [
+                "internet",
+                "wifi",
+                "wi-fi",
+                "fiber"
+            ],
+
+            "beach": [
+                "beach",
+                "sea",
+                "ocean",
+                "my khe"
+            ],
+
+            "expat": [
+                "expat",
+                "foreigner",
+                "international"
+            ],
+
+            "studio": [
+                "studio"
+            ],
+
+            "central": [
+                "central",
+                "center",
+                "city center"
+            ]
+
+        }
+
+
+        for feature, words in rules.items():
+
+            if any(
+                word in text
+                for word in words
+            ):
+                features.append(
+                    feature
+                )
+
+
+        return features
+
+
     def _build_ai_verdict(
         self,
         market: Dict[str, Any],
@@ -275,6 +382,15 @@ class SearchPipeline:
                 "city": listing.get(
                     "city",
                     "da_nang"
+                ),
+
+                "location": listing.get(
+                    "location",
+                    ""
+                ),
+
+                "features": self._extract_area_features(
+                    listing
                 )
 
             }
