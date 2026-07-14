@@ -2,22 +2,85 @@ from typing import Dict, Any
 
 from lentra.core.engines.base_engine import BaseEngine
 
+from lentra.core.market_intelligence.area.area_intelligence import (
+    compute_area_intelligence
+)
+
+from lentra.core.market_intelligence.area.area_intelligence_adapter import (
+    AreaIntelligenceAdapter
+)
+
 
 class AreaEngine(BaseEngine):
     """
     Canonical Market Intelligence Area Engine.
 
-    Contract:
-    input:
-        context dict
+    Production bridge:
 
-    output:
-        normalized area intelligence dict
-
-    Responsibility:
-    - detect city context
-    - provide area confidence score
+    context
+        |
+        v
+    feature normalization
+        |
+        v
+    area_intelligence heuristic model
+        |
+        v
+    AreaIntelligenceAdapter
+        |
+        v
+    normalized area intelligence contract
     """
+
+    def __init__(self):
+
+        self.adapter = AreaIntelligenceAdapter()
+
+
+    def _extract_features(
+        self,
+        ctx: Dict[str, Any]
+    ):
+
+        features = []
+
+        existing = ctx.get(
+            "features",
+            []
+        )
+
+        if isinstance(existing, list):
+            features.extend(existing)
+
+
+        text = " ".join(
+            [
+                str(ctx.get("title", "")),
+                str(ctx.get("description", "")),
+                str(ctx.get("query", "")),
+            ]
+        ).lower()
+
+
+        if "internet" in text or "wifi" in text:
+            features.append("internet")
+
+
+        if "studio" in text:
+            features.append("studio")
+
+
+        if "central" in text or "center" in text:
+            features.append("central")
+
+
+        if "beach" in text or "my khe" in text or "sea" in text:
+            features.append("beach")
+
+
+        return list(
+            set(features)
+        )
 
 
     def run(
@@ -25,51 +88,57 @@ class AreaEngine(BaseEngine):
         ctx: Dict[str, Any]
     ) -> Dict[str, Any]:
 
-        query = ctx.get(
-            "query",
-            ""
-        )
-
-        city = ctx.get(
-            "city"
+        city = (
+            ctx.get("city")
+            or "unknown"
         )
 
 
-        if city:
+        listing = {
 
-            detected = city
-
-
-        elif "da nang" in query.lower():
-
-            detected = "da_nang"
-
-
-        else:
-
-            detected = "unknown"
-
-
-
-        return {
-
-            "score": 0.5,
-
-            "city": detected,
+            "city": city,
 
             "country":
-                "Vietnam"
-                if detected == "da_nang"
-                else "unknown",
+                ctx.get(
+                    "country",
+                    "Vietnam"
+                ),
 
-            "area": {
+            "location":
+                ctx.get(
+                    "location",
+                    ""
+                ),
 
-                "detected": detected,
+            "title":
+                ctx.get(
+                    "title",
+                    ""
+                ),
 
-                "status": "ok"
+            "description":
+                ctx.get(
+                    "description",
+                    ""
+                ),
 
-            },
-
-            "version": "area_v3_canonical"
+            "features":
+                self._extract_features(
+                    ctx
+                ),
 
         }
+
+
+        raw_area = compute_area_intelligence(
+            listing,
+            {
+                "listings_count": 5
+            }
+        )
+
+
+        return self.adapter.build(
+            listing,
+            raw_area
+        )

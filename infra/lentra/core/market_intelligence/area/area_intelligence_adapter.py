@@ -3,13 +3,9 @@ from typing import Dict, Any
 
 class AreaIntelligenceAdapter:
     """
-    Normalizes area intelligence into
-    Market Intelligence area contract.
-
-    Score contract:
-        0-10 scale
+    Normalizes area intelligence
+    into Market Intelligence contract.
     """
-
 
     def build(
         self,
@@ -21,7 +17,6 @@ class AreaIntelligenceAdapter:
             listing.get("city")
             or "unknown"
         )
-
 
         country = (
             listing.get("country")
@@ -37,43 +32,21 @@ class AreaIntelligenceAdapter:
         )
 
 
-        overall = round(
-            float(overall),
-            2
-        )
+        if overall <= 10:
 
-
-        if overall >= 8:
-
-            classification = "premium"
-
-            verdict = "GOOD_FOR_EXPATS"
-
-
-        elif overall >= 6:
-
-            classification = "good"
-
-            verdict = "ACCEPTABLE"
-
-
-        elif overall >= 4:
-
-            classification = "average"
-
-            verdict = "WEAK_LOCATION"
-
+            normalized = round(
+                overall / 10,
+                2
+            )
 
         else:
 
-            classification = "poor"
-
-            verdict = "BAD_LOCATION"
+            normalized = 0.5
 
 
 
-        breakdown = raw_area.get(
-            "breakdown",
+        raw_profile = raw_area.get(
+            "profile",
             {}
         )
 
@@ -81,26 +54,57 @@ class AreaIntelligenceAdapter:
         profile = {
 
             "internet":
-                5.0,
+                raw_profile.get(
+                    "internet",
+                    5.0
+                ),
 
             "safety":
-                5.0,
+                raw_profile.get(
+                    "safety",
+                    5.0
+                ),
 
             "noise":
-                5.0,
+                raw_profile.get(
+                    "noise",
+                    5.0
+                ),
 
             "infrastructure":
-                5.0,
+                raw_profile.get(
+                    "infrastructure",
+                    5.0
+                ),
 
             "expat_density":
-                5.0
+                raw_profile.get(
+                    "expat_density",
+                    5.0
+                )
+
         }
+
+
+
+        if normalized >= 0.75:
+
+            verdict = "GOOD_FOR_EXPATS"
+
+        elif normalized >= 0.55:
+
+            verdict = "ACCEPTABLE"
+
+        else:
+
+            verdict = "WEAK_LOCATION"
+
 
 
         return {
 
             "score":
-                overall,
+                normalized,
 
             "overall_score":
                 overall,
@@ -115,15 +119,21 @@ class AreaIntelligenceAdapter:
                 profile,
 
             "breakdown":
-                breakdown,
+                raw_area.get(
+                    "breakdown",
+                    {}
+                ),
 
             "classification":
-                classification,
+                raw_area.get(
+                    "area_level",
+                    "average"
+                ),
 
             "verdict":
                 verdict,
 
             "version":
-                "area_intelligence_v5"
+                "area_intelligence_v6"
 
         }
