@@ -130,6 +130,17 @@ class DecisionLayer:
             opportunity_bonus = 0.07
 
 
+        opportunity_gate = (
+
+            price_direction == "under"
+
+            and difference_percent <= -25
+
+            and risk_score < 0.3
+
+        )
+
+
 
         if risk_score >= 0.7:
 
@@ -191,6 +202,41 @@ class DecisionLayer:
                     "pricing": pricing_score,
                     "area": area_score,
                     "risk": risk_score
+
+                },
+
+                "signals": signals,
+                "risk": risk,
+                "ranking": ranking
+
+            }
+
+
+
+        if opportunity_gate:
+
+            return {
+
+                "decision": "ACCEPT",
+
+                "decision_score": round(
+                    max(
+                        final_score if "final_score" in locals() else 0.75,
+                        0.75
+                    ),
+                    4
+                ),
+
+                "reason":
+                    "Цена значительно ниже рынка при низком риске объявления.",
+
+                "components": {
+
+                    "ranking": ranking_score,
+                    "pricing": pricing_score,
+                    "area": area_score,
+                    "risk": risk_score,
+                    "opportunity_bonus": opportunity_bonus
 
                 },
 
