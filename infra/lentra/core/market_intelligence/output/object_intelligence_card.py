@@ -6,16 +6,54 @@ from lentra.core.market_intelligence.explanation.user_explanation_engine import 
 
 
 class ObjectIntelligenceCardBuilder:
+    """
+    Product contract builder.
+
+    Converts Market Intelligence signals
+    into stable Object Intelligence Card.
+    """
 
     def __init__(self):
         self.user_explanation = UserExplanationEngine()
 
-    """
-    Builds final product intelligence card.
 
-    Converts internal Market Intelligence signals
-    into user-facing object intelligence.
-    """
+    def _extract_dedup(
+        self,
+        dedup: Dict[str, Any]
+    ) -> Dict[str, Any]:
+
+        if not isinstance(dedup, dict):
+            return {}
+
+        nested = dedup.get(
+            "dedup",
+            {}
+        )
+
+        if isinstance(nested, dict):
+            return nested
+
+        return dedup
+
+
+    def _extract_risk(
+        self,
+        risk: Dict[str, Any]
+    ) -> Dict[str, Any]:
+
+        if not isinstance(risk, dict):
+            return {}
+
+        nested = risk.get(
+            "risk",
+            {}
+        )
+
+        if isinstance(nested, dict):
+            return nested
+
+        return risk
+
 
     def build(
         self,
@@ -35,14 +73,18 @@ class ObjectIntelligenceCardBuilder:
             {}
         )
 
-        risk = intelligence.get(
-            "risk",
-            {}
+        risk = self._extract_risk(
+            intelligence.get(
+                "risk",
+                {}
+            )
         )
 
-        dedup = intelligence.get(
-            "dedup",
-            {}
+        dedup = self._extract_dedup(
+            intelligence.get(
+                "dedup",
+                {}
+            )
         )
 
         area = intelligence.get(
@@ -67,30 +109,6 @@ class ObjectIntelligenceCardBuilder:
             0
         )
 
-        duplicates = dedup.get(
-            "dedup",
-            {}
-        ).get(
-            "duplicates",
-            0
-        )
-
-        risk_data = risk.get(
-            "risk",
-            {}
-        )
-
-        risk_level = (
-            risk_data.get(
-                "level"
-            )
-            or
-            risk_data.get(
-                "risk_level"
-            )
-            or
-            "unknown"
-        )
 
         if difference_percent < 0:
 
@@ -102,15 +120,17 @@ class ObjectIntelligenceCardBuilder:
 
             overpay_amount = 0
 
+
         elif difference_percent > 0:
 
             market_position = "OVER_MARKET"
+
+            saving_amount = 0
 
             overpay_amount = (
                 price - market_price
             )
 
-            saving_amount = 0
 
         else:
 
@@ -121,31 +141,47 @@ class ObjectIntelligenceCardBuilder:
             overpay_amount = 0
 
 
-        recommendation = decision.get(
-            "decision",
+        duplicates = dedup.get(
+            "duplicates",
+            0
+        )
+
+
+        risk_level = (
+            risk.get(
+                "level"
+            )
+            or
+            risk.get(
+                "risk_level"
+            )
+            or
+            "unknown"
+        )
+
+
+        recommendation = (
+            decision.get(
+                "decision"
+            )
+            or
             "REVIEW"
         )
 
 
         return {
 
-            "price":
-                price,
+            "price": price,
 
-            "market_price":
-                market_price,
+            "market_price": market_price,
 
-            "difference_percent":
-                difference_percent,
+            "difference_percent": difference_percent,
 
-            "market_position":
-                market_position,
+            "market_position": market_position,
 
-            "saving_amount":
-                saving_amount,
+            "saving_amount": saving_amount,
 
-            "overpay_amount":
-                overpay_amount,
+            "overpay_amount": overpay_amount,
 
             "price_signal":
                 (
@@ -153,30 +189,21 @@ class ObjectIntelligenceCardBuilder:
                         "price_signal"
                     )
                     or
-                    verdict.get(
-                        "signals",
-                        {}
-                    ).get(
+                    risk.get(
                         "price_signal"
                     )
                     or
                     "unknown"
                 ),
 
-            "risk":
-                risk_data,
+            "risk": risk,
 
-            "risk_summary":
-                risk_level,
+            "risk_summary": risk_level,
 
-            "duplicates":
-                duplicates,
+            "duplicates": duplicates,
 
             "duplicate_sources":
                 dedup.get(
-                    "dedup",
-                    {}
-                ).get(
                     "sources",
                     []
                 ),
@@ -190,32 +217,22 @@ class ObjectIntelligenceCardBuilder:
                     "unknown"
                 ),
 
-            "area":
-                area,
+            "area": area,
 
-            "ai_verdict":
-                verdict,
+            "ai_verdict": verdict,
 
-            "decision":
-                decision,
+            "decision": decision,
 
-            "ai_recommendation":
-                recommendation,
+            "ai_recommendation": recommendation,
 
             "explanation":
                 self.user_explanation.explain(
                     {
-                        "price":
-                            price,
-
-                        "market_price":
-                            market_price,
-
                         "difference_percent":
                             difference_percent,
 
                         "risk":
-                            risk_data,
+                            risk,
 
                         "duplicates":
                             duplicates,
@@ -225,6 +242,5 @@ class ObjectIntelligenceCardBuilder:
                     }
                 ),
 
-            "ranking":
-                ranking
+            "ranking": ranking
         }
