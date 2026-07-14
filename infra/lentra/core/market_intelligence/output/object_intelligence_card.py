@@ -9,6 +9,7 @@ class ObjectIntelligenceCardBuilder:
 
     def __init__(self):
         self.user_explanation = UserExplanationEngine()
+
     """
     Builds final product intelligence card.
 
@@ -34,11 +35,6 @@ class ObjectIntelligenceCardBuilder:
             {}
         )
 
-        explanation = intelligence.get(
-            "market_explanation",
-            {}
-        )
-
         risk = intelligence.get(
             "risk",
             {}
@@ -54,32 +50,106 @@ class ObjectIntelligenceCardBuilder:
             {}
         )
 
+        decision = decision or {}
+
+        price = listing.get(
+            "price",
+            0
+        )
+
+        market_price = market.get(
+            "market_price",
+            0
+        )
+
+        difference_percent = market.get(
+            "difference_percent",
+            0
+        )
+
+        duplicates = dedup.get(
+            "dedup",
+            {}
+        ).get(
+            "duplicates",
+            0
+        )
+
+        risk_data = risk.get(
+            "risk",
+            {}
+        )
+
+        risk_level = (
+            risk_data.get(
+                "level"
+            )
+            or
+            risk_data.get(
+                "risk_level"
+            )
+            or
+            "unknown"
+        )
+
+        if difference_percent < 0:
+
+            market_position = "UNDER_MARKET"
+
+            saving_amount = abs(
+                price - market_price
+            )
+
+            overpay_amount = 0
+
+        elif difference_percent > 0:
+
+            market_position = "OVER_MARKET"
+
+            overpay_amount = (
+                price - market_price
+            )
+
+            saving_amount = 0
+
+        else:
+
+            market_position = "FAIR_MARKET"
+
+            saving_amount = 0
+
+            overpay_amount = 0
+
+
+        recommendation = decision.get(
+            "decision",
+            "REVIEW"
+        )
+
+
         return {
 
             "price":
-                listing.get(
-                    "price",
-                    0
-                ),
+                price,
 
             "market_price":
-                market.get(
-                    "market_price",
-                    0
-                ),
+                market_price,
 
             "difference_percent":
-                market.get(
-                    "difference_percent",
-                    0
-                ),
+                difference_percent,
+
+            "market_position":
+                market_position,
+
+            "saving_amount":
+                saving_amount,
+
+            "overpay_amount":
+                overpay_amount,
 
             "price_signal":
                 (
-                    risk.get(
-                        "risk",
-                        {}
-                    ).get(
+                    market.get(
                         "price_signal"
                     )
                     or
@@ -94,18 +164,21 @@ class ObjectIntelligenceCardBuilder:
                 ),
 
             "risk":
-                risk.get(
-                    "risk",
-                    {}
-                ),
+                risk_data,
+
+            "risk_summary":
+                risk_level,
 
             "duplicates":
+                duplicates,
+
+            "duplicate_sources":
                 dedup.get(
                     "dedup",
                     {}
                 ).get(
-                    "duplicates",
-                    0
+                    "sources",
+                    []
                 ),
 
             "market_trend":
@@ -124,46 +197,31 @@ class ObjectIntelligenceCardBuilder:
                 verdict,
 
             "decision":
-                decision or {},
+                decision,
+
+            "ai_recommendation":
+                recommendation,
 
             "explanation":
                 self.user_explanation.explain(
                     {
                         "price":
-                            listing.get(
-                                "price",
-                                0
-                            ),
+                            price,
 
                         "market_price":
-                            market.get(
-                                "market_price",
-                                0
-                            ),
+                            market_price,
 
                         "difference_percent":
-                            market.get(
-                                "difference_percent",
-                                0
-                            ),
+                            difference_percent,
 
                         "risk":
-                            risk.get(
-                                "risk",
-                                {}
-                            ),
+                            risk_data,
 
                         "duplicates":
-                            dedup.get(
-                                "dedup",
-                                {}
-                            ).get(
-                                "duplicates",
-                                0
-                            ),
+                            duplicates,
 
                         "decision":
-                            decision or {}
+                            decision
                     }
                 ),
 
