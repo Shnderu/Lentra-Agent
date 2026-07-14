@@ -19,19 +19,22 @@ from lentra.core.market_intelligence.area.district_intelligence import (
 
 class AreaEngine(BaseEngine):
     """
-    Canonical Market Intelligence Area Engine v7.
+    Canonical Market Intelligence Area Engine v8.
 
     Pipeline:
 
     listing context
           |
           v
-    Listing Area Intelligence
+    Listing Intelligence
           |
           +
           |
           v
     District Intelligence
+          |
+          v
+    Profile Fusion
           |
           v
     Unified Area Contract
@@ -42,6 +45,57 @@ class AreaEngine(BaseEngine):
     def __init__(self):
 
         self.adapter = AreaIntelligenceAdapter()
+
+
+
+    def _fuse_profiles(
+        self,
+        listing_profile: Dict[str, Any],
+        district_profile: Dict[str, Any]
+    ) -> Dict[str, float]:
+
+        keys = [
+            "internet",
+            "safety",
+            "noise",
+            "infrastructure",
+            "expat_density"
+        ]
+
+
+        result = {}
+
+
+        for key in keys:
+
+            listing_value = float(
+                listing_profile.get(
+                    key,
+                    5.0
+                )
+            )
+
+            district_value = float(
+                district_profile.get(
+                    key,
+                    5.0
+                )
+            )
+
+
+            result[key] = round(
+                (
+                    listing_value * 0.4
+                )
+                +
+                (
+                    district_value * 0.6
+                ),
+                2
+            )
+
+
+        return result
 
 
 
@@ -96,8 +150,6 @@ class AreaEngine(BaseEngine):
 
 
 
-        # Listing level intelligence
-
         raw_area = compute_area_intelligence(
             listing,
             {
@@ -106,8 +158,6 @@ class AreaEngine(BaseEngine):
         )
 
 
-
-        # District level intelligence
 
         district = detect_district(
             listing
@@ -132,11 +182,6 @@ class AreaEngine(BaseEngine):
         )
 
 
-
-        # weighted final score
-        # 60% object signals
-        # 40% district context
-
         final_score = round(
             (
                 listing_score * 0.6
@@ -149,6 +194,24 @@ class AreaEngine(BaseEngine):
         )
 
 
+        listing_profile = raw_area.get(
+            "profile",
+            {}
+        )
+
+
+        district_profile = district_intelligence.get(
+            "profile",
+            {}
+        )
+
+
+        fused_profile = self._fuse_profiles(
+            listing_profile,
+            district_profile
+        )
+
+
 
         raw_area["district"] = district
 
@@ -158,12 +221,9 @@ class AreaEngine(BaseEngine):
 
         raw_area["final_area_score"] = final_score
 
-        raw_area["district_profile"] = (
-            district_intelligence.get(
-                "profile",
-                {}
-            )
-        )
+        raw_area["district_profile"] = district_profile
+
+        raw_area["profile"] = fused_profile
 
 
 
@@ -181,15 +241,12 @@ class AreaEngine(BaseEngine):
 
         result["final_area_score"] = final_score
 
-        result["district_profile"] = (
-            district_intelligence.get(
-                "profile",
-                {}
-            )
-        )
+        result["district_profile"] = district_profile
+
+        result["profile"] = fused_profile
 
 
-        result["version"] = "area_intelligence_v7"
+        result["version"] = "area_intelligence_v8"
 
 
         return result
