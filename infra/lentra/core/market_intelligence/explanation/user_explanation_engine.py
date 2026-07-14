@@ -5,6 +5,11 @@ class UserExplanationEngine:
     """
     Converts internal intelligence signals
     into user-facing rental explanation.
+
+    Contract:
+    - DecisionLayer v2
+    - ObjectIntelligenceCard
+    - Product user explanation
     """
 
     def explain(
@@ -12,22 +17,14 @@ class UserExplanationEngine:
         card: Dict[str, Any]
     ) -> str:
 
-        price = card.get(
-            "price",
+        difference = card.get(
+            "difference_percent",
             0
         )
 
-        market_price = card.get(
-            "market_price",
+        saving_amount = card.get(
+            "saving_amount",
             0
-        )
-
-        difference = round(
-            card.get(
-                "difference_percent",
-                0
-            ),
-            2
         )
 
         risk = card.get(
@@ -35,10 +32,7 @@ class UserExplanationEngine:
             {}
         )
 
-        if not isinstance(
-            risk,
-            dict
-        ):
+        if not isinstance(risk, dict):
             risk = {}
 
         risk_level = risk.get(
@@ -56,79 +50,125 @@ class UserExplanationEngine:
             {}
         )
 
-        if not isinstance(
-            decision,
-            dict
-        ):
+        if not isinstance(decision, dict):
             decision = {}
 
         action = (
             decision.get("decision")
-            or decision.get("action")
-            or "REVIEW"
+            or
+            decision.get("action")
+            or
+            "REVIEW"
         )
 
-        score = round(
-            decision.get(
-                "decision_score",
-                0
-            ) * 100
-        )
-
-        saving = max(
-            market_price - price,
+        score = decision.get(
+            "decision_score",
             0
         )
 
-        overpay = max(
-            price - market_price,
-            0
+
+        confidence = round(
+            score * 100
         )
 
-        lines = []
 
-        if difference <= -10:
+        if action == "ACCEPT":
 
-            lines.append(
-                f"Цена ниже рынка на {abs(difference)}%."
-            )
+            reasons = []
 
-            if saving > 0:
-                lines.append(
-                    f"Экономия относительно рынка: {saving:,.0f} VND."
+
+            if difference < 0:
+
+                reasons.append(
+                    f"✓ цена ниже рынка на {abs(difference)}%"
                 )
 
-        elif difference >= 10:
 
-            lines.append(
-                f"Цена выше рынка на {difference}%."
+            if saving_amount > 0:
+
+                reasons.append(
+                    f"✓ экономия относительно рынка: "
+                    f"{saving_amount:,.0f} VND"
+                )
+
+
+            if risk_level == "low":
+
+                reasons.append(
+                    "✓ низкий риск объявления"
+                )
+
+
+            if duplicates == 0:
+
+                reasons.append(
+                    "✓ дубли не обнаружены"
+                )
+
+
+            return (
+                "🟢 Хорошее предложение.\n\n"
+                +
+                "\n".join(reasons)
+                +
+                "\n\n"
+                "Рекомендация: проверить владельца "
+                "и документы перед оплатой.\n\n"
+                f"Уверенность модели: {confidence}%."
             )
 
-            if overpay > 0:
-                lines.append(
-                    f"Потенциальная переплата: {overpay:,.0f} VND."
-                )
+
+        if action == "REJECT":
+
+            return (
+                "🔴 Не рекомендуется.\n\n"
+                "Объявление имеет высокий риск "
+                "или недостаточную рыночную ценность.\n\n"
+                f"Уверенность модели: {confidence}%."
+            )
+
+
+        reasons = []
+
+
+        if difference > 5:
+
+            reasons.append(
+                f"Цена выше рынка на {difference}%"
+            )
+
+        elif difference < -5:
+
+            reasons.append(
+                f"Цена ниже рынка на {abs(difference)}%"
+            )
 
         else:
 
-            lines.append(
-                "Цена находится в рыночном диапазоне."
+            reasons.append(
+                "Цена соответствует рынку"
             )
 
-        lines.append(
-            f"Риск объявления: {risk_level}."
-        )
 
-        lines.append(
-            f"Количество дублей: {duplicates}."
-        )
+        if risk_level != "unknown":
 
-        lines.append(
-            f"Рекомендация AI: {action}."
-        )
+            reasons.append(
+                f"Риск объявления: {risk_level}"
+            )
 
-        lines.append(
-            f"Уверенность модели: {score}%."
-        )
 
-        return "\n".join(lines)
+        if duplicates > 0:
+
+            reasons.append(
+                f"Найдено похожих объявлений: {duplicates}"
+            )
+
+
+        return (
+            "🟡 Требует проверки.\n\n"
+            +
+            "\n".join(reasons)
+            +
+            "\n\n"
+            f"Уверенность модели: {confidence}%."
+        )
