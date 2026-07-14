@@ -8,50 +8,131 @@ class RentalParser:
 
     Извлекает:
     - цену
+    - район
+    - город
     - тип жилья
-    - город (очень упрощённо)
+
+    Normalization Layer v1
     """
 
     CITY_KEYWORDS = {
-        "da nang": "da nang",
-        "danang": "da nang",
+        "da nang": "da_nang",
+        "da nang": "da_nang",
+        "danang": "da_nang",
         "bangkok": "bangkok",
         "bali": "bali",
-        "chiang mai": "chiang mai"
+        "chiang mai": "chiang_mai",
+    }
+
+    DISTRICT_KEYWORDS = {
+        "my an": "my_an",
+        "son tra": "son_tra",
+        "hoi hai": "hoi_hai",
+        "ngu hanh son": "ngu_hanh_son",
+        "an thuong": "an_thuong",
     }
 
     TYPE_KEYWORDS = {
         "studio": "studio",
         "apartment": "apartment",
         "condo": "condo",
-        "room": "room"
+        "room": "room",
     }
+
 
     def parse(self, text: str) -> Dict[str, Any]:
 
         lower_text = text.lower()
 
-        # price extraction
-        price_match = re.search(r'(\d{2,5})\s*\$', lower_text)
-        price = int(price_match.group(1)) if price_match else None
 
-        # city detection
+        # -------------------------
+        # PRICE
+        # -------------------------
+
+        price_vnd_mln = None
+
+
+        # 7 млн
+        mln_match = re.search(
+            r'(\d+(?:[.,]\d+)?)\s*(?:млн|million|m)',
+            lower_text
+        )
+
+        if mln_match:
+            price_vnd_mln = float(
+                mln_match.group(1).replace(",", ".")
+            )
+
+
+        # fallback USD
+        usd_match = re.search(
+            r'(\d{2,5})\s*\$',
+            lower_text
+        )
+
+        price_usd = None
+
+        if usd_match:
+            price_usd = int(
+                usd_match.group(1)
+            )
+
+
+        # -------------------------
+        # CITY
+        # -------------------------
+
         city = None
-        for k, v in self.CITY_KEYWORDS.items():
-            if k in lower_text:
-                city = v
+
+        for key, value in self.CITY_KEYWORDS.items():
+
+            if key in lower_text:
+                city = value
                 break
 
-        # type detection
-        rtype = None
-        for k, v in self.TYPE_KEYWORDS.items():
-            if k in lower_text:
-                rtype = v
+
+        # Telegram Da Nang канал
+        if city is None:
+            city = "da_nang"
+
+
+        # -------------------------
+        # DISTRICT
+        # -------------------------
+
+        district = None
+
+        for key, value in self.DISTRICT_KEYWORDS.items():
+
+            if key in lower_text:
+                district = value
                 break
+
+
+        # -------------------------
+        # TYPE
+        # -------------------------
+
+        property_type = None
+
+        for key, value in self.TYPE_KEYWORDS.items():
+
+            if key in lower_text:
+                property_type = value
+                break
+
 
         return {
+
             "raw": text,
-            "price": price,
+
+            "price_vnd_mln": price_vnd_mln,
+
+            "price_usd": price_usd,
+
             "city": city,
-            "type": rtype
+
+            "district": district,
+
+            "type": property_type,
         }

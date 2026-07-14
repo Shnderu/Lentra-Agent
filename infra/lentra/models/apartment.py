@@ -19,3 +19,5 @@ class Apartment(Base):
     pool = Column(Boolean, default=False)
     sea_view = Column(Boolean, default=False)
     pet_friendly = Column(Boolean, default=False)
+
+    score = Column(Float, default=0.0)
