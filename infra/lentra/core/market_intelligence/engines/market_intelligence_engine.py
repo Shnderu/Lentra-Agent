@@ -1,11 +1,15 @@
 from typing import Dict, Any
 
-from lentra.core.market_intelligence.engines.base_engine import BaseEngine
+from lentra.core.engines.base_engine import BaseEngine
 
 
 class MarketIntelligenceEngine(BaseEngine):
     """
-    Canonical Market Intelligence gateway engine.
+    Canonical Market Intelligence engine.
+
+    Contract:
+    - input: ctx dict
+    - output: intelligence result dict
 
     Responsibility:
     - interpret listing price against market truth
