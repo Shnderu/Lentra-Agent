@@ -3015,9 +3015,6 @@
     "/opt/lentra/infra/lentra/core/market_intelligence/engines/_engine_contract_guard.py": [
       "typing"
     ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/engines/signals.py": [
-      "base"
-    ],
     "/opt/lentra/infra/lentra/core/market_intelligence/engines/pricing_engine.py": [
       "_base"
     ],
@@ -3032,15 +3029,6 @@
     "/opt/lentra/infra/lentra/core/market_intelligence/engines/engine_wrapper.py": [
       "lentra.core.observability.trace_collector",
       "time",
-      "typing"
-    ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/engines/_base.py": [
-      "typing"
-    ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/engines/wrapper_v3.py": [
-      "lentra.core.market_intelligence.context.engine_context_v3"
-    ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/engines/signals_engine.py": [
       "typing"
     ],
     "/opt/lentra/infra/lentra/core/market_intelligence/engines/_compat.py": [
@@ -3069,10 +3057,6 @@
     "/opt/lentra/infra/lentra/core/market_intelligence/engines/area_engine.py": [
       "typing"
     ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/engines/dedup.py": [
-      "base"
-    ],
-    "/opt/lentra/infra/lentra/core/market_intelligence/engines/base.py": [],
     "/opt/lentra/infra/lentra/core/market_intelligence/orchestrator/builder.py": [
       "lentra.core.intelligence.orchestrator",
       "typing"
