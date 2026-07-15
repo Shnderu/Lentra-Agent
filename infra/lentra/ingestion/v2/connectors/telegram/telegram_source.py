@@ -289,10 +289,9 @@ class TelegramRentalSource:
                     "price": prop.price_vnd_mln,
                     "district": prop.district,
                     "features": prop.features,
-                    "source": {
-                        "chat_id": prop.source_chat_id,
-                        "message_id": prop.source_message_id
-                    }
+                    "source": (
+                        f"telegram:{prop.source_chat_id}:{prop.source_message_id}"
+                    )
                 }
             )
 
