@@ -13,18 +13,20 @@ from lentra.db.session import (
 )
 
 from lentra.ingestion.parsers.rental_parser import RentalParser
+from lentra.core.market_intelligence.engines.dedup_engine import DedupEngine
 
 
 API_ID = int(os.getenv("TG_API_ID"))
 API_HASH = os.getenv("TG_API_HASH")
 
-
 SESSION = "lentra_source"
-
 
 CHANNELS = [
     "danangrent",
 ]
+
+
+USD_TO_VND = 25000
 
 
 Base.metadata.create_all(bind=engine)
@@ -42,6 +44,8 @@ class TelegramRentalSource:
         )
 
         self.parser = RentalParser()
+
+        self.dedup_engine = DedupEngine()
 
 
 
@@ -76,7 +80,6 @@ class TelegramRentalSource:
                 )
 
 
-
         await self.client.disconnect()
 
 
@@ -101,7 +104,15 @@ class TelegramRentalSource:
             )
 
 
-            if not existing:
+            if existing:
+
+                print(
+                    "[RAW EXISTS]",
+                    message.id
+                )
+
+
+            else:
 
                 raw = RawMessageDB(
 
@@ -120,22 +131,9 @@ class TelegramRentalSource:
 
                 )
 
-
                 db.add(raw)
 
                 db.commit()
-
-                print(
-                    "[RAW INGESTED]",
-                    message.id
-                )
-
-            else:
-
-                print(
-                    "[RAW EXISTS]",
-                    message.id
-                )
 
 
             parsed = self.parser.parse(
@@ -143,14 +141,42 @@ class TelegramRentalSource:
             )
 
 
+            price_vnd_mln = (
+                parsed.get("price_vnd_mln")
+            )
+
+
+            if not price_vnd_mln and parsed.get("price_usd"):
+
+                price_vnd_mln = (
+                    parsed["price_usd"]
+                    * USD_TO_VND
+                    / 1000000
+                )
+
+
+            existing_apartment = (
+                db.query(Apartment)
+                .filter(
+                    Apartment.source_chat_id == message.chat_id,
+                    Apartment.source_message_id == message.id
+                )
+                .first()
+            )
+
+            if existing_apartment:
+                print(
+                    "[APARTMENT EXISTS]",
+                    message.id
+                )
+                return
+
+
             prop = Apartment(
 
                 title=message.text[:200],
 
-                price_vnd_mln=(
-                    parsed.get("price_vnd_mln")
-                    or parsed.get("price")
-                ),
+                price_vnd_mln=price_vnd_mln,
 
                 city=(
                     parsed.get("city")
@@ -159,7 +185,6 @@ class TelegramRentalSource:
 
                 district=(
                     parsed.get("district")
-                    or parsed.get("location")
                 ),
 
                 bedrooms=parsed.get("bedrooms"),
@@ -178,7 +203,75 @@ class TelegramRentalSource:
                     parsed.get("pet_friendly", False)
                 ),
 
-                score=0.5
+                # normalized fields
+
+                area_m2=parsed.get("area_m2"),
+
+                deposit_vnd_mln=parsed.get("deposit"),
+
+                electricity_price=parsed.get("electricity_price"),
+
+                water_price=parsed.get("water_price"),
+
+                floor=parsed.get("floor"),
+
+                total_floors=parsed.get("total_floors"),
+
+                balcony=bool(
+                    parsed.get("balcony", False)
+                ),
+
+                parking=bool(
+                    parsed.get("parking", False)
+                ),
+
+                wifi=bool(
+                    parsed.get("wifi", False)
+                ),
+
+                internet=bool(
+                    parsed.get("internet", False)
+                ),
+
+                air_conditioner=bool(
+                    parsed.get("air_conditioner", False)
+                ),
+
+                washing_machine=bool(
+                    parsed.get("washing_machine", False)
+                ),
+
+                kitchen=bool(
+                    parsed.get("kitchen", False)
+                ),
+
+                refrigerator=bool(
+                    parsed.get("refrigerator", False)
+                ),
+
+                furnished=bool(
+                    parsed.get("furnished", False)
+                ),
+
+                property_type=parsed.get("type"),
+
+                currency=(
+                    "USD"
+                    if parsed.get("price_usd")
+                    else "VND"
+                ),
+
+                description=message.text,
+
+                raw_text=message.text,
+
+                features=parsed.get("features"),
+
+                score=0.5,
+
+                source_chat_id=message.chat_id,
+
+                source_message_id=message.id
 
             )
 
@@ -187,10 +280,31 @@ class TelegramRentalSource:
 
             db.commit()
 
+            dedup_result = self.dedup_engine.evaluate(
+                {
+                    "id": prop.id,
+                    "title": prop.title,
+                    "city": prop.city,
+                    "type": prop.property_type,
+                    "price": prop.price_vnd_mln,
+                    "district": prop.district,
+                    "features": prop.features,
+                    "source": {
+                        "chat_id": prop.source_chat_id,
+                        "message_id": prop.source_message_id
+                    }
+                }
+            )
+
+            print(
+                "[DEDUP]",
+                dedup_result.get("dedup")
+            )
+
 
             print(
                 "[APARTMENT INGESTED]",
-                prop.title[:50]
+                prop.title[:60]
             )
 
 
