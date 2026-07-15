@@ -42,15 +42,15 @@ class GraphRouter:
         mapping = {
             "risk_engine": [
                 "RiskEngine",
-                "RiskEngine.evaluate",
+                "RiskEngine.run",
             ],
             "dedup_engine": [
                 "DedupEngine",
-                "DedupEngine.evaluate",
+                "DedupEngine.run",
             ],
             "area_engine": [
                 "AreaEngine",
-                "AreaEngine.evaluate",
+                "AreaEngine.run",
             ],
         }
 
