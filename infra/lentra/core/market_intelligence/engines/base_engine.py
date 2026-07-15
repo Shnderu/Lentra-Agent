@@ -1,20 +1,5 @@
-from abc import ABC, abstractmethod
-from typing import Any, Dict
+from lentra.core.engines.base_engine import BaseEngine
 
-
-class BaseEngine(ABC):
-    """
-    Unified Market Intelligence Engine contract.
-
-    RULES:
-    - all canonical engines expose run(ctx)
-    - ctx is input payload
-    - engine returns intelligence result
-    """
-
-    def __init__(self, config: Dict[str, Any] | None = None):
-        self.config = config or {}
-
-    @abstractmethod
-    def run(self, ctx: Dict[str, Any]) -> Dict[str, Any]:
-        raise NotImplementedError()
+__all__ = [
+    "BaseEngine",
+]

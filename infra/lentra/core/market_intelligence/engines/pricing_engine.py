@@ -1,31 +1,31 @@
-from ._base import BaseEngine
+from typing import Dict, Any
+
+from lentra.core.engines.base_engine import BaseEngine
 
 
 class PricingEngine(BaseEngine):
     """
-    V3 PRICE INTELLIGENCE ENGINE
+    Canonical Market Intelligence Pricing Engine.
 
-    Responsibility:
-    - compare listing price with market price
-    - normalize deviation into 0..1 score
-    - preserve market context for downstream AI layers
+    Contract:
+
+        run(ctx) -> intelligence result
     """
 
-    def evaluate(self, result, ctx=None):
+    def run(
+        self,
+        ctx: Dict[str, Any]
+    ) -> Dict[str, Any]:
 
-        if not isinstance(result, dict):
-            result = {}
-
-        price = result.get(
+        price = ctx.get(
             "price",
             0
         )
 
-        market = result.get(
+        market = ctx.get(
             "market_price",
             0
         )
-
 
         if market:
 
@@ -51,31 +51,30 @@ class PricingEngine(BaseEngine):
             score = 0.5
 
 
-        result["pricing"] = {
+        return {
+            **ctx,
 
-            # keep original market context
-            "price": price,
+            "pricing": {
 
-            "market_price": market,
+                "price": price,
 
-            # intelligence metrics
-            "score": round(
-                score,
-                4
-            ),
+                "market_price": market,
 
-            "delta": round(
-                price - market,
-                2
-            ),
+                "score": round(
+                    score,
+                    4
+                ),
 
-            "deviation": round(
-                deviation,
-                4
-            ),
+                "delta": round(
+                    price - market,
+                    2
+                ),
 
-            "status": "ok"
+                "deviation": round(
+                    deviation,
+                    4
+                ),
+
+                "status": "ok"
+            }
         }
-
-
-        return result

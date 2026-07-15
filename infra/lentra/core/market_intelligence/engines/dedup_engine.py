@@ -13,7 +13,7 @@ class DedupEngine:
 
 
 
-    def evaluate(
+    def run(
         self,
         result: Dict[str, Any]
     ) -> Dict[str, Any]:
