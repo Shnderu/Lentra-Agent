@@ -5,6 +5,9 @@ class AreaIntelligenceAdapter:
     """
     Normalizes area intelligence
     into Market Intelligence contract.
+
+    v10:
+    Uses final fused area score produced by AreaEngine.
     """
 
     def build(
@@ -24,8 +27,13 @@ class AreaIntelligenceAdapter:
         )
 
 
+        #
+        # Final score produced by AreaEngine.
+        #
+
         overall = (
-            raw_area.get("overall_score")
+            raw_area.get("final_area_score")
+            or raw_area.get("overall_score")
             or raw_area.get("area_score")
             or raw_area.get("score")
             or 5.0
@@ -87,7 +95,11 @@ class AreaIntelligenceAdapter:
 
 
 
-        if normalized >= 0.75:
+        if normalized >= 0.85:
+
+            verdict = "PREMIUM_AREA"
+
+        elif normalized >= 0.70:
 
             verdict = "GOOD_FOR_EXPATS"
 
@@ -126,14 +138,43 @@ class AreaIntelligenceAdapter:
 
             "classification":
                 raw_area.get(
-                    "area_level",
-                    "average"
+                    "classification",
+                    raw_area.get(
+                        "area_level",
+                        "average"
+                    )
                 ),
 
             "verdict":
                 verdict,
 
+            "district":
+                raw_area.get(
+                    "district"
+                ),
+
+            "district_score":
+                raw_area.get(
+                    "district_score"
+                ),
+
+            "listing_score":
+                raw_area.get(
+                    "listing_score"
+                ),
+
+            "final_area_score":
+                raw_area.get(
+                    "final_area_score"
+                ),
+
+            "district_profile":
+                raw_area.get(
+                    "district_profile",
+                    {}
+                ),
+
             "version":
-                "area_intelligence_v6"
+                "area_intelligence_v10"
 
         }

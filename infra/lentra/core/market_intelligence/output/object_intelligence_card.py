@@ -11,9 +11,14 @@ class ObjectIntelligenceCardBuilder:
 
     Converts Market Intelligence signals
     into stable Object Intelligence Card.
+
+    v9:
+    Adds unified area_intelligence contract
+    while preserving legacy area field.
     """
 
     def __init__(self):
+
         self.user_explanation = UserExplanationEngine()
 
 
@@ -55,6 +60,75 @@ class ObjectIntelligenceCardBuilder:
         return risk
 
 
+    def _build_area_intelligence(
+        self,
+        area: Dict[str, Any]
+    ) -> Dict[str, Any]:
+
+        if not isinstance(area, dict):
+            return {}
+
+
+        return {
+
+            "district":
+                area.get(
+                    "district"
+                ),
+
+            "district_score":
+                area.get(
+                    "district_score",
+                    0
+                ),
+
+            "listing_score":
+                area.get(
+                    "listing_score",
+                    0
+                ),
+
+            "final_score":
+                area.get(
+                    "final_area_score",
+                    area.get(
+                        "overall_score",
+                        0
+                    )
+                ),
+
+            "profile":
+                area.get(
+                    "profile",
+                    {}
+                ),
+
+            "district_profile":
+                area.get(
+                    "district_profile",
+                    {}
+                ),
+
+            "classification":
+                area.get(
+                    "classification",
+                    "unknown"
+                ),
+
+            "verdict":
+                area.get(
+                    "verdict",
+                    "unknown"
+                ),
+
+            "version":
+                area.get(
+                    "version",
+                    "unknown"
+                )
+        }
+
+
     def build(
         self,
         listing: Dict[str, Any],
@@ -73,12 +147,14 @@ class ObjectIntelligenceCardBuilder:
             {}
         )
 
+
         risk = self._extract_risk(
             intelligence.get(
                 "risk",
                 {}
             )
         )
+
 
         dedup = self._extract_dedup(
             intelligence.get(
@@ -87,22 +163,32 @@ class ObjectIntelligenceCardBuilder:
             )
         )
 
+
         area = intelligence.get(
             "area",
             {}
         )
 
+
+        area_intelligence = self._build_area_intelligence(
+            area
+        )
+
+
         decision = decision or {}
+
 
         price = listing.get(
             "price",
             0
         )
 
+
         market_price = market.get(
             "market_price",
             0
         )
+
 
         difference_percent = market.get(
             "difference_percent",
@@ -183,6 +269,7 @@ class ObjectIntelligenceCardBuilder:
 
             "overpay_amount": overpay_amount,
 
+
             "price_signal":
                 (
                     market.get(
@@ -196,9 +283,11 @@ class ObjectIntelligenceCardBuilder:
                     "unknown"
                 ),
 
+
             "risk": risk,
 
             "risk_summary": risk_level,
+
 
             "duplicates": duplicates,
 
@@ -207,6 +296,7 @@ class ObjectIntelligenceCardBuilder:
                     "sources",
                     []
                 ),
+
 
             "market_trend":
                 intelligence.get(
@@ -217,13 +307,24 @@ class ObjectIntelligenceCardBuilder:
                     "unknown"
                 ),
 
+
+            # legacy contract
             "area": area,
+
+
+            # v9 product contract
+            "area_intelligence":
+                area_intelligence,
+
 
             "ai_verdict": verdict,
 
+
             "decision": decision,
 
+
             "ai_recommendation": recommendation,
+
 
             "explanation":
                 self.user_explanation.explain(
@@ -242,5 +343,7 @@ class ObjectIntelligenceCardBuilder:
                     }
                 ),
 
+
             "ranking": ranking
+
         }
