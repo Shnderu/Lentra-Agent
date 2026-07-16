@@ -68,11 +68,6 @@ class PropertyDB(Base):
     """
     Canonical normalized property entity.
 
-    Source:
-        Telegram
-        Facebook
-        Local sites
-
     Used by:
         Deduplication
         Market Intelligence
@@ -81,28 +76,14 @@ class PropertyDB(Base):
 
     __tablename__ = "properties"
 
-
     id = Column(
         Integer,
         primary_key=True
     )
 
-
     title = Column(
         String,
-        nullable=True
-    )
-
-    description = Column(
-        Text
-    )
-
-
-    # normalized pricing
-
-    price = Column(
-        Float,
-        nullable=True
+        nullable=False
     )
 
     price_vnd_mln = Column(
@@ -111,39 +92,10 @@ class PropertyDB(Base):
         index=True
     )
 
-    currency = Column(
-        String,
+    deposit_vnd_mln = Column(
+        Float,
         nullable=True
     )
-
-
-    # location
-
-    location = Column(
-        String,
-        nullable=True
-    )
-
-    city = Column(
-        String,
-        nullable=True,
-        index=True
-    )
-
-    district = Column(
-        String,
-        nullable=True,
-        index=True
-    )
-
-
-    property_type = Column(
-        String,
-        nullable=True
-    )
-
-
-    # property characteristics
 
     area_m2 = Column(
         Float,
@@ -160,6 +112,10 @@ class PropertyDB(Base):
         nullable=True
     )
 
+    pet_friendly = Column(
+        Boolean,
+        default=False
+    )
 
     pool = Column(
         Boolean,
@@ -171,54 +127,47 @@ class PropertyDB(Base):
         default=False
     )
 
-    pet_friendly = Column(
-        Boolean,
-        default=False
-    )
-
-
-    # intelligence fields
-
     score = Column(
         Float,
         default=0.0
     )
 
-    confidence = Column(
-        Float,
-        default=0.0
+    raw = Column(
+        Text
     )
-
 
     features = Column(
         JSON
     )
 
+    city = Column(
+        String,
+        index=True
+    )
 
-    raw_text = Column(
+    district = Column(
+        String,
+        index=True
+    )
+
+    source = Column(
         Text
     )
 
+    url = Column(
+        Text
+    )
 
-    raw_data = Column(
+    embedding = Column(
         JSON
     )
 
-
-    # source tracking
-
-    source_chat_id = Column(
-        Integer,
-        index=True
-    )
-
-    source_message_id = Column(
-        Integer,
-        index=True
-    )
-
-
     created_at = Column(
+        DateTime,
+        default=datetime.utcnow
+    )
+
+    updated_at = Column(
         DateTime,
         default=datetime.utcnow
     )
