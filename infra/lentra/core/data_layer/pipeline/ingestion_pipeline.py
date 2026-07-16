@@ -81,6 +81,12 @@ class IngestionPipeline:
         )
 
 
+        cluster_metadata = dedup_result.get(
+            "cluster_metadata",
+            []
+        )
+
+
         market_stats = self.pricing.build_market(
             clusters
         )
@@ -89,11 +95,41 @@ class IngestionPipeline:
         enriched = []
 
 
-        for cluster in clusters:
+        for cluster_index, cluster in enumerate(clusters):
 
             duplicate_count = len(
                 cluster
             )
+
+
+            metadata = {}
+
+            if cluster_index < len(cluster_metadata):
+
+                metadata = cluster_metadata[
+                    cluster_index
+                ]
+
+
+            object_memory = metadata.get(
+                "object_memory",
+                {}
+            )
+
+
+            snapshot_memory = {
+                **object_memory,
+
+                "price_history": list(
+                    object_memory.get(
+                        "price_history",
+                        []
+                    )
+                )
+            }
+
+
+            cluster_items = []
 
 
             for item in cluster:
@@ -122,14 +158,24 @@ class IngestionPipeline:
                 }
 
 
-                snapshot_eval = self.snapshot.enrich(
+                snapshot_memory = self.snapshot.update(
+                    snapshot_memory,
                     item_with_area
                 )
 
 
+                cluster_items.append(
+                    item_with_area
+                )
+
+
+
+            for item_with_area in cluster_items:
+
+
                 item_with_snapshot = {
                     **item_with_area,
-                    **snapshot_eval
+                    **snapshot_memory
                 }
 
 
