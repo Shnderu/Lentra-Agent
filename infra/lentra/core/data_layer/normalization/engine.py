@@ -17,28 +17,46 @@ class NormalizationEngine:
     def __init__(self):
         self.geo = GeoClassifier()
 
-    def normalize(self, raw: Dict[str, Any]) -> Dict[str, Any]:
+    def normalize(
+        self,
+        raw: Dict[str, Any]
+    ) -> Dict[str, Any]:
+
+        location = self.geo.classify(
+            raw.get("location")
+        )
+
+        property_type = self._normalize_property_type(
+            raw.get("property_type"),
+            raw.get("title"),
+            raw.get("description")
+        )
+
         return {
             "id": raw.get("id"),
+
             "source": raw.get("source"),
+
             "source_url": raw.get("source_url"),
 
-            "title": self._clean_text(raw.get("title")),
-            "description": self._clean_text(raw.get("description")),
+            "title": self._clean_text(
+                raw.get("title")
+            ),
 
-            # Canonical internal price format
+            "description": self._clean_text(
+                raw.get("description")
+            ),
+
             "price_vnd": self._normalize_price_vnd(
                 raw.get("price"),
                 raw.get("currency")
             ),
 
-            # Preserve source information
             "price_original": raw.get("price"),
+
             "currency_original": raw.get("currency"),
 
-            "property_type": self._normalize_property_type(
-                raw.get("property_type")
-            ),
+            "property_type": property_type,
 
             "size_m2": self._parse_float(
                 raw.get("size")
@@ -48,14 +66,52 @@ class NormalizationEngine:
                 raw.get("rooms")
             ),
 
-            "location": self.geo.classify(
-                raw.get("location")
+            "location": location,
+
+            "segment_key": self._build_segment_key(
+                location,
+                property_type
             ),
 
             "images": raw.get("images") or [],
+
             "contact": raw.get("contact"),
+
             "timestamp": raw.get("timestamp"),
         }
+
+
+    def _build_segment_key(
+        self,
+        location: Dict[str, Any],
+        property_type: Optional[str]
+    ) -> str:
+
+        city = (
+            location.get("city")
+            or "unknown"
+        ).lower().replace(
+            " ",
+            "_"
+        )
+
+        district = (
+            location.get("district")
+            or "unknown"
+        ).lower().replace(
+            " ",
+            "_"
+        )
+
+        prop = (
+            property_type
+            or "unknown"
+        )
+
+        return (
+            f"{city}:{district}:{prop}"
+        )
+
 
     # -------------------------
     # PRICE NORMALIZATION
@@ -89,6 +145,7 @@ class NormalizationEngine:
         except Exception:
             return None
 
+
     # -------------------------
     # TEXT CLEANING
     # -------------------------
@@ -107,33 +164,49 @@ class NormalizationEngine:
             text
         ).strip()
 
+
     # -------------------------
     # PROPERTY TYPE
     # -------------------------
 
     def _normalize_property_type(
         self,
-        value: Optional[str]
-    ) -> Optional[str]:
+        value: Optional[str],
+        title: Optional[str] = None,
+        description: Optional[str] = None
+    ) -> str:
 
-        if not value:
-            return None
+        text = " ".join(
+            [
+                str(value or ""),
+                str(title or ""),
+                str(description or "")
+            ]
+        ).lower()
 
-        v = value.lower()
 
-        if "studio" in v:
+        if "studio" in text:
             return "studio"
 
-        if "apartment" in v or "flat" in v:
+
+        if (
+            "apartment" in text
+            or "flat" in text
+            or "condo" in text
+        ):
             return "apartment"
 
-        if "villa" in v:
+
+        if "villa" in text:
             return "villa"
 
-        if "room" in v:
+
+        if "room" in text:
             return "room"
 
+
         return "unknown"
+
 
     # -------------------------
     # NUMERIC PARSING
@@ -156,6 +229,7 @@ class NormalizationEngine:
 
         except Exception:
             return None
+
 
     def _parse_int(
         self,
