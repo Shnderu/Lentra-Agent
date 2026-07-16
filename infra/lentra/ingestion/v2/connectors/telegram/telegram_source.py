@@ -154,21 +154,74 @@ class TelegramRentalSource:
                 )
 
 
-            existing_apartment = (
+            source_key = (
+                f"telegram:{message.chat_id}:{message.id}"
+            )
+
+
+            existing_property = (
                 db.query(PropertyDB)
                 .filter(
-                    PropertyDB.source_chat_id == message.chat_id,
-                    PropertyDB.source_message_id == message.id
+                    PropertyDB.source == source_key
                 )
                 .first()
             )
 
-            if existing_apartment:
+
+            if existing_property:
                 print(
-                    "[APARTMENT EXISTS]",
+                    "[PROPERTY EXISTS]",
                     message.id
                 )
                 return
+
+
+
+            features = {
+
+                "wifi": bool(
+                    parsed.get("wifi", False)
+                ),
+
+                "internet": bool(
+                    parsed.get("internet", False)
+                ),
+
+                "washing_machine": bool(
+                    parsed.get("washing_machine", False)
+                ),
+
+                "kitchen": bool(
+                    parsed.get("kitchen", False)
+                ),
+
+                "refrigerator": bool(
+                    parsed.get("refrigerator", False)
+                ),
+
+                "furnished": bool(
+                    parsed.get("furnished", False)
+                ),
+
+                "balcony": bool(
+                    parsed.get("balcony", False)
+                ),
+
+                "parking": bool(
+                    parsed.get("parking", False)
+                ),
+
+                "floor": parsed.get("floor"),
+
+                "total_floors": parsed.get("total_floors"),
+
+                "electricity_price": parsed.get("electricity_price"),
+
+                "water_price": parsed.get("water_price"),
+
+                "raw_features": parsed.get("features"),
+            }
+
 
 
             prop = PropertyDB(
@@ -182,9 +235,7 @@ class TelegramRentalSource:
                     or "da_nang"
                 ),
 
-                district=(
-                    parsed.get("district")
-                ),
+                district=parsed.get("district"),
 
                 bedrooms=parsed.get("bedrooms"),
 
@@ -202,75 +253,17 @@ class TelegramRentalSource:
                     parsed.get("pet_friendly", False)
                 ),
 
-                # normalized fields
-
                 area_m2=parsed.get("area_m2"),
 
                 deposit_vnd_mln=parsed.get("deposit"),
 
-                electricity_price=parsed.get("electricity_price"),
+                score=0.0,
 
-                water_price=parsed.get("water_price"),
+                source=source_key,
 
-                floor=parsed.get("floor"),
+                raw=message.text,
 
-                total_floors=parsed.get("total_floors"),
-
-                balcony=bool(
-                    parsed.get("balcony", False)
-                ),
-
-                parking=bool(
-                    parsed.get("parking", False)
-                ),
-
-                wifi=bool(
-                    parsed.get("wifi", False)
-                ),
-
-                internet=bool(
-                    parsed.get("internet", False)
-                ),
-
-                air_conditioner=bool(
-                    parsed.get("air_conditioner", False)
-                ),
-
-                washing_machine=bool(
-                    parsed.get("washing_machine", False)
-                ),
-
-                kitchen=bool(
-                    parsed.get("kitchen", False)
-                ),
-
-                refrigerator=bool(
-                    parsed.get("refrigerator", False)
-                ),
-
-                furnished=bool(
-                    parsed.get("furnished", False)
-                ),
-
-                property_type=parsed.get("type"),
-
-                currency=(
-                    "USD"
-                    if parsed.get("price_usd")
-                    else "VND"
-                ),
-
-                description=message.text,
-
-                raw_text=message.text,
-
-                features=parsed.get("features"),
-
-                score=0.5,
-
-                source_chat_id=message.chat_id,
-
-                source_message_id=message.id
+                features=features,
 
             )
 
