@@ -8,21 +8,21 @@ from lentra.core.market_intelligence.engines.pricing_engine import (
 
 class PipelinePricingAdapter:
     """
-    ARCH V2 CONTRACT BOUNDARY
+    ARCH V2 CONTRACT
 
     Data Layer:
         price_vnd
 
     Market Intelligence:
-        price
         market_price
-
-    Market is calculated per segment_key.
+        pricing signals
     """
+
 
     def __init__(self):
 
         self.engine = PricingEngine()
+
 
 
     def _prepare_listing(
@@ -34,9 +34,11 @@ class PipelinePricingAdapter:
             **listing
         }
 
+
         price = item.get(
             "price"
         )
+
 
         if price is None:
 
@@ -44,23 +46,23 @@ class PipelinePricingAdapter:
                 "price_vnd"
             )
 
-        if price is None:
-
-            price = 0
 
         item["price"] = float(
-            price
+            price or 0
         )
 
+
         return item
+
 
 
     def build_market(
         self,
         clusters: List[List[Dict[str, Any]]]
-    ) -> Dict[str, Dict[str, Any]]:
+    ) -> Dict[str, Any]:
 
-        segments: Dict[str, List[float]] = {}
+        segments = {}
+
 
         for cluster in clusters:
 
@@ -70,29 +72,35 @@ class PipelinePricingAdapter:
                     item
                 )
 
-                if prepared["price"] <= 0:
-                    continue
 
                 segment = prepared.get(
-                    "segment_key"
-                ) or "unknown"
-
-                segments.setdefault(
-                    segment,
-                    []
-                ).append(
-                    prepared["price"]
+                    "segment_key",
+                    "unknown"
                 )
 
-        market = {}
+
+                if segment not in segments:
+
+                    segments[segment] = []
+
+
+                if prepared["price"] > 0:
+
+                    segments[segment].append(
+                        prepared["price"]
+                    )
+
+
+        result = {}
+
 
         for segment, prices in segments.items():
 
-            market[segment] = {
+            result[segment] = {
 
                 "market_price": statistics.median(
                     prices
-                ),
+                ) if prices else 0,
 
                 "sample_size": len(
                     prices
@@ -100,15 +108,44 @@ class PipelinePricingAdapter:
 
                 "price_min": min(
                     prices
-                ),
+                ) if prices else 0,
 
                 "price_max": max(
                     prices
-                )
+                ) if prices else 0
 
             }
 
-        return market
+
+        return result
+
+
+
+    def _resolve_market(
+        self,
+        listing: Dict[str, Any],
+        market_stats: Dict[str, Any]
+    ) -> Dict[str, Any]:
+
+        segment = listing.get(
+            "segment_key",
+            "unknown"
+        )
+
+
+        if segment in market_stats:
+
+            return market_stats[segment]
+
+
+        return {
+
+            "market_price": 0,
+
+            "sample_size": 0
+
+        }
+
 
 
     def evaluate(
@@ -121,20 +158,21 @@ class PipelinePricingAdapter:
             listing
         )
 
-        market_price = market_stats.get(
-            "market_price",
-            0
+
+        segment_market = self._resolve_market(
+            payload,
+            market_stats
         )
 
-        if market_price is None:
-
-            market_price = 0
 
         payload["market_price"] = float(
-            market_price
+            segment_market.get(
+                "market_price",
+                0
+            )
         )
+
 
         return self.engine.run(
             payload
         )
-

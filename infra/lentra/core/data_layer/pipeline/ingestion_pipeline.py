@@ -15,6 +15,10 @@ from lentra.core.market_intelligence.adapters.pipeline_area_adapter import (
     PipelineAreaAdapter
 )
 
+from lentra.core.market_intelligence.adapters.pipeline_snapshot_adapter import (
+    PipelineSnapshotAdapter
+)
+
 from lentra.core.market_intelligence.engines.risk_engine import (
     RiskEngine
 )
@@ -25,26 +29,6 @@ from lentra.core.market_intelligence.adapters.risk_engine_adapter import (
 
 
 class IngestionPipeline:
-    """
-    VIETNAM MARKET INTELLIGENCE PIPELINE:
-
-    INGESTION
-        |
-        v
-    NORMALIZATION
-        |
-        v
-    DEDUP INTELLIGENCE
-        |
-        v
-    SEGMENT MARKET PRICING
-        |
-        v
-    AREA INTELLIGENCE
-        |
-        v
-    RISK INTELLIGENCE
-    """
 
 
     def __init__(self):
@@ -59,9 +43,12 @@ class IngestionPipeline:
 
         self.area = PipelineAreaAdapter()
 
+        self.snapshot = PipelineSnapshotAdapter()
+
         self.risk = RiskEngineAdapter(
             RiskEngine()
         )
+
 
 
     def ingest_batch(
@@ -69,18 +56,18 @@ class IngestionPipeline:
         raw_items: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
 
+
         normalized_items = []
 
 
         for item in raw_items:
 
-            normalized = self.normalizer.normalize(
-                item
+            normalized_items.append(
+                self.normalizer.normalize(
+                    item
+                )
             )
 
-            normalized_items.append(
-                normalized
-            )
 
 
         dedup_result = self.deduper.deduplicate(
@@ -111,24 +98,10 @@ class IngestionPipeline:
 
             for item in cluster:
 
-                segment_key = item.get(
-                    "segment_key",
-                    "unknown"
-                )
-
-
-                segment_market = market_stats.get(
-                    segment_key,
-                    {
-                        "market_price": 0,
-                        "sample_size": 0
-                    }
-                )
-
 
                 price_eval = self.pricing.evaluate(
                     item,
-                    segment_market
+                    market_stats
                 )
 
 
@@ -149,16 +122,27 @@ class IngestionPipeline:
                 }
 
 
+                snapshot_eval = self.snapshot.enrich(
+                    item_with_area
+                )
+
+
+                item_with_snapshot = {
+                    **item_with_area,
+                    **snapshot_eval
+                }
+
+
                 risk_eval = self.risk.evaluate(
-                    item_with_area,
-                    segment_market,
+                    item_with_snapshot,
+                    market_stats,
                     duplicate_count
                 )
 
 
                 enriched.append(
                     {
-                        **item_with_area,
+                        **item_with_snapshot,
 
                         "risk_score": risk_eval.get(
                             "risk_score",
@@ -171,11 +155,12 @@ class IngestionPipeline:
                         ),
 
                         "risk_signals": risk_eval.get(
-                            "signals",
+                            "risk_signals",
                             []
                         ),
                     }
                 )
+
 
 
         for item in enriched:
@@ -183,6 +168,7 @@ class IngestionPipeline:
             self.store.upsert(
                 item
             )
+
 
 
         return {
@@ -204,10 +190,11 @@ class IngestionPipeline:
             "market_segments": market_stats,
 
             "status": "ok"
+
         }
+
 
 
     def dump_all(self):
 
         return self.store.all()
-
