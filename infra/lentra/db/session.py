@@ -1,7 +1,21 @@
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
-DATABASE_URL = "postgresql://lentra:lentra@127.0.0.1:5432/lentra"
+
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    (
+        "postgresql://"
+        f"{os.getenv('LENTRA_DB_USER', 'lentra')}:"
+        f"{os.getenv('LENTRA_DB_PASSWORD', 'lentra')}@"
+        f"{os.getenv('LENTRA_DB_HOST', '127.0.0.1')}:"
+        f"{os.getenv('LENTRA_DB_PORT', '5432')}/"
+        f"{os.getenv('LENTRA_DB_NAME', 'lentra')}"
+    ),
+)
+
 
 engine = create_engine(
     DATABASE_URL,
@@ -11,7 +25,12 @@ engine = create_engine(
     pool_recycle=300,
 )
 
-SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+
+SessionLocal = sessionmaker(
+    bind=engine,
+    autocommit=False,
+    autoflush=False,
+)
 
 
 class Base(DeclarativeBase):
@@ -20,7 +39,9 @@ class Base(DeclarativeBase):
 
 def get_db():
     db = SessionLocal()
+
     try:
         yield db
+
     finally:
         db.close()
