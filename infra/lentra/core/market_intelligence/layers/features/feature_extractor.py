@@ -1,12 +1,13 @@
-from lentra.core.contracts.v1.models.listing import Listing
+from lentra.core.contracts.v1.models.property import Property
 
 
-def extract_features(listing: Listing) -> dict:
+def extract_features(property: Property) -> dict:
     return {
-        "price": listing.price,
-        "city": listing.city,
-        "location": listing.location,
-        "currency": listing.currency,
-        "title_length": len(listing.title or ""),
-        "is_near_beach": "beach" in (listing.title or "").lower(),
+        "price": property.price,
+        "city": property.city,
+        "location": property.district
+        or property.metadata.get("location", ""),
+        "currency": property.currency,
+        "title_length": len(property.title or ""),
+        "is_near_beach": "beach" in (property.title or "").lower(),
     }
