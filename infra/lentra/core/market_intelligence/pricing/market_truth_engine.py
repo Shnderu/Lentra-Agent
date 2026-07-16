@@ -1,4 +1,5 @@
 import statistics
+from collections import defaultdict
 
 from lentra.core.market_intelligence.repository.market_snapshot_repository import (
     MarketSnapshotRepository,
@@ -13,12 +14,13 @@ class MarketTruthEngine:
     - stabilize raw market prices
     - remove anomalies
     - produce canonical market snapshot
+    - calculate segment market truth
 
     Canonical price:
     - price_vnd
 
-    Legacy:
-    - price fallback only
+    Segment intelligence:
+    - segment_key based market comparison
     """
 
     def __init__(self):
@@ -46,6 +48,69 @@ class MarketTruthEngine:
         return None
 
 
+    def _build_segment_market(
+        self,
+        listings: list
+    ) -> dict:
+
+        segments = defaultdict(list)
+
+
+        for listing in listings:
+
+            segment = listing.get(
+                "segment_key",
+                "unknown"
+            )
+
+            price = listing.get(
+                "price_vnd"
+            )
+
+            if price is not None:
+                segments[segment].append(
+                    price
+                )
+
+
+        result = {}
+
+
+        for segment, prices in segments.items():
+
+            if not prices:
+                continue
+
+
+            result[segment] = {
+
+                "median_price":
+                    statistics.median(
+                        prices
+                    ),
+
+                "mean_price":
+                    round(
+                        statistics.mean(prices),
+                        2
+                    ),
+
+                "sample_size":
+                    len(prices),
+
+                "price_min":
+                    min(prices),
+
+                "price_max":
+                    max(prices)
+
+            }
+
+
+        return result
+
+
+
     def stabilize(
         self,
         listings: list
@@ -69,7 +134,9 @@ class MarketTruthEngine:
                 listing
             )
 
+
             item["price_vnd"] = price
+
 
             normalized.append(
                 item
@@ -108,6 +175,8 @@ class MarketTruthEngine:
 
                 "outliers_removed": 0,
 
+                "segment_market": {},
+
                 "clean_listings": []
 
             }
@@ -115,9 +184,11 @@ class MarketTruthEngine:
             return snapshot
 
 
+
         median = statistics.median(
             prices
         )
+
 
         mean = statistics.mean(
             prices
@@ -190,7 +261,7 @@ class MarketTruthEngine:
 
         confidence = min(
             1.0,
-            len(clean_prices)/20
+            len(clean_prices) / 20
         )
 
 
@@ -207,9 +278,15 @@ class MarketTruthEngine:
             health = "weak"
 
 
+
         city = clean[0].get(
             "city",
             "unknown"
+        )
+
+
+        segment_market = self._build_segment_market(
+            clean
         )
 
 
@@ -239,6 +316,8 @@ class MarketTruthEngine:
             "market_health": health,
 
             "outliers_removed": outliers,
+
+            "segment_market": segment_market,
 
             "clean_listings": clean
 

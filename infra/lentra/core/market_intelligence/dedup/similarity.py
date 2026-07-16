@@ -3,12 +3,14 @@ from typing import Dict, Any
 
 class SimilarityEngine:
     """
-    Dedup Intelligence Similarity Engine
+    Dedup Intelligence Similarity Engine V5
 
     Responsibility:
     - compare normalized listings
-    - return similarity score
+    - use property context
+    - detect same property across sources
     """
+
 
     def compare(
         self,
@@ -45,12 +47,6 @@ class SimilarityEngine:
                 right_title.split()
             )
 
-            intersection = len(
-                left_words.intersection(
-                    right_words
-                )
-            )
-
             union = len(
                 left_words.union(
                     right_words
@@ -60,19 +56,69 @@ class SimilarityEngine:
             if union:
 
                 score += (
-                    intersection /
+                    len(
+                        left_words.intersection(
+                            right_words
+                        )
+                    )
+                    /
                     union
-                ) * 0.5
+                ) * 0.25
 
 
 
         if (
             left.get("city")
+            and
+            left.get("city")
             ==
             right.get("city")
         ):
 
-            score += 0.2
+            score += 0.15
+
+
+
+        if (
+            left.get("segment_key")
+            and
+            left.get("segment_key")
+            ==
+            right.get("segment_key")
+        ):
+
+            score += 0.35
+
+
+
+        left_location = left.get(
+            "location",
+            {}
+        )
+
+        right_location = right.get(
+            "location",
+            {}
+        )
+
+
+        if isinstance(
+            left_location,
+            dict
+        ) and isinstance(
+            right_location,
+            dict
+        ):
+
+            if (
+                left_location.get("district")
+                and
+                left_location.get("district")
+                ==
+                right_location.get("district")
+            ):
+
+                score += 0.15
 
 
 
@@ -82,7 +128,7 @@ class SimilarityEngine:
             right.get("type")
         ):
 
-            score += 0.1
+            score += 0.05
 
 
 
@@ -112,9 +158,10 @@ class SimilarityEngine:
                 right_price
             )
 
-            if diff < 0.1:
+            if diff < 0.15:
 
-                score += 0.2
+                score += 0.05
+
 
 
         return round(

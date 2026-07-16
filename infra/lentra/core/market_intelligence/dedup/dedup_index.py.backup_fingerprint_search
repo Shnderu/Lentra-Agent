@@ -80,46 +80,6 @@ class DedupIndex:
 
         matches = []
 
-
-        fingerprint = listing.get(
-            "fingerprint"
-        )
-
-
-        #
-        # PHASE 1
-        # Exact fingerprint match
-        #
-
-        if fingerprint:
-
-            for item in self.index.get(
-                fingerprint,
-                []
-            ):
-
-                if item.get("id") == listing.get("id"):
-                    continue
-
-                matches.append(
-                    {
-                        **item,
-                        "similarity": 1.0
-                    }
-                )
-
-
-            if matches:
-
-                return matches
-
-
-
-        #
-        # PHASE 2
-        # Similarity fallback
-        #
-
         for items in self.index.values():
 
             for item in items:
@@ -127,12 +87,10 @@ class DedupIndex:
                 if item.get("id") == listing.get("id"):
                     continue
 
-
                 score = self.similarity.compare(
                     listing,
                     item
                 )
-
 
                 if score >= 0.7:
 
@@ -143,9 +101,7 @@ class DedupIndex:
                         }
                     )
 
-
         return matches
-
 
     def analyze(
         self,

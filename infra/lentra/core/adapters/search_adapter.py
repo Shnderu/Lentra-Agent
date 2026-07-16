@@ -5,8 +5,34 @@ from lentra.core.market_intelligence.normalization.listing_normalizer import (
     ListingNormalizer,
 )
 
+from lentra.core.data_layer.store.persistence import (
+    PersistenceLayer,
+)
+
 
 class SearchAdapter:
+    """
+    SEARCH DATA ADAPTER
+
+    Architecture:
+
+        Seed / future connectors
+                  |
+                  v
+        ListingNormalizer
+                  |
+                  v
+        PersistenceLayer
+                  |
+                  v
+        SearchPipeline
+
+
+    Responsibility:
+    - provide normalized listings
+    - hide storage implementation
+    - no intelligence logic here
+    """
 
     def __init__(
         self,
@@ -14,24 +40,44 @@ class SearchAdapter:
     ):
 
         self.seed_path = seed_path
-        self._cache = None
+
+        self.store = PersistenceLayer()
+
         self.normalizer = ListingNormalizer()
 
+        self._initialized = False
 
-    def _load(self):
 
-        if self._cache is None:
+    def _bootstrap(self):
 
-            with open(
-                self.seed_path,
-                "r"
-            ) as f:
+        if self._initialized:
+            return
 
-                self._cache = json.load(
-                    f
-                )
 
-        return self._cache
+        with open(
+            self.seed_path,
+            "r",
+            encoding="utf-8"
+        ) as f:
+
+            raw_items = json.load(
+                f
+            )
+
+
+        for item in raw_items:
+
+            normalized = self.normalizer.normalize(
+                item
+            )
+
+            self.store.upsert(
+                normalized
+            )
+
+
+        self._initialized = True
+
 
 
     def build_objects(
@@ -39,13 +85,20 @@ class SearchAdapter:
         query: str
     ) -> List[Dict[str, Any]]:
 
-        data = self._load()
+
+        self._bootstrap()
+
+
+        data = self.store.all()
+
 
         if not query:
+
             return []
 
 
         q = query.lower()
+
 
         scored = []
 
@@ -67,45 +120,37 @@ class SearchAdapter:
 
             if score > 0:
 
-                obj_copy = dict(
+                item = dict(
                     obj
                 )
 
-                obj_copy[
+                item[
                     "relevance_score"
                 ] = score
 
 
                 scored.append(
-                    obj_copy
+                    item
                 )
 
 
         if not scored:
 
-            scored = data
-
-
-        normalized = []
-
-
-        for item in scored:
-
-            normalized.append(
-                self.normalizer.normalize(
-                    item
-                )
-            )
+            scored = [
+                dict(item)
+                for item in data
+            ]
 
 
         return sorted(
-            normalized,
+            scored,
             key=lambda x: x.get(
                 "relevance_score",
                 0
             ),
             reverse=True
         )
+
 
 
     def _semantic_score(
@@ -118,6 +163,7 @@ class SearchAdapter:
 
 
         if query in text:
+
             score += 10
 
 
@@ -138,11 +184,10 @@ class SearchAdapter:
         if (
             "da" in q_tokens
             and "nang" in q_tokens
+            and "da nang" in text
         ):
 
-            if "da nang" in text:
-
-                score += 5
+            score += 5
 
 
         return score
