@@ -9,12 +9,17 @@ class RiskEngineAdapter:
     """
     Adapter contract boundary.
 
-    Canonical Market Intelligence output:
+    Engine output:
 
         risk_score
         risk_level
         risk_signals
-        risk_opportunity_signals
+
+    Pipeline output:
+
+        risk_score
+        risk_level
+        risk_signals
     """
 
 
@@ -71,13 +76,6 @@ class RiskEngineAdapter:
             "risk_signals":
                 result.get(
                     "risk_signals",
-                    []
-                ),
-
-
-            "risk_opportunity_signals":
-                result.get(
-                    "risk_opportunity_signals",
                     []
                 )
 

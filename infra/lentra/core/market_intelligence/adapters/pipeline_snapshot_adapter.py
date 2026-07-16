@@ -10,13 +10,13 @@ class PipelineSnapshotAdapter:
     ARCH V2 CONTRACT BOUNDARY
 
     Data Layer:
-        normalized listing
+        normalized listing + dedup object memory
 
     Market Intelligence:
         snapshot history
 
     Responsibility:
-        adapt pipeline payload into snapshot contract.
+        adapt object memory into market snapshot contract.
     """
 
 
@@ -25,36 +25,102 @@ class PipelineSnapshotAdapter:
         self.engine = MarketPriceHistory()
 
 
+
     def update(
         self,
         snapshot: Dict[str, Any],
         item: Dict[str, Any],
     ) -> Dict[str, Any]:
 
+        contract = {
+
+            "object_id": snapshot.get(
+                "object_id"
+            ),
+
+            "first_seen": snapshot.get(
+                "first_seen"
+            ),
+
+            "last_seen": snapshot.get(
+                "last_seen"
+            ),
+
+            "repost_count": snapshot.get(
+                "repost_count",
+                0
+            ),
+
+            "source_history": snapshot.get(
+                "source_history",
+                []
+            ),
+
+            "price_history": self._normalize_price_history(
+                snapshot
+            ),
+        }
+
+
         return self.engine.add_observation(
-            snapshot,
+            contract,
             item,
         )
+
+
+
+    def _normalize_price_history(
+        self,
+        snapshot: Dict[str, Any],
+    ):
+
+        history = snapshot.get(
+            "price_history",
+            []
+        )
+
+
+        normalized = []
+
+
+        for entry in history:
+
+            if isinstance(
+                entry,
+                dict
+            ):
+                normalized.append(
+                    entry
+                )
+
+
+        return normalized
+
 
 
     def enrich(
         self,
         item: Dict[str, Any],
+        object_memory: Dict[str, Any] | None = None,
     ) -> Dict[str, Any]:
-        """
-        Pipeline contract method.
 
-        Creates/updates market snapshot
-        for normalized listing.
-        """
+        snapshot = object_memory or {
 
-        snapshot = {
+            "object_id": item.get(
+                "id"
+            ),
+
             "first_seen": None,
+
             "last_seen": None,
-            "prices": [],
-            "sources": [],
-            "observations": 0,
+
+            "repost_count": 0,
+
+            "source_history": [],
+
+            "price_history": [],
         }
+
 
         return self.update(
             snapshot,
