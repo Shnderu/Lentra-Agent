@@ -17,14 +17,58 @@ class NormalizationEngine:
     def __init__(self):
         self.geo = GeoClassifier()
 
+
     def normalize(
         self,
         raw: Dict[str, Any]
     ) -> Dict[str, Any]:
 
-        location = self.geo.classify(
-            raw.get("location")
+        location_raw = raw.get(
+            "location"
         )
+
+        geo_parts = []
+
+
+        if isinstance(location_raw, dict):
+
+            geo_parts.extend(
+                [
+                    str(location_raw.get("city") or ""),
+                    str(location_raw.get("district") or "")
+                ]
+            )
+
+        elif location_raw:
+
+            geo_parts.append(
+                str(location_raw)
+            )
+
+
+        geo_parts.extend(
+            [
+                str(raw.get("city") or ""),
+                str(raw.get("district") or ""),
+                str(raw.get("title") or ""),
+                str(raw.get("description") or ""),
+            ]
+        )
+
+
+        location_raw = " ".join(
+            [
+                part
+                for part in geo_parts
+                if part
+            ]
+        )
+
+
+        location = self.geo.classify(
+            location_raw
+        )
+
 
         property_type = self._normalize_property_type(
             raw.get("property_type"),
@@ -32,7 +76,9 @@ class NormalizationEngine:
             raw.get("description")
         )
 
+
         return {
+
             "id": raw.get("id"),
 
             "source": raw.get("source"),
@@ -48,13 +94,22 @@ class NormalizationEngine:
             ),
 
             "price_vnd": self._normalize_price_vnd(
-                raw.get("price"),
+                raw.get("price_vnd")
+                if raw.get("price_vnd") is not None
+                else raw.get("price"),
                 raw.get("currency")
             ),
 
-            "price_original": raw.get("price"),
+            "price_original": (
+                raw.get("price_vnd")
+                if raw.get("price_vnd") is not None
+                else raw.get("price")
+            ),
 
-            "currency_original": raw.get("currency"),
+            "currency_original": (
+                raw.get("currency")
+                or "VND"
+            ),
 
             "property_type": property_type,
 
@@ -67,6 +122,14 @@ class NormalizationEngine:
             ),
 
             "location": location,
+
+            "city": location.get(
+                "city"
+            ),
+
+            "district": location.get(
+                "district"
+            ),
 
             "segment_key": self._build_segment_key(
                 location,
@@ -113,10 +176,6 @@ class NormalizationEngine:
         )
 
 
-    # -------------------------
-    # PRICE NORMALIZATION
-    # -------------------------
-
     def _normalize_price_vnd(
         self,
         price: Any,
@@ -127,6 +186,7 @@ class NormalizationEngine:
             return None
 
         try:
+
             value = float(
                 str(price)
                 .replace(",", "")
@@ -138,17 +198,17 @@ class NormalizationEngine:
             ).upper()
 
             if currency == "USD":
+
                 value *= 26000
 
-            return int(value)
+            return int(
+                value
+            )
 
         except Exception:
+
             return None
 
-
-    # -------------------------
-    # TEXT CLEANING
-    # -------------------------
 
     def _clean_text(
         self,
@@ -164,10 +224,6 @@ class NormalizationEngine:
             text
         ).strip()
 
-
-    # -------------------------
-    # PROPERTY TYPE
-    # -------------------------
 
     def _normalize_property_type(
         self,
@@ -186,6 +242,7 @@ class NormalizationEngine:
 
 
         if "studio" in text:
+
             return "studio"
 
 
@@ -194,23 +251,22 @@ class NormalizationEngine:
             or "flat" in text
             or "condo" in text
         ):
+
             return "apartment"
 
 
         if "villa" in text:
+
             return "villa"
 
 
         if "room" in text:
+
             return "room"
 
 
         return "unknown"
 
-
-    # -------------------------
-    # NUMERIC PARSING
-    # -------------------------
 
     def _parse_float(
         self,
@@ -218,9 +274,11 @@ class NormalizationEngine:
     ) -> Optional[float]:
 
         if value is None:
+
             return None
 
         try:
+
             return float(
                 str(value)
                 .replace(",", "")
@@ -228,6 +286,7 @@ class NormalizationEngine:
             )
 
         except Exception:
+
             return None
 
 
@@ -237,9 +296,11 @@ class NormalizationEngine:
     ) -> Optional[int]:
 
         if value is None:
+
             return None
 
         try:
+
             return int(
                 float(
                     str(value).strip()
@@ -247,4 +308,5 @@ class NormalizationEngine:
             )
 
         except Exception:
+
             return None
