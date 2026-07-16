@@ -1,15 +1,19 @@
 from lentra.db.session import SessionLocal
-from lentra.models.apartment import Apartment
+from lentra.models.storage import PropertyDB
 
 
 def seed():
+
     db = SessionLocal()
 
     try:
-        db.query(Apartment).delete()
 
-        apartments = [
-            Apartment(
+        db.query(PropertyDB).delete()
+
+
+        properties = [
+
+            PropertyDB(
                 title="Sea View Premium",
                 price_vnd_mln=9,
                 area_m2=58,
@@ -20,8 +24,12 @@ def seed():
                 city="Da Nang",
                 district="My An",
                 score=0.0,
+                source="seed",
+                raw="seed data"
             ),
-            Apartment(
+
+
+            PropertyDB(
                 title="Family Pool Apartment",
                 price_vnd_mln=8,
                 area_m2=96,
@@ -32,8 +40,12 @@ def seed():
                 city="Da Nang",
                 district="Binh Thanh",
                 score=0.0,
+                source="seed",
+                raw="seed data"
             ),
-            Apartment(
+
+
+            PropertyDB(
                 title="Budget Studio",
                 price_vnd_mln=5,
                 area_m2=40,
@@ -44,13 +56,19 @@ def seed():
                 city="Da Nang",
                 district="My An",
                 score=0.0,
+                source="seed",
+                raw="seed data"
             ),
         ]
 
-        db.add_all(apartments)
+
+        db.add_all(properties)
+
         db.commit()
 
+
     finally:
+
         db.close()
 
 
