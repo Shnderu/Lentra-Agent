@@ -1,51 +1,82 @@
-from lentra.core.contracts.engine_result import EngineResult
+from typing import Dict, Any
+
+from lentra.core.market_intelligence.engines.risk_engine import (
+    RiskEngine
+)
 
 
 class RiskEngineAdapter:
+    """
+    Adapter contract boundary.
 
-    def __init__(self, engine):
+    Engine output:
+
+        risk_score
+        risk_level
+        risk_signals
+
+    Pipeline output:
+
+        risk_score
+        risk_level
+        signals
+    """
+
+
+    def __init__(
+        self,
+        engine: RiskEngine
+    ):
         self.engine = engine
+
+
 
     def evaluate(
         self,
-        payload: dict,
-        market_stats: dict = None,
-        duplicate_count: int = 0,
-    ) -> dict:
+        item: Dict[str, Any],
+        market_stats: Dict[str, Any],
+        duplicate_count: int
+    ) -> Dict[str, Any]:
 
-        enriched_payload = {
-            **payload,
-            "_risk_context": {
-                "market_stats": market_stats or {},
-                "duplicate_count": duplicate_count,
-            },
+        payload = {
+            **item,
+
+            "market_price":
+                market_stats.get(
+                    "market_price",
+                    0
+                ),
+
+            "duplicate_count":
+                duplicate_count
         }
 
-        result = self.engine.run(enriched_payload)
 
-        risk = result.get("risk", {})
-
-        risk_score = float(risk.get("fraud_score", 0.0))
-        risk_level = risk.get("level", "unknown")
-        signals = risk.get("signals", [])
-
-        engine_result = EngineResult(
-            engine_name="risk_engine",
-            data={
-                "risk_score": risk_score,
-                "risk_level": risk_level,
-                "signals": signals,
-                "source": risk.get("source", "unknown"),
-            },
-            trace={
-                "adapter": "RiskEngineAdapter",
-                "duplicate_count": duplicate_count,
-            },
+        result = self.engine.run(
+            payload
         )
 
+
         return {
-            "risk_score": risk_score,
-            "risk_level": risk_level,
-            "signals": signals,
-            "engine_result": engine_result.__dict__,
+
+            "risk_score":
+                result.get(
+                    "risk_score",
+                    0.0
+                ),
+
+
+            "risk_level":
+                result.get(
+                    "risk_level",
+                    "unknown"
+                ),
+
+
+            "signals":
+                result.get(
+                    "risk_signals",
+                    []
+                )
+
         }

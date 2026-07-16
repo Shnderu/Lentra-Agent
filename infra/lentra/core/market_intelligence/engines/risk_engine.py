@@ -3,33 +3,34 @@ from typing import Dict, Any, List
 
 class RiskEngine:
     """
-    Market Intelligence Risk Engine v4.
+    Canonical Market Intelligence Risk Engine.
 
     Responsibility:
-    - estimate fraud probability
-    - explain risk signals
-    - combine price, source, content and data quality signals
 
-    Principle:
+    - fraud probability
+    - listing reliability
+    - market anomaly explanation
 
-    Low price is not fraud.
+    Output contract:
 
-    Fraud requires combination of:
-    - extreme anomaly
-    - suspicious text
-    - unreliable source
-    - weak listing quality
+    {
+        risk_score,
+        risk_level,
+        signals,
+        opportunity_signals
+    }
+
+    Low price != fraud.
     """
 
 
     SUSPICIOUS_WORDS = [
         "scam",
-        "suspicious",
         "urgent",
         "deposit",
         "advance",
-        "owner refuses",
         "no viewing",
+        "owner refuses"
     ]
 
 
@@ -39,7 +40,6 @@ class RiskEngine:
     ) -> Dict[str, Any]:
 
         if not isinstance(result, dict):
-
             result = {}
 
 
@@ -47,8 +47,7 @@ class RiskEngine:
             result.get(
                 "price",
                 0
-            )
-            or 0
+            ) or 0
         )
 
 
@@ -56,8 +55,7 @@ class RiskEngine:
             result.get(
                 "market_price",
                 0
-            )
-            or 0
+            ) or 0
         )
 
 
@@ -83,77 +81,59 @@ class RiskEngine:
         ).lower()
 
 
-        text = f"{title} {description}"
-
-
-        duplicate_count = int(
-            result.get(
-                "duplicate_count",
-                0
-            )
-            or 0
+        text = (
+            f"{title} {description}"
         )
+
+
+        score = 0.1
+
+
+        signals: List[str] = []
+
+        opportunity_signals = []
 
 
         deviation = 0.0
 
-        if market > 0:
+
+        if market:
 
             deviation = (
                 price - market
             ) / market
 
 
-        signals: List[str] = []
+            if deviation <= -0.50:
 
-        fraud_score = 0.1
+                score += 0.25
 
-
-        opportunity_signals = []
-
-
-        # =========================
-        # PRICE INTELLIGENCE
-        # =========================
-
-        if deviation <= -0.50:
-
-            fraud_score += 0.20
-
-            signals.append(
-                "extreme_low_price"
-            )
+                signals.append(
+                    "extreme_low_price"
+                )
 
 
-        elif deviation <= -0.25:
+            elif deviation <= -0.25:
 
-            opportunity_signals.append(
-                "below_market_price"
-            )
+                opportunity_signals.append(
+                    "below_market_price"
+                )
 
-
-        # =========================
-        # TEXT RISK
-        # =========================
 
         for word in self.SUSPICIOUS_WORDS:
 
             if word in text:
 
-                fraud_score += 0.20
+                score += 0.20
 
                 signals.append(
                     f"text:{word}"
                 )
 
 
-        # =========================
-        # SOURCE RISK
-        # =========================
-
         if source == "unknown":
 
-            fraud_score += 0.15
+            score += 0.15
 
             signals.append(
                 "unknown_source"
@@ -162,20 +142,16 @@ class RiskEngine:
 
         elif source == "telegram":
 
-            fraud_score += 0.05
+            score += 0.05
 
             signals.append(
                 "telegram_source"
             )
 
 
-        # =========================
-        # LISTING QUALITY
-        # =========================
-
         if not result.get("contact"):
 
-            fraud_score += 0.05
+            score += 0.05
 
             signals.append(
                 "missing_contact"
@@ -184,49 +160,24 @@ class RiskEngine:
 
         if not result.get("images"):
 
-            fraud_score += 0.03
+            score += 0.03
 
             signals.append(
                 "missing_images"
             )
 
 
-        if price <= 0:
-
-            fraud_score += 0.10
-
-            signals.append(
-                "missing_price"
-            )
-
-
-        # =========================
-        # DUPLICATE INTELLIGENCE
-        # =========================
-
-        if duplicate_count >= 2:
-
-            opportunity_signals.append(
-                "verified_multiple_sources"
-            )
-
-            fraud_score -= 0.05
-
-
-        fraud_score = max(
-            0.0,
-            min(
-                fraud_score,
-                1.0
-            )
+        score = min(
+            score,
+            1.0
         )
 
 
-        if fraud_score >= 0.7:
+        if score >= 0.7:
 
             level = "high"
 
-        elif fraud_score >= 0.35:
+        elif score >= 0.35:
 
             level = "medium"
 
@@ -235,46 +186,25 @@ class RiskEngine:
             level = "low"
 
 
-        result["risk"] = {
 
-            "fraud_score":
-                round(
-                    fraud_score,
-                    4
-                ),
+        return {
 
-            "level":
-                level,
+            **result,
 
-            "signals":
-                signals,
+            "risk_score": round(
+                score,
+                4
+            ),
 
-            "opportunity_signals":
-                opportunity_signals,
+            "risk_level": level,
 
-            "price_signal":
-                (
-                    "below_market"
-                    if deviation < 0
-                    else "normal"
-                ),
+            "risk_signals": signals,
 
-            "deviation":
-                round(
-                    deviation,
-                    4
-                ),
+            "risk_opportunity_signals": opportunity_signals,
 
-            "source":
-                source,
-
-            "duplicate_count":
-                duplicate_count,
-
-            "status":
-                "ok"
+            "risk_deviation": round(
+                deviation,
+                4
+            )
 
         }
-
-
-        return result
