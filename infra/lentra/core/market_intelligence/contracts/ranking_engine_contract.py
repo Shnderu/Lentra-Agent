@@ -4,10 +4,22 @@ from typing import Protocol, List, Dict, Any, runtime_checkable
 @runtime_checkable
 class RankingEngineContract(Protocol):
     """
-    Ranking Layer Contract:
-    input: enriched listings
-    output: ranked listings
+    Ranking Layer Contract.
+
+    Single ranking entry:
+        UnifiedRankingEngine
+
+    Input:
+        enriched market intelligence cards
+
+    Output:
+        ranked cards
     """
 
-    def analyze(self, listings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+
+    def rank(
+        self,
+        cards: List[Dict[str, Any]],
+        market_truth: Dict[str, Any] | None = None,
+    ) -> List[Dict[str, Any]]:
         ...
