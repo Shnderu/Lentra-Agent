@@ -1,9 +1,11 @@
 from typing import List, Dict, Any
-import hashlib
-
 
 from lentra.core.market_intelligence.dedup.dedup_index import (
     DedupIndex
+)
+
+from lentra.core.market_intelligence.engines.dedup_engine import (
+    DedupEngine
 )
 
 
@@ -11,83 +13,28 @@ class PipelineDedupAdapter:
     """
     ARCH V2 CONTRACT BOUNDARY
 
-    Dedup pipeline adapter.
+    Responsibility:
+    - prepare listings for Dedup Intelligence
+    - generate stable fingerprints
+    - build duplicate clusters
+    - expose entity metadata
 
-    Flow:
-
-    normalize
-        |
-    fingerprint
-        |
-    register batch
-        |
-    analyze duplicates
-        |
-    entity resolution
+    Compatibility:
+    - keeps legacy clusters list format
+    - adds cluster_metadata
     """
-
 
     def __init__(self):
 
         self.index = DedupIndex()
 
-
-
-    def _build_fingerprint(
-        self,
-        listing: Dict[str, Any]
-    ) -> str:
-
-        source = "|".join(
-
-            [
-
-                str(
-                    listing.get(
-                        "title",
-                        ""
-                    )
-                ),
-
-                str(
-                    listing.get(
-                        "city",
-                        ""
-                    )
-                ),
-
-                str(
-                    listing.get(
-                        "type",
-                        ""
-                    )
-                ),
-
-                str(
-                    listing.get(
-                        "description",
-                        ""
-                    )
-                )
-
-            ]
-
-        )
-
-
-        return hashlib.sha256(
-            source.encode(
-                "utf-8"
-            )
-        ).hexdigest()[:16]
-
+        self.engine = DedupEngine()
 
 
     def _prepare_listing(
         self,
         listing: Dict[str, Any]
     ) -> Dict[str, Any]:
-
 
         item = {
             **listing
@@ -106,7 +53,7 @@ class PipelineDedupAdapter:
             "fingerprint"
         ):
 
-            item["fingerprint"] = self._build_fingerprint(
+            item["fingerprint"] = self.engine.build_fingerprint(
                 item
             )
 
@@ -114,41 +61,37 @@ class PipelineDedupAdapter:
         return item
 
 
-
     def deduplicate(
         self,
         listings: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
 
-
-        prepared = [
-
-            self._prepare_listing(
-                item
-            )
-
-            for item in listings
-
-        ]
-
-
-
-        for item in prepared:
-
-            self.index.register(
-                item
-            )
-
-
-
         clusters = []
+
+        cluster_metadata = []
 
         assigned = set()
 
 
+        prepared_listings = [
 
-        for listing in prepared:
+            self._prepare_listing(
+                listing
+            )
 
+            for listing in listings
+
+        ]
+
+
+        for listing in prepared_listings:
+
+            self.index.register(
+                listing
+            )
+
+
+        for listing in prepared_listings:
 
             listing_id = listing.get(
                 "id"
@@ -156,12 +99,13 @@ class PipelineDedupAdapter:
 
 
             if not listing_id:
+
                 continue
 
 
             if listing_id in assigned:
-                continue
 
+                continue
 
 
             result = self.index.analyze(
@@ -175,46 +119,96 @@ class PipelineDedupAdapter:
             )
 
 
-            cluster = [
+            cluster_items = []
 
+            cluster_ids = set()
+
+
+            def add_item(
+                item
+            ):
+
+                item = self._prepare_listing(
+                    item
+                )
+
+
+                item_id = item.get(
+                    "id"
+                )
+
+
+                if not item_id:
+
+                    return
+
+
+                if item_id in cluster_ids:
+
+                    return
+
+
+                cluster_ids.add(
+                    item_id
+                )
+
+                cluster_items.append(
+                    item
+                )
+
+
+            add_item(
                 listing
-
-            ]
-
-
-            assigned.add(
-                listing_id
             )
 
 
             for match in matches:
 
-                match_id = match.get(
-                    "id"
+                add_item(
+                    match
                 )
 
 
-                if match_id and match_id not in assigned:
+            for item in cluster_items:
 
-                    cluster.append(
-                        match
-                    )
+                item_id = item.get(
+                    "id"
+                )
+
+                if item_id:
 
                     assigned.add(
-                        match_id
+                        item_id
                     )
-
 
 
             clusters.append(
-                cluster
+                cluster_items
             )
 
+
+            cluster_metadata.append(
+                {
+                    "entity": result.get(
+                        "entity"
+                    ),
+
+                    "cluster": result.get(
+                        "cluster"
+                    ),
+
+                    "object_memory": result.get(
+                        "object_memory"
+                    )
+                }
+            )
 
 
         return {
 
             "clusters": clusters,
+
+            "cluster_metadata": cluster_metadata,
 
             "status": "ok"
 
