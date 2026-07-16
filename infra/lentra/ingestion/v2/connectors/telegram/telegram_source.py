@@ -3,8 +3,7 @@ import asyncio
 
 from telethon import TelegramClient
 
-from lentra.storage.models import RawMessageDB
-from lentra.models.apartment import Apartment
+from lentra.models.storage import RawMessageDB, PropertyDB
 
 from lentra.db.session import (
     SessionLocal,
@@ -29,7 +28,7 @@ CHANNELS = [
 USD_TO_VND = 25000
 
 
-Base.metadata.create_all(bind=engine)
+
 
 
 class TelegramRentalSource:
@@ -156,10 +155,10 @@ class TelegramRentalSource:
 
 
             existing_apartment = (
-                db.query(Apartment)
+                db.query(PropertyDB)
                 .filter(
-                    Apartment.source_chat_id == message.chat_id,
-                    Apartment.source_message_id == message.id
+                    PropertyDB.source_chat_id == message.chat_id,
+                    PropertyDB.source_message_id == message.id
                 )
                 .first()
             )
@@ -172,7 +171,7 @@ class TelegramRentalSource:
                 return
 
 
-            prop = Apartment(
+            prop = PropertyDB(
 
                 title=message.text[:200],
 
