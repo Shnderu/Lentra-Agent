@@ -117,6 +117,41 @@ class IngestionPipeline:
             )
 
 
+            entity = metadata.get(
+                "entity",
+                {}
+            )
+
+
+            cluster_data = metadata.get(
+                "cluster",
+                {}
+            )
+
+
+            entity_context = {
+
+                "entity_id": entity.get(
+                    "entity_id",
+                    object_memory.get(
+                        "object_id"
+                    )
+                ),
+
+                "canonical_object_id": object_memory.get(
+                    "object_id"
+                ),
+
+                "duplicate_count": duplicate_count,
+
+                "duplicate_sources": cluster_data.get(
+                    "sources",
+                    []
+                ),
+
+            }
+
+
             snapshot_memory = {
                 **object_memory,
 
@@ -174,8 +209,13 @@ class IngestionPipeline:
 
 
                 item_with_snapshot = {
+
                     **item_with_area,
+
+                    **entity_context,
+
                     **snapshot_memory
+
                 }
 
 
