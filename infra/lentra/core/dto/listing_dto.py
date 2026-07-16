@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 
 @dataclass
@@ -28,7 +28,6 @@ class ListingDTO:
         if data is None:
             raise ValueError("ListingDTO.from_raw: data is None")
 
-        # support both dict and object safely
         get = data.get if isinstance(data, dict) else getattr
 
         def safe(key, default=None):
@@ -50,3 +49,13 @@ class ListingDTO:
             risk_score=float(safe("risk_score", 0) or 0),
             raw=data if isinstance(data, dict) else {}
         )
+
+    @staticmethod
+    def from_any(data: Any) -> "ListingDTO":
+        """
+        Compatibility alias.
+
+        Legacy runtime entrypoints may call from_any().
+        Canonical normalization path remains from_raw().
+        """
+        return ListingDTO.from_raw(data)
