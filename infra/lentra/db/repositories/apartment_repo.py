@@ -1,7 +1,7 @@
 from typing import List
 
 from sqlalchemy.orm import Session
-from lentra.db.models.apartment import Apartment
+from lentra.models.apartment import Apartment
 
 
 class ApartmentRepository:

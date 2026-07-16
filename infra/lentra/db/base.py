@@ -1,3 +1,5 @@
-from sqlalchemy.orm import declarative_base
+from lentra.db.session import Base
 
-Base = declarative_base()
+__all__ = [
+    "Base",
+]

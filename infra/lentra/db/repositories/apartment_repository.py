@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-from lentra.db.models.apartment import Apartment
+from lentra.models.apartment import Apartment
 
 
 class ApartmentRepository:

@@ -2,7 +2,7 @@ from lentra.db.session import engine
 from lentra.db.session import Base
 
 # важно: импорт модели обязателен
-from lentra.db.models.apartment import Apartment  # noqa
+from lentra.models.apartment import Apartment  # noqa
 
 def init():
     Base.metadata.create_all(bind=engine)

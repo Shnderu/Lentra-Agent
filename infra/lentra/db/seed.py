@@ -1,5 +1,5 @@
 from lentra.db.session import SessionLocal
-from lentra.db.models.apartment import Apartment
+from lentra.models.apartment import Apartment
 
 
 def seed():
