@@ -3,12 +3,12 @@ from typing import Dict, Any, List
 
 class RiskEngine:
     """
-    Market Intelligence Risk Engine v3.
+    Market Intelligence Risk Engine v4.
 
     Responsibility:
     - estimate fraud probability
-    - separate opportunity from scam risk
     - explain risk signals
+    - combine price, source, content and data quality signals
 
     Principle:
 
@@ -18,6 +18,7 @@ class RiskEngine:
     - extreme anomaly
     - suspicious text
     - unreliable source
+    - weak listing quality
     """
 
 
@@ -38,6 +39,7 @@ class RiskEngine:
     ) -> Dict[str, Any]:
 
         if not isinstance(result, dict):
+
             result = {}
 
 
@@ -46,6 +48,7 @@ class RiskEngine:
                 "price",
                 0
             )
+            or 0
         )
 
 
@@ -54,6 +57,7 @@ class RiskEngine:
                 "market_price",
                 0
             )
+            or 0
         )
 
 
@@ -82,9 +86,18 @@ class RiskEngine:
         text = f"{title} {description}"
 
 
+        duplicate_count = int(
+            result.get(
+                "duplicate_count",
+                0
+            )
+            or 0
+        )
+
+
         deviation = 0.0
 
-        if market:
+        if market > 0:
 
             deviation = (
                 price - market
@@ -156,9 +169,56 @@ class RiskEngine:
             )
 
 
-        fraud_score = min(
-            fraud_score,
-            1.0
+        # =========================
+        # LISTING QUALITY
+        # =========================
+
+        if not result.get("contact"):
+
+            fraud_score += 0.05
+
+            signals.append(
+                "missing_contact"
+            )
+
+
+        if not result.get("images"):
+
+            fraud_score += 0.03
+
+            signals.append(
+                "missing_images"
+            )
+
+
+        if price <= 0:
+
+            fraud_score += 0.10
+
+            signals.append(
+                "missing_price"
+            )
+
+
+        # =========================
+        # DUPLICATE INTELLIGENCE
+        # =========================
+
+        if duplicate_count >= 2:
+
+            opportunity_signals.append(
+                "verified_multiple_sources"
+            )
+
+            fraud_score -= 0.05
+
+
+        fraud_score = max(
+            0.0,
+            min(
+                fraud_score,
+                1.0
+            )
         )
 
 
@@ -207,6 +267,9 @@ class RiskEngine:
 
             "source":
                 source,
+
+            "duplicate_count":
+                duplicate_count,
 
             "status":
                 "ok"
