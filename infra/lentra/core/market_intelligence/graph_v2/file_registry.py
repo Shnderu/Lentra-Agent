@@ -21,18 +21,15 @@ class GraphFileRegistry:
             ],
 
             "pricing_engine": [
-                "lentra/core/market_intelligence/pricing/engine.py",
-                "lentra/core/market_intelligence/pricing/price_engine.py",
+                "lentra/core/market_intelligence/engines/pricing_engine.py",
             ],
 
             "ranking_engine": [
-                "lentra/core/market_intelligence/ranking/ranking_engine.py",
                 "lentra/core/market_intelligence/ranking/unified_ranking_engine.py",
             ],
 
             "dedup_engine": [
                 "lentra/core/market_intelligence/engines/dedup_engine.py",
-                "lentra/core/market_intelligence/dedup/dedup_engine.py",
                 "lentra/core/market_intelligence/dedup/dedup_index.py",
             ],
 
