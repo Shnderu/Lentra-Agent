@@ -1,6 +1,5 @@
 
 from lentra.core.market_intelligence.models.market_object import MarketObject
-from lentra.core.market_intelligence.models.listing import Listing
 
 
 class DuplicateEngine:
