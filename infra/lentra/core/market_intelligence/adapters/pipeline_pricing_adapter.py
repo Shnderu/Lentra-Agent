@@ -1,76 +1,140 @@
-from typing import List, Dict, Any
+from typing import Dict, Any, List
+import statistics
 
 from lentra.core.market_intelligence.engines.pricing_engine import (
-    PricingEngine,
+    PricingEngine
 )
 
 
 class PipelinePricingAdapter:
+    """
+    ARCH V2 CONTRACT BOUNDARY
+
+    Data Layer:
+        price_vnd
+
+    Market Intelligence:
+        price
+        market_price
+
+    Market is calculated per segment_key.
+    """
 
     def __init__(self):
+
         self.engine = PricingEngine()
 
-    def _get_price(self, item: dict):
-        return (
-            item.get("price_vnd")
-            if item.get("price_vnd") is not None
-            else item.get("price")
+
+    def _prepare_listing(
+        self,
+        listing: Dict[str, Any]
+    ) -> Dict[str, Any]:
+
+        item = {
+            **listing
+        }
+
+        price = item.get(
+            "price"
         )
 
-    def build_market(self, clusters: list) -> dict:
+        if price is None:
 
-        listings = []
+            price = item.get(
+                "price_vnd"
+            )
+
+        if price is None:
+
+            price = 0
+
+        item["price"] = float(
+            price
+        )
+
+        return item
+
+
+    def build_market(
+        self,
+        clusters: List[List[Dict[str, Any]]]
+    ) -> Dict[str, Dict[str, Any]]:
+
+        segments: Dict[str, List[float]] = {}
 
         for cluster in clusters:
-            listings.extend(cluster)
 
-        prices = [
-            self._get_price(item)
-            for item in listings
-            if self._get_price(item) is not None
-        ]
+            for item in cluster:
 
-        if not prices:
-            return {
-                "market_price_vnd": 0,
-                "average_price_vnd": 0,
-                "sample_size": 0,
+                prepared = self._prepare_listing(
+                    item
+                )
+
+                if prepared["price"] <= 0:
+                    continue
+
+                segment = prepared.get(
+                    "segment_key"
+                ) or "unknown"
+
+                segments.setdefault(
+                    segment,
+                    []
+                ).append(
+                    prepared["price"]
+                )
+
+        market = {}
+
+        for segment, prices in segments.items():
+
+            market[segment] = {
+
+                "market_price": statistics.median(
+                    prices
+                ),
+
+                "sample_size": len(
+                    prices
+                ),
+
+                "price_min": min(
+                    prices
+                ),
+
+                "price_max": max(
+                    prices
+                )
+
             }
 
-        avg = sum(prices) / len(prices)
+        return market
 
-        return {
-            "market_price_vnd": round(avg, 2),
-            "average_price_vnd": round(avg, 2),
-            "market_price": round(avg, 2),
-            "average_price": round(avg, 2),
-            "sample_size": len(prices),
-            "price_min": min(prices),
-            "price_max": max(prices),
-        }
 
-    def evaluate(self, item: dict, market_stats: dict) -> dict:
+    def evaluate(
+        self,
+        listing: Dict[str, Any],
+        market_stats: Dict[str, Any]
+    ) -> Dict[str, Any]:
 
-        payload = dict(item)
-
-        market_price = (
-            market_stats.get("market_price_vnd")
-            or market_stats.get("market_price")
-            or market_stats.get("average_price_vnd")
-            or 0
+        payload = self._prepare_listing(
+            listing
         )
 
-        payload["market_price"] = market_price
-        payload["market_price_vnd"] = market_price
+        market_price = market_stats.get(
+            "market_price",
+            0
+        )
 
-        result = self.engine.run(payload)
+        if market_price is None:
 
-        pricing = result.get("pricing", {})
+            market_price = 0
 
-        return {
-            "market_price_vnd": market_price,
-            "market_price": market_price,
-            "pricing_score": pricing.get("score", 0.5),
-            "price_delta": pricing.get("delta", 0),
-            "price_deviation": pricing.get("deviation", 0),
-        }
+        payload["market_price"] = float(
+            market_price
+        )
+
+        return self.engine.run(
+            payload
+        )
+

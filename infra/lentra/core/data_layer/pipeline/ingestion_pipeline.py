@@ -26,7 +26,7 @@ from lentra.core.market_intelligence.adapters.risk_engine_adapter import (
 
 class IngestionPipeline:
     """
-    VIETNAM PIPELINE:
+    VIETNAM MARKET INTELLIGENCE PIPELINE:
 
     INGESTION
         |
@@ -34,16 +34,16 @@ class IngestionPipeline:
     NORMALIZATION
         |
         v
-    MARKET INTELLIGENCE DEDUP
+    DEDUP INTELLIGENCE
         |
         v
-    MARKET INTELLIGENCE PRICING
+    SEGMENT MARKET PRICING
         |
         v
-    MARKET INTELLIGENCE AREA
+    AREA INTELLIGENCE
         |
         v
-    MARKET INTELLIGENCE RISK
+    RISK INTELLIGENCE
     """
 
 
@@ -87,6 +87,7 @@ class IngestionPipeline:
             normalized_items
         )
 
+
         clusters = dedup_result.get(
             "clusters",
             []
@@ -110,9 +111,24 @@ class IngestionPipeline:
 
             for item in cluster:
 
+                segment_key = item.get(
+                    "segment_key",
+                    "unknown"
+                )
+
+
+                segment_market = market_stats.get(
+                    segment_key,
+                    {
+                        "market_price": 0,
+                        "sample_size": 0
+                    }
+                )
+
+
                 price_eval = self.pricing.evaluate(
                     item,
-                    market_stats
+                    segment_market
                 )
 
 
@@ -135,7 +151,7 @@ class IngestionPipeline:
 
                 risk_eval = self.risk.evaluate(
                     item_with_area,
-                    market_stats,
+                    segment_market,
                     duplicate_count
                 )
 
@@ -163,12 +179,14 @@ class IngestionPipeline:
 
 
         for item in enriched:
+
             self.store.upsert(
                 item
             )
 
 
         return {
+
             "ingested": len(
                 normalized_items
             ),
@@ -183,6 +201,8 @@ class IngestionPipeline:
 
             "items": enriched,
 
+            "market_segments": market_stats,
+
             "status": "ok"
         }
 
@@ -190,3 +210,4 @@ class IngestionPipeline:
     def dump_all(self):
 
         return self.store.all()
+
