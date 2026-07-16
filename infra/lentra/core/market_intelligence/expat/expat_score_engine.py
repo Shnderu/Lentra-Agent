@@ -1,46 +1,175 @@
+import json
+from pathlib import Path
+from typing import Dict, Any
+
+
 class ExpatScoreEngine:
     """
-    Safe expat scoring engine (robust to legacy string location format)
+    Market Intelligence Area Context Engine v3.
+
+    Responsibility:
+    - area intelligence
+    - expat suitability
+    - district context
+
+    Profiles loaded from Data Layer.
     """
 
-    def score(self, listing: dict):
 
-        location = listing.get("location", {})
+    def __init__(self):
 
-        # FIX: normalize string → dict
+        self.area_profiles = self._load_profiles()
+
+
+
+    def _load_profiles(self):
+
+        path = Path(
+            "lentra/data/geo/vietnam_area_profiles.json"
+        )
+
+        if not path.exists():
+
+            return {}
+
+        with open(
+            path,
+            "r",
+            encoding="utf-8"
+        ) as f:
+
+            return json.load(f)
+
+
+
+    def _normalize_location(
+        self,
+        location: Any
+    ) -> Dict[str, Any]:
+
+        if isinstance(location, dict):
+
+            return location
+
+
         if isinstance(location, str):
-            location = {
-                "segment": location,
-                "micro_market": location
+
+            return {
+                "segment": location.lower(),
+                "micro_market": location.lower()
             }
 
-        segment = location.get("segment", "")
-        micro = location.get("micro_market", "")
 
-        # simple scoring v1
-        score = 0.5
+        return {}
 
-        if "beach" in segment:
-            score += 0.2
 
-        if "premium" in segment:
-            score += 0.2
 
-        result = {
-            "expat_score": min(score, 1.0),
-            "location": location
-        }
+    def _find_profile(
+        self,
+        location: Dict[str, Any]
+    ) -> Dict[str, float]:
 
-        return result
+        city = str(
+            location.get(
+                "city",
+                ""
+            )
+        ).lower()
 
-    def evaluate(self, payload: dict):
-        """
-        Unified Gateway contract.
-        """
 
-        result = self.score(payload)
+        district = str(
+            location.get(
+                "district",
+                ""
+            )
+        ).lower()
+
+
+        city_profiles = self.area_profiles.get(
+            city,
+            {}
+        )
+
+
+        profile = city_profiles.get(
+            district
+        )
+
+
+        if profile:
+
+            return profile
+
 
         return {
-            "area_score": result.get("expat_score", 0.0),
-            **result,
+
+            "internet_score": 5.0,
+            "expat_score": 5.0,
+            "noise_score": 5.0,
+            "safety_score": 5.0,
+            "infrastructure_score": 5.0,
+
         }
+
+
+
+    def score(
+        self,
+        listing: dict
+    ):
+
+        location = self._normalize_location(
+            listing.get(
+                "location",
+                {}
+            )
+        )
+
+
+        profile = self._find_profile(
+            location
+        )
+
+
+        area_score = round(
+            (
+                profile["internet_score"]
+                +
+                profile["expat_score"]
+                +
+                profile["safety_score"]
+                +
+                profile["infrastructure_score"]
+                -
+                profile["noise_score"]
+            )
+            /
+            4.0,
+
+            2
+        )
+
+
+        return {
+
+            **profile,
+
+            "area_score": min(
+                area_score / 10,
+                1.0
+            ),
+
+            "location": location
+
+        }
+
+
+
+    def evaluate(
+        self,
+        payload: dict
+    ):
+
+        return self.score(
+            payload
+        )

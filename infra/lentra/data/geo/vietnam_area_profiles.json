@@ -1,0 +1,35 @@
+{
+  "da nang": {
+    "my khe": {
+      "internet_score": 9.2,
+      "expat_score": 8.8,
+      "noise_score": 5.1,
+      "safety_score": 8.5,
+      "infrastructure_score": 8.0
+    },
+
+    "son tra": {
+      "internet_score": 8.5,
+      "expat_score": 8.0,
+      "noise_score": 4.8,
+      "safety_score": 8.0,
+      "infrastructure_score": 7.5
+    },
+
+    "hai chau": {
+      "internet_score": 8.8,
+      "expat_score": 7.5,
+      "noise_score": 7.0,
+      "safety_score": 8.5,
+      "infrastructure_score": 9.0
+    },
+
+    "ngu hanh son": {
+      "internet_score": 8.2,
+      "expat_score": 8.0,
+      "noise_score": 7.5,
+      "safety_score": 8.0,
+      "infrastructure_score": 7.5
+    }
+  }
+}
