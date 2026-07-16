@@ -372,9 +372,30 @@ class SearchPipeline:
                     0
                 ),
 
-                "market_price": market_truth.get(
-                    "median_price",
-                    0
+                "segment_key": listing.get(
+                    "segment_key",
+                    "unknown"
+                ),
+
+                "market_price": (
+                    market_truth.get(
+                        "segment_market",
+                        {}
+                    )
+                    .get(
+                        listing.get(
+                            "segment_key",
+                            "unknown"
+                        ),
+                        {}
+                    )
+                    .get(
+                        "median_price",
+                        market_truth.get(
+                            "median_price",
+                            0
+                        )
+                    )
                 ),
 
                 "market_truth": market_truth,
