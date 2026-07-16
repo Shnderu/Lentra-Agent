@@ -1,6 +1,7 @@
 from collections import defaultdict
 from typing import List, Dict
-from lentra.core.models.listing import Listing
+
+from lentra.core.dto.listing_dto import ListingDTO
 
 
 VIETNAM_MARKET_ZONES = {
@@ -26,28 +27,32 @@ def detect_zone(location: str) -> str:
     return "unknown"
 
 
-def build_market_index(listings: List[Listing]) -> Dict:
-
+def build_market_index(listings: List[ListingDTO]) -> Dict:
     index = defaultdict(list)
 
-    for l in listings:
-        city = (l.location or "").lower()
-        zone = detect_zone(l.location)
+    for listing in listings:
+        location_text = str(listing.location or "")
+
+        city = (listing.city or location_text).lower()
+        zone = detect_zone(location_text)
 
         key = f"{city}:{zone}"
-        index[key].append(l.normalized_price or l.price)
+
+        index[key].append(
+            listing.market_price or listing.price
+        )
 
     market_stats = {}
 
-    for k, prices in index.items():
+    for key, prices in index.items():
         if not prices:
             continue
 
-        market_stats[k] = {
+        market_stats[key] = {
             "avg_price": round(sum(prices) / len(prices), 2),
             "min": min(prices),
             "max": max(prices),
-            "count": len(prices)
+            "count": len(prices),
         }
 
     return market_stats
