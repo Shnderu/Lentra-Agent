@@ -8,6 +8,10 @@ from lentra.core.market_intelligence.decision.decision_layer import DecisionLaye
 from lentra.core.market_intelligence.ranking.unified_ranking_engine import UnifiedRankingEngine
 from lentra.core.market_intelligence.contracts.listing_contract_guard import ListingContractGuard
 
+from lentra.core.market_intelligence.normalization.listing_normalizer import (
+    ListingNormalizer
+)
+
 from lentra.core.market_intelligence.history.price_observation import (
     PriceObservation
 )
@@ -39,6 +43,8 @@ class SearchPipeline:
         self.ranking_engine = UnifiedRankingEngine()
 
         self.market_service = MarketService()
+
+        self.listing_normalizer = ListingNormalizer()
 
         self.verdict_engine = MarketVerdictEngine()
 
@@ -260,6 +266,11 @@ class SearchPipeline:
             )
 
 
+            listing = self.listing_normalizer.normalize(
+                listing
+            )
+
+
             self.market_service.history_repository.save(
                 PriceObservation(
                     listing_id=str(
@@ -442,8 +453,20 @@ class SearchPipeline:
 
 
 
+            market_context = dict(
+                market
+            )
+
+            market_context.update(
+                {
+                    "market_truth": market_truth,
+                    "price_intelligence": price_intelligence
+                }
+            )
+
+
             market_verdict = self.verdict_engine.verdict(
-                market,
+                market_context,
                 price_intelligence,
                 market_explanation,
                 risk_result,

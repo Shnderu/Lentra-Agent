@@ -2,12 +2,16 @@ import time
 import traceback
 import json
 
-from lentra.worker.queue import pop_task
-from lentra.worker.result_store import save_result
+import psycopg2
+
+from lentra.core.data.fetcher import TaskFetcher
 
 from lentra.core.pipeline.worker_search_entrypoint import (
     WorkerSearchEntrypoint
 )
+
+
+DSN = "postgresql://lentra:lentra@localhost:5432/lentra"
 
 
 def log(*args):
@@ -26,8 +30,16 @@ def normalize_payload(payload):
                 "query": payload
             }
 
+
     if isinstance(payload, dict):
+
+        if "query" not in payload:
+
+            if "text" in payload:
+                payload["query"] = payload["text"]
+
         return payload
+
 
     return {
         "query": str(payload)
@@ -35,7 +47,70 @@ def normalize_payload(payload):
 
 
 
+def save_result(task_id, result):
+
+    conn = psycopg2.connect(DSN)
+
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        UPDATE tasks
+        SET payload = payload || %s::jsonb,
+            status = 'done'
+        WHERE id = %s
+        """,
+        (
+            json.dumps(
+                {
+                    "pipeline_result": result
+                },
+                default=str
+            ),
+            task_id,
+        )
+    )
+
+    conn.commit()
+
+    cur.close()
+    conn.close()
+
+
+
+def mark_failed(task_id, error):
+
+    conn = psycopg2.connect(DSN)
+
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        UPDATE tasks
+        SET status='dead',
+            payload = payload || %s::jsonb
+        WHERE id=%s
+        """,
+        (
+            json.dumps(
+                {
+                    "worker_error": error
+                }
+            ),
+            task_id,
+        )
+    )
+
+    conn.commit()
+
+    cur.close()
+    conn.close()
+
+
+
 def main():
+
+    fetcher = TaskFetcher(DSN)
 
     pipeline = WorkerSearchEntrypoint()
 
@@ -44,7 +119,7 @@ def main():
 
     while True:
 
-        task = pop_task()
+        task = fetcher.fetch_and_lock()
 
 
         if task is None:
@@ -53,13 +128,9 @@ def main():
             continue
 
 
-        task_id = task.get(
-            "id"
-        )
-
-        payload = task.get(
-            "payload"
-        )
+        task_id = task["id"]
+        payload = task["payload"]
+        attempts = task.get("retry_count", 0)
 
 
         try:
@@ -100,6 +171,12 @@ def main():
             )
 
             traceback.print_exc()
+
+
+            mark_failed(
+                task_id,
+                "worker_error"
+            )
 
 
         time.sleep(0.1)
