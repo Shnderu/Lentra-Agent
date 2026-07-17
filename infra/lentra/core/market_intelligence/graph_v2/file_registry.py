@@ -21,7 +21,7 @@ class GraphFileRegistry:
             ],
 
             "pricing_engine": [
-                "lentra/core/market_intelligence/engines/pricing_engine.py",
+                "lentra/core/market_intelligence/pricing/price_engine.py",
             ],
 
             "ranking_engine": [
@@ -34,8 +34,7 @@ class GraphFileRegistry:
             ],
 
             "area_engine": [
-                "lentra/core/market_intelligence/area/area_engine.py",
-                "lentra/core/market_intelligence/area/micro_market_engine.py",
+                "lentra/core/market_intelligence/engines/area_engine.py",
             ],
 
         }
