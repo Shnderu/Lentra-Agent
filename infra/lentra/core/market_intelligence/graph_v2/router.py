@@ -70,7 +70,7 @@ class GraphRouter:
                 "lentra/core/market_intelligence/engines/dedup_engine.py",
             ],
             "area_engine": [
-                "lentra/core/market_intelligence/area/area_engine.py",
+                "lentra/core/market_intelligence/engines/area_engine.py",
             ],
         }
 
