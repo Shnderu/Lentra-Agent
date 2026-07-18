@@ -139,9 +139,33 @@ class DecisionLayer:
         )
 
 
-        segment_bonus = (
-            segment_confidence * 0.05
+        segment_status = segment_signal.get(
+            "status",
+            "unknown"
         )
+
+
+        segment_bonus = 0.0
+
+
+        if (
+            segment_status == "premium"
+            and segment_confidence >= 0.3
+        ):
+
+            segment_bonus = (
+                segment_confidence * 0.05
+            )
+
+
+        elif (
+            segment_status == "standard"
+            and segment_confidence >= 0.5
+        ):
+
+            segment_bonus = (
+                segment_confidence * 0.02
+            )
 
 
         segment_position = segment_signal.get(
