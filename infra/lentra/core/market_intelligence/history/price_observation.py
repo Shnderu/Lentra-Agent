@@ -19,9 +19,15 @@ class PriceObservation:
 
     city: str = "da_nang"
 
-    area: Optional[str] = None
+    area: Optional[Any] = None
 
     source: Optional[str] = None
+
+    segment_key: Optional[str] = None
+
+    district: Optional[str] = None
+
+    property_type: Optional[str] = None
 
     observed_at: str = ""
 

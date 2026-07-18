@@ -26,11 +26,17 @@ class PropertyObject:
 
     price: float | None = None
 
-    currency: str = "USD"
-
-    location: str | None = None
+    currency: str = "VND"
 
     city: str | None = None
+
+    district: str | None = None
+
+    segment_key: str | None = None
+
+    property_type: str | None = None
+
+    location: dict[str, Any] | None = None
 
     source: str | None = None
 

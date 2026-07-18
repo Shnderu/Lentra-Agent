@@ -6,8 +6,10 @@ class SegmentIntelligence:
     """
     Segment level market intelligence.
 
-    Converts raw price observations
-    into micro-market signals.
+    Uses canonical segment_key from normalization layer.
+
+    Fallback:
+    legacy area based segmentation.
     """
 
 
@@ -21,23 +23,30 @@ class SegmentIntelligence:
 
         for item in observations:
 
-            area = item.get(
-                "area"
+            segment = item.get(
+                "segment_key"
             )
 
-            if isinstance(area, dict):
 
-                segment = area.get(
-                    "segment",
-                    "unknown"
+            if not segment:
+
+                area = item.get(
+                    "area"
                 )
 
-            else:
+                if isinstance(area, dict):
 
-                segment = (
-                    area
-                    or "unknown"
-                )
+                    segment = area.get(
+                        "segment",
+                        "unknown"
+                    )
+
+                else:
+
+                    segment = (
+                        area
+                        or "unknown"
+                    )
 
 
             price = item.get(
@@ -50,6 +59,7 @@ class SegmentIntelligence:
 
 
             if segment not in segments:
+
                 segments[segment] = []
 
 

@@ -300,47 +300,7 @@ class SearchPipeline:
 
                     area=listing.get(
                         "location"
-                    ),
-
-                    segment_key=listing.get(
-                        "segment_key"
-                    ),
-
-                    district=listing.get(
-                        "district"
-                    ),
-
-                    property_type=listing.get(
-                        "property_type"
-                    ),
-
-                    metadata={
-
-                        "district": listing.get(
-                            "district"
-                        ),
-
-                        "segment_key": listing.get(
-                            "segment_key"
-                        ),
-
-                        "property_type": listing.get(
-                            "property_type"
-                        ),
-
-                        "fingerprint": listing.get(
-                            "fingerprint"
-                        ),
-
-                        "entity_id": listing.get(
-                            "entity_id"
-                        ),
-
-                        "duplicate_count": listing.get(
-                            "duplicate_count",
-                            0
-                        )
-                    }
+                    )
                 )
             )
 

@@ -65,9 +65,50 @@ class NormalizationEngine:
         )
 
 
-        location = self.geo.classify(
-            location_raw
+        existing_location = raw.get(
+            "location"
         )
+
+        if isinstance(existing_location, dict) and (
+            existing_location.get("city")
+            or existing_location.get("district")
+        ):
+            location = {
+                "country": existing_location.get(
+                    "country",
+                    "vietnam"
+                ),
+                "region": existing_location.get(
+                    "region"
+                ),
+                "city": existing_location.get(
+                    "city"
+                ),
+                "district": existing_location.get(
+                    "district"
+                ),
+            }
+
+        elif raw.get("city") or raw.get("district"):
+
+            location = {
+                "country": "vietnam",
+                "region": raw.get(
+                    "region"
+                ),
+                "city": raw.get(
+                    "city"
+                ),
+                "district": raw.get(
+                    "district"
+                ),
+            }
+
+        else:
+
+            location = self.geo.classify(
+                location_raw
+            )
 
 
         property_type = self._normalize_property_type(

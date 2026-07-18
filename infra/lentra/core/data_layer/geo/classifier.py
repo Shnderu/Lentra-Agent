@@ -3,57 +3,74 @@ from typing import Dict, Optional
 
 class GeoClassifier:
     """
-    VIETNAM GEO CLASSIFIER V2
+    VIETNAM GEO CLASSIFIER V3
 
-    Output:
-    - country
-    - region
-    - city
-    - district
+    Canonical output:
 
-    Deterministic rule-based classifier.
+    country
+    region
+    city
+    district
+
+    All values are normalized:
+    lowercase
+    underscore separated
+
+    Example:
+
+    Da Nang
+    da_nang
+
+    My Khe
+    my_khe
     """
 
 
     REGION_MAP = {
-        "North": {
+
+        "north": {
             "hanoi",
             "ha noi",
             "hai phong",
             "bac ninh",
-            "ninh binh"
+            "ninh binh",
         },
 
-        "Central": {
+        "central": {
             "da nang",
+            "danang",
             "hue",
             "hoi an",
-            "nha trang"
+            "nha trang",
         },
 
-        "South": {
+        "south": {
             "ho chi minh",
-            "ho chi minh city",
             "hcm",
             "saigon",
             "can tho",
-            "vung tau"
+            "vung tau",
         }
     }
 
 
     DISTRICT_MAP = {
 
-        "da nang": {
+        "da_nang": {
             "son tra",
             "my khe",
+            "my khe beach",
             "my an",
+            "an thuong",
             "hai chau",
             "ngu hanh son",
-            "cam le"
+            "cam le",
+            "center",
+            "da nang center",
+            "han river"
         },
 
-        "ho chi minh": {
+        "ho_chi_minh": {
             "district 1",
             "district 2",
             "district 3",
@@ -75,26 +92,64 @@ class GeoClassifier:
         raw_location: str
     ) -> Dict[str, Optional[str]]:
 
+
         if not raw_location:
+
             return self._empty()
 
 
-        text = raw_location.lower()
+        text = (
+            raw_location
+            .lower()
+            .replace("-", " ")
+        )
+
+
+        city = self._detect_city(
+            text
+        )
+
+
+        district = self._detect_district(
+            text,
+            city
+        )
+
+
+        if city is None and district:
+
+            city = self._detect_city_by_district(
+                district
+            )
 
 
         return {
 
-            "country": "Vietnam",
+            "country": "vietnam",
 
-            "region":
-                self._detect_region(text),
+            "region": self._detect_region(
+                text
+            ),
 
-            "city":
-                self._detect_city(text),
+            "city": city,
 
-            "district":
-                self._detect_district(text)
+            "district": district
+
         }
+
+
+
+    def _normalize(
+        self,
+        value: str
+    ) -> str:
+
+        return (
+            value
+            .lower()
+            .strip()
+            .replace(" ", "_")
+        )
 
 
 
@@ -103,11 +158,12 @@ class GeoClassifier:
         text: str
     ) -> Optional[str]:
 
-        for region, keywords in self.REGION_MAP.items():
+        for region, cities in self.REGION_MAP.items():
 
-            for keyword in keywords:
+            for city in cities:
 
-                if keyword in text:
+                if city in text:
+
                     return region
 
         return None
@@ -119,12 +175,15 @@ class GeoClassifier:
         text: str
     ) -> Optional[str]:
 
-        for keywords in self.REGION_MAP.values():
+        for cities in self.REGION_MAP.values():
 
-            for city in keywords:
+            for city in cities:
 
                 if city in text:
-                    return city.title()
+
+                    return self._normalize(
+                        city
+                    )
 
         return None
 
@@ -132,29 +191,71 @@ class GeoClassifier:
 
     def _detect_district(
         self,
-        text: str
+        text: str,
+        city: Optional[str]
     ) -> Optional[str]:
 
-        for city, districts in self.DISTRICT_MAP.items():
+
+        if city:
+
+            districts = self.DISTRICT_MAP.get(
+                city,
+                set()
+            )
 
             for district in districts:
 
                 if district in text:
-                    return district.title()
+
+                    return self._normalize(
+                        district
+                    )
+
+
+        for districts in self.DISTRICT_MAP.values():
+
+            for district in districts:
+
+                if district in text:
+
+                    return self._normalize(
+                        district
+                    )
+
 
         return None
 
+
+
+
+
+    def _detect_city_by_district(
+        self,
+        district: str
+    ) -> Optional[str]:
+
+        for city, districts in self.DISTRICT_MAP.items():
+
+            if district in [
+                self._normalize(x)
+                for x in districts
+            ]:
+
+                return city
+
+        return None
 
 
     def _empty(self):
 
         return {
 
-            "country": "Vietnam",
+            "country": "vietnam",
 
             "region": None,
 
             "city": None,
 
             "district": None
+
         }
