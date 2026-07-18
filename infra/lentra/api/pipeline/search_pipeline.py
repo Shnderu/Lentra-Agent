@@ -643,6 +643,18 @@ class SearchPipeline:
                         "da_nang"
                     ),
 
+                    "district": listing.get(
+                        "district"
+                    ),
+
+                    "segment_key": listing.get(
+                        "segment_key"
+                    ),
+
+                    "property_type": listing.get(
+                        "property_type"
+                    ),
+
                     "source": listing.get(
                         "source",
                         "seed"
@@ -682,7 +694,19 @@ class SearchPipeline:
                                     market_explanation,
 
                                 "market_verdict":
-                                    item["market_verdict"]
+                                    item["market_verdict"],
+
+                                "segment_market":
+                                    market_truth.get(
+                                        "segment_market",
+                                        {}
+                                    ),
+
+                                "segment_key":
+                                    listing.get(
+                                        "segment_key",
+                                        "unknown"
+                                    )
                             },
                             rank_map.get(
                                 listing.get("id"),

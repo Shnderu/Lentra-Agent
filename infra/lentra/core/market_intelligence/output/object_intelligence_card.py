@@ -196,6 +196,21 @@ class ObjectIntelligenceCardBuilder:
         )
 
 
+        segment_key = listing.get(
+            "segment_key",
+            "unknown"
+        )
+
+
+        segment_market = intelligence.get(
+            "segment_market",
+            {}
+        ).get(
+            segment_key,
+            {}
+        )
+
+
         if difference_percent < 0:
 
             market_position = "UNDER_MARKET"
@@ -262,6 +277,36 @@ class ObjectIntelligenceCardBuilder:
             "market_price": market_price,
 
             "difference_percent": difference_percent,
+
+            "segment_key":
+                segment_key,
+
+            "segment_market":
+                {
+                    "median_price":
+                        segment_market.get(
+                            "median_price",
+                            0
+                        ),
+
+                    "sample_size":
+                        segment_market.get(
+                            "sample_size",
+                            0
+                        ),
+
+                    "price_min":
+                        segment_market.get(
+                            "price_min",
+                            0
+                        ),
+
+                    "price_max":
+                        segment_market.get(
+                            "price_max",
+                            0
+                        )
+                },
 
             "market_position": market_position,
 
