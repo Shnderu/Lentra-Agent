@@ -985,9 +985,6 @@ class SearchPipeline:
             "market_snapshot": market_truth_record,
 
             "price_intelligence": price_intelligence,
-
-            "segment_intelligence": segment_intelligence,
-
             "market_movement": market_movement,
 
             "market_explanation": market_explanation,
