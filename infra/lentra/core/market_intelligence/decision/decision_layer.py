@@ -1,16 +1,18 @@
 from typing import Dict, Any
 
+from lentra.core.market_intelligence.segments.segment_signal import SegmentSignalAdapter
+
 
 class DecisionLayer:
     """
-    Decision Layer v2.2
+    Decision Layer v2.3
 
     Single authority for final market intelligence decision.
 
     Responsibilities:
     - aggregate market signals
     - apply risk authority gate
-    - combine ranking, pricing and area signals
+    - combine ranking, pricing, area and segment signals
     """
 
 
@@ -23,21 +25,15 @@ class DecisionLayer:
         segment_market: Dict[str, Any] = None,
     ) -> Dict[str, Any]:
 
+        segment_signal = SegmentSignalAdapter().build(
+            segment_market or {}
+        )
+
+
+
         risk_data = risk.get(
             "risk",
             {}
-        )
-
-        segment_market = segment_market or {}
-
-        segment_samples = segment_market.get(
-            "sample_size",
-            0
-        )
-
-        segment_confidence = min(
-            1.0,
-            segment_samples / 10
         )
 
         fraud_score = risk_data.get(
@@ -45,11 +41,13 @@ class DecisionLayer:
             0.5
         )
 
+
         return self.build(
             {
                 "signals": {
                     "pricing": market,
-                    "area": area
+                    "area": area,
+                    "segment_market": segment_market or {}
                 },
 
                 "ranking": {
@@ -60,7 +58,7 @@ class DecisionLayer:
                     "risk_level": fraud_score
                 },
 
-                "segment_market": segment_market or {}
+                "segment_signal": segment_signal
             }
         )
 
@@ -69,6 +67,7 @@ class DecisionLayer:
         self,
         data: Dict[str, Any]
     ) -> Dict[str, Any]:
+
 
         signals = data.get(
             "signals",
@@ -85,19 +84,9 @@ class DecisionLayer:
             {}
         )
 
-        segment_market = data.get(
-            "segment_market",
+        segment_signal = data.get(
+            "segment_signal",
             {}
-        )
-
-        segment_samples = segment_market.get(
-            "sample_size",
-            0
-        )
-
-        segment_confidence = min(
-            1.0,
-            segment_samples / 10
         )
 
 
@@ -111,21 +100,29 @@ class DecisionLayer:
             {}
         )
 
+        segment_market = signals.get(
+            "segment_market",
+            {}
+        )
+
 
         pricing_score = pricing.get(
             "pricing_score",
             0.5
         )
 
+
         area_score = area.get(
             "score",
             0.5
         )
 
+
         risk_score = risk.get(
             "risk_level",
             0.5
         )
+
 
         ranking_score = ranking.get(
             "score",
@@ -133,8 +130,14 @@ class DecisionLayer:
         )
 
 
+        segment_confidence = segment_signal.get(
+            "confidence",
+            0.0
+        )
+
+
         segment_bonus = (
-            segment_confidence * 0.1
+            segment_confidence * 0.05
         )
 
 
@@ -143,26 +146,11 @@ class DecisionLayer:
             0
         )
 
+
         price_direction = pricing.get(
             "direction",
             "unknown"
         )
-
-
-        opportunity_bonus = 0.0
-
-
-        if (
-            price_direction == "under"
-            and difference_percent <= -25
-        ):
-            opportunity_bonus = 0.15
-
-        elif (
-            price_direction == "under"
-            and difference_percent <= -10
-        ):
-            opportunity_bonus = 0.07
 
 
         opportunity_gate = (
@@ -176,7 +164,6 @@ class DecisionLayer:
         )
 
 
-
         if risk_score >= 0.7:
 
             return {
@@ -188,39 +175,52 @@ class DecisionLayer:
                     4
                 ),
 
-                "reason": "Высокий риск объявления.",
+                "reason":
+                    "Высокий риск объявления.",
 
-                "components": {
+                "segment_confidence":
+                    round(
+                        segment_confidence,
+                        3
+                    ),
 
-                    "ranking": ranking_score,
-                    "pricing": pricing_score,
-                    "area": area_score,
-                    "risk": risk_score
+                "segment_market":
+                    segment_market,
 
-                },
+                "segment_signal":
+                    segment_signal,
 
                 "signals": signals,
+
                 "risk": risk,
-                "ranking": ranking,
-                "segment_market": segment_market,
-                "segment_confidence": segment_confidence
+
+                "ranking": ranking
 
             }
-
 
 
         if risk_score >= 0.45:
 
             score = (
+
                 pricing_score * 0.4
+
                 +
+
                 area_score * 0.2
+
                 +
+
                 ranking_score * 0.2
+
                 +
-                (1 - risk_score) * 0.2
+
+                (1-risk_score) * 0.2
+
                 +
+
                 segment_bonus
+
             )
 
 
@@ -228,30 +228,34 @@ class DecisionLayer:
 
                 "decision": "REVIEW",
 
-                "decision_score": round(
-                    score,
-                    4
-                ),
+                "decision_score":
+                    round(
+                        score,
+                        4
+                    ),
 
-                "reason": "Средний риск. Требуется проверка.",
+                "reason":
+                    "Средний риск. Требуется проверка.",
 
-                "components": {
+                "segment_confidence":
+                    round(
+                        segment_confidence,
+                        3
+                    ),
 
-                    "ranking": ranking_score,
-                    "pricing": pricing_score,
-                    "area": area_score,
-                    "risk": risk_score
+                "segment_market":
+                    segment_market,
 
-                },
+                "segment_signal":
+                    segment_signal,
 
                 "signals": signals,
+
                 "risk": risk,
-                "ranking": ranking,
-                "segment_market": segment_market,
-                "segment_confidence": segment_confidence
+
+                "ranking": ranking
 
             }
-
 
 
         if opportunity_gate:
@@ -260,35 +264,30 @@ class DecisionLayer:
 
                 "decision": "ACCEPT",
 
-                "decision_score": round(
-                    max(
-                        final_score if "final_score" in locals() else 0.75,
-                        0.75
-                    ),
-                    4
-                ),
+                "decision_score": 0.85,
 
                 "reason":
-                    "Цена значительно ниже рынка при низком риске объявления.",
+                    "Цена значительно ниже рынка при низком риске.",
 
-                "components": {
+                "segment_confidence":
+                    round(
+                        segment_confidence,
+                        3
+                    ),
 
-                    "ranking": ranking_score,
-                    "pricing": pricing_score,
-                    "area": area_score,
-                    "risk": risk_score,
-                    "opportunity_bonus": opportunity_bonus
+                "segment_market":
+                    segment_market,
 
-                },
+                "segment_signal":
+                    segment_signal,
 
                 "signals": signals,
+
                 "risk": risk,
-                "ranking": ranking,
-                "segment_market": segment_market,
-                "segment_confidence": segment_confidence
+
+                "ranking": ranking
 
             }
-
 
 
         final_score = (
@@ -305,49 +304,44 @@ class DecisionLayer:
 
             +
 
-            (1 - risk_score) * 0.15
+            (1-risk_score) * 0.20
 
             +
 
-            opportunity_bonus
+            segment_bonus
 
         )
 
 
-        if final_score >= 0.75:
-            decision = "ACCEPT"
-
-        elif final_score >= 0.5:
-            decision = "REVIEW"
-
-        else:
-            decision = "REJECT"
-
-
         return {
 
-            "decision": decision,
+            "decision": "WATCH",
 
-            "decision_score": round(
-                final_score,
-                4
-            ),
-
-            "components": {
-
-                "ranking": ranking_score,
-                "pricing": pricing_score,
-                "area": area_score,
-                "risk": risk_score,
-                "opportunity_bonus": opportunity_bonus
-
-            },
+            "decision_score":
+                round(
+                    final_score,
+                    4
+                ),
 
             "reason":
-                "Решение сформировано по модели доверия и рыночной ценности.",
+                "Объект соответствует рынку.",
 
-            "signals": signals,
-            "risk": risk,
-            "ranking": ranking
+            "segment_confidence":
+                round(
+                    segment_confidence,
+                    3
+                ),
+
+            "segment_market":
+                segment_market,
+
+            "signals":
+                signals,
+
+            "risk":
+                risk,
+
+            "ranking":
+                ranking
 
         }
