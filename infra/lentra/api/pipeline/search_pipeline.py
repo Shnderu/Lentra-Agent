@@ -609,11 +609,26 @@ class SearchPipeline:
                 0.5
             )
 
+            segment_market = (
+                market_truth.get(
+                    "segment_market",
+                    {}
+                )
+                .get(
+                    item["listing"].get(
+                        "segment_key",
+                        "unknown"
+                    ),
+                    {}
+                )
+            )
+
             item["decision"] = self.decision_layer.build_from_signals(
                 item["market"],
                 item["risk"],
                 item["area"],
-                ranking_score
+                ranking_score,
+                segment_market
             )
 
 

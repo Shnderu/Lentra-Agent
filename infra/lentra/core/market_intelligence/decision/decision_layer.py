@@ -20,11 +20,24 @@ class DecisionLayer:
         risk: Dict[str, Any],
         area: Dict[str, Any],
         ranking_score: float = 0.5,
+        segment_market: Dict[str, Any] = None,
     ) -> Dict[str, Any]:
 
         risk_data = risk.get(
             "risk",
             {}
+        )
+
+        segment_market = segment_market or {}
+
+        segment_samples = segment_market.get(
+            "sample_size",
+            0
+        )
+
+        segment_confidence = min(
+            1.0,
+            segment_samples / 10
         )
 
         fraud_score = risk_data.get(
@@ -45,7 +58,9 @@ class DecisionLayer:
 
                 "risk": {
                     "risk_level": fraud_score
-                }
+                },
+
+                "segment_market": segment_market or {}
             }
         )
 
@@ -68,6 +83,21 @@ class DecisionLayer:
         risk = data.get(
             "risk",
             {}
+        )
+
+        segment_market = data.get(
+            "segment_market",
+            {}
+        )
+
+        segment_samples = segment_market.get(
+            "sample_size",
+            0
+        )
+
+        segment_confidence = min(
+            1.0,
+            segment_samples / 10
         )
 
 
@@ -166,7 +196,9 @@ class DecisionLayer:
 
                 "signals": signals,
                 "risk": risk,
-                "ranking": ranking
+                "ranking": ranking,
+                "segment_market": segment_market,
+                "segment_confidence": segment_confidence
 
             }
 
@@ -207,7 +239,9 @@ class DecisionLayer:
 
                 "signals": signals,
                 "risk": risk,
-                "ranking": ranking
+                "ranking": ranking,
+                "segment_market": segment_market,
+                "segment_confidence": segment_confidence
 
             }
 
@@ -242,7 +276,9 @@ class DecisionLayer:
 
                 "signals": signals,
                 "risk": risk,
-                "ranking": ranking
+                "ranking": ranking,
+                "segment_market": segment_market,
+                "segment_confidence": segment_confidence
 
             }
 
