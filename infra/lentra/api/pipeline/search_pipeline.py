@@ -760,17 +760,12 @@ class SearchPipeline:
                                 "segment_signal":
                                     segment_signal,
 
-                                "market_verdict":
-                                    market_verdict,
-
                                 "market_movement":
                                     market_movement,
 
                                 "market_explanation":
                                     market_explanation,
 
-                                "market_verdict":
-                                    item["market_verdict"],
                                 "segment_key":
                                     listing.get(
                                         "segment_key",
@@ -810,9 +805,6 @@ class SearchPipeline:
 
                         "market_explanation":
                             market_explanation,
-
-                        "market_verdict":
-                            item["market_verdict"],
 
                     },
 
@@ -924,19 +916,19 @@ class SearchPipeline:
                         "analysis": {
 
                             "label":
-                                item["market_verdict"].get(
+                                item.get("market_analysis", {}).get(
                                     "verdict",
                                     "MARKET_ANALYSIS"
                                 ),
 
                             "confidence":
-                                item["market_verdict"].get(
+                                item.get("market_analysis", {}).get(
                                     "confidence",
                                     0.5
                                 ),
 
                             "reason":
-                                item["market_verdict"].get(
+                                item.get("market_analysis", {}).get(
                                     "reason",
                                     ""
                                 )
