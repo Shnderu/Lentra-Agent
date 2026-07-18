@@ -363,7 +363,7 @@ class ObjectIntelligenceCardBuilder:
                 area_intelligence,
 
 
-            "ai_verdict": verdict,
+            "market_analysis": verdict,
 
 
             "segment_signal":
