@@ -133,6 +133,11 @@ class DecisionLayer:
         )
 
 
+        segment_bonus = (
+            segment_confidence * 0.1
+        )
+
+
         difference_percent = pricing.get(
             "difference_percent",
             0
@@ -214,6 +219,8 @@ class DecisionLayer:
                 ranking_score * 0.2
                 +
                 (1 - risk_score) * 0.2
+                +
+                segment_bonus
             )
 
 
