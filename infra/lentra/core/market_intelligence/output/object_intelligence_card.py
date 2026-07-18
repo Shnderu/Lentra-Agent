@@ -373,8 +373,6 @@ class ObjectIntelligenceCardBuilder:
             "decision": decision,
 
 
-            "ai_recommendation": recommendation,
-
 
             "explanation":
                 self.user_explanation.explain(
