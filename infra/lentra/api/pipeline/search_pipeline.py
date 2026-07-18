@@ -981,16 +981,6 @@ class SearchPipeline:
             "query": query,
 
             "count": len(results),
-
-            "market_snapshot": market_truth_record,
-
-            "price_intelligence": price_intelligence,
-            "market_movement": market_movement,
-
-            "market_explanation": market_explanation,
-
-            "market_verdict": market_verdict,
-
             "results": results
 
         }
