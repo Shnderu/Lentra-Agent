@@ -144,6 +144,25 @@ class DecisionLayer:
         )
 
 
+        segment_position = segment_signal.get(
+            "position",
+            "unknown"
+        )
+
+
+        if segment_position == "below_segment_market":
+
+            segment_position_bonus = 0.05
+
+        elif segment_position == "above_segment_market":
+
+            segment_position_bonus = -0.05
+
+        else:
+
+            segment_position_bonus = 0.0
+
+
         difference_percent = pricing.get(
             "difference_percent",
             0
@@ -223,6 +242,10 @@ class DecisionLayer:
                 +
 
                 segment_bonus
+
+                +
+
+                segment_position_bonus
 
             )
 
