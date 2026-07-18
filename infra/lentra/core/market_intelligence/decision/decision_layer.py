@@ -26,9 +26,12 @@ class DecisionLayer:
     ) -> Dict[str, Any]:
 
         segment_signal = SegmentSignalAdapter().build(
+            market.get(
+                "price",
+                0
+            ),
             segment_market or {}
         )
-
 
 
         risk_data = risk.get(

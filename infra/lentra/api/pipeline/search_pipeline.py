@@ -623,8 +623,22 @@ class SearchPipeline:
                 )
             )
 
+            decision_market = dict(
+                item["market"]
+            )
+
+            decision_market["price"] = (
+                item["listing"].get(
+                    "price_vnd",
+                    item["listing"].get(
+                        "price",
+                        0
+                    )
+                )
+            )
+
             item["decision"] = self.decision_layer.build_from_signals(
-                item["market"],
+                decision_market,
                 item["risk"],
                 item["area"],
                 ranking_score,

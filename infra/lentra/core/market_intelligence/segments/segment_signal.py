@@ -6,13 +6,16 @@ class SegmentSignalAdapter:
     Adapter between Segment Market Intelligence
     and Decision Layer.
 
-    Does NOT calculate market.
     Uses existing segment_market truth.
+
+    Does NOT calculate market.
+    Calculates object position against segment truth.
     """
 
 
     def build(
         self,
+        price: float,
         segment_market: Dict[str, Any]
     ) -> Dict[str, Any]:
 
@@ -21,6 +24,14 @@ class SegmentSignalAdapter:
             dict
         ):
             segment_market = {}
+
+
+        try:
+            current_price = float(
+                price
+            )
+        except Exception:
+            current_price = 0
 
 
         sample_size = segment_market.get(
@@ -33,6 +44,36 @@ class SegmentSignalAdapter:
             "median_price",
             0
         )
+
+
+        if median_price:
+            median_price = float(
+                median_price
+            )
+
+            delta = (
+                current_price
+                -
+                median_price
+            )
+
+            delta_percent = round(
+                (
+                    delta
+                    /
+                    median_price
+                )
+                *
+                100,
+                2
+            )
+
+        else:
+
+            delta = 0
+
+            delta_percent = 0
+
 
 
         if sample_size >= 10:
@@ -48,9 +89,25 @@ class SegmentSignalAdapter:
             confidence = 0.1
 
 
+
+        if delta_percent <= -10:
+
+            position = "below_segment_market"
+
+        elif delta_percent >= 10:
+
+            position = "above_segment_market"
+
+        else:
+
+            position = "within_segment_market"
+
+
+
         return {
 
-            "confidence": confidence,
+            "confidence":
+                confidence,
 
             "median_price":
                 median_price,
@@ -68,20 +125,21 @@ class SegmentSignalAdapter:
                     "price_max"
                 ),
 
+            "segment_price_delta":
+                delta,
+
+            "segment_price_delta_percent":
+                delta_percent,
+
+            "position":
+                position,
+
             "market_strength":
                 (
                     "strong"
                     if confidence >= 0.7
                     else
                     "limited"
-                ),
-
-            "position":
-                (
-                    "known"
-                    if sample_size > 0
-                    else
-                    "unknown"
                 )
 
         }
