@@ -1,16 +1,14 @@
 import time
 import random
-from lentra.core.queue.task_repository import TaskRepository
+
+from lentra.ingestion.task_writer import TaskWriter
 from lentra.ingestion.parsers.rental_parser import RentalParser
-
-
-DSN = "postgresql://lentra:lentra@localhost:5432/lentra"
 
 
 class TelegramCollector:
 
     def __init__(self):
-        self.repo = TaskRepository(DSN)
+        self.repo = TaskWriter()
         self.parser = RentalParser()
 
         self.mock_messages = [
@@ -21,27 +19,57 @@ class TelegramCollector:
             "apartment sea view da nang 1200$"
         ]
 
+
     def run(self):
-        print("[INGESTION] TELEGRAM COLLECTOR STARTED")
+
+        print(
+            "[INGESTION] TELEGRAM COLLECTOR STARTED",
+            flush=True
+        )
+
 
         while True:
-            msg = random.choice(self.mock_messages)
 
-            parsed = self.parser.parse(msg)
+            msg = random.choice(
+                self.mock_messages
+            )
+
+
+            parsed = self.parser.parse(
+                msg
+            )
+
 
             payload = {
-                "text": msg,
-                "parsed": parsed,
+                "query": msg,
+
+                "listing": parsed,
+
                 "source": "telegram_mock",
-                "timestamp": time.time()
+
+                "timestamp": time.time(),
+
+                # backward compatibility
+                "text": msg,
+                "parsed": parsed
             }
 
-            task_id = self.repo.push(payload)
 
-            print(f"[INGESTED] task_id={task_id} parsed={parsed}")
+            task_id = self.repo.push(
+                payload
+            )
+
+
+            print(
+                f"[INGESTED] task_id={task_id} query={msg} parsed={parsed}",
+                flush=True
+            )
+
 
             time.sleep(3)
 
 
+
 if __name__ == "__main__":
+
     TelegramCollector().run()

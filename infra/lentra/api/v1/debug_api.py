@@ -8,13 +8,8 @@ from lentra.core.pipeline.canonical_entrypoint import (
     CanonicalSearchEntrypoint
 )
 
-from lentra.core.pipeline.search_pipeline import (
-    SearchPipeline
-)
-
 
 router = APIRouter()
-
 
 
 @router.get("/debug")
@@ -22,47 +17,30 @@ def debug(
     q: str = "test"
 ):
 
-    pipeline = CanonicalSearchPipeline(
-        SearchPipeline()
-    )
-
+    pipeline = CanonicalSearchPipeline()
 
     entrypoint = CanonicalSearchEntrypoint(
         pipeline
     )
-
 
     try:
 
         result = entrypoint.execute(
             {
                 "query": q,
-                "objects": []
+                "objects": [],
             }
         )
 
-
         return {
-
             "ok": True,
-
-            "pipeline":
-                "canonical_search_pipeline",
-
-            "result":
-                result
-
+            "pipeline": "canonical_search_pipeline",
+            "result": result,
         }
-
 
     except Exception as e:
 
-
         return {
-
             "ok": False,
-
-            "error":
-                str(e)
-
+            "error": str(e),
         }

@@ -1,4 +1,6 @@
-from .search_pipeline import SearchPipeline
+from lentra.core.pipeline.canonical_search_pipeline import (
+    CanonicalSearchPipeline,
+)
 
 
 _pipeline = None
@@ -8,7 +10,7 @@ def get_pipeline():
     global _pipeline
 
     if _pipeline is None:
-        _pipeline = SearchPipeline()
+        _pipeline = CanonicalSearchPipeline()
 
     return _pipeline
 

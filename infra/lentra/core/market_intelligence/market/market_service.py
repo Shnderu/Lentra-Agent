@@ -26,27 +26,12 @@ from lentra.core.market_intelligence.history.market_movement import (
     MarketMovementAnalyzer
 )
 
+from lentra.core.market_intelligence.verdict.market_verdict_engine import (
+    MarketVerdictEngine
+)
+
 
 class MarketService:
-    """
-    Market Intelligence market analysis service.
-
-    Flow:
-
-    listings
-        |
-        v
-    MarketTruthEngine
-        |
-        v
-    MarketSnapshot
-        |
-        v
-    PriceHistoryRepository
-        |
-        v
-    Price Intelligence
-    """
 
     def __init__(
         self,
@@ -65,10 +50,11 @@ class MarketService:
 
         self.explanation_engine = MarketExplanationEngine()
 
-
         self.segment_intelligence = SegmentIntelligence()
 
         self.market_movement = MarketMovementAnalyzer()
+
+        self.verdict_engine = MarketVerdictEngine()
 
 
     def analyze(
@@ -87,55 +73,17 @@ class MarketService:
             city=city
         )
 
-
-        snapshot.median_price = truth.get(
-            "median_price"
-        )
-
-        snapshot.mean_price = truth.get(
-            "mean_price"
-        )
-
-        snapshot.q1 = truth.get(
-            "q1"
-        )
-
-        snapshot.q3 = truth.get(
-            "q3"
-        )
-
-        snapshot.price_min = truth.get(
-            "price_min"
-        )
-
-        snapshot.price_max = truth.get(
-            "price_max"
-        )
-
-        snapshot.sample_size = truth.get(
-            "sample_size",
-            0
-        )
-
-        snapshot.outliers_detected = truth.get(
-            "outliers_removed",
-            0
-        )
-
-        snapshot.confidence = truth.get(
-            "confidence",
-            0.0
-        )
-
-        snapshot.market_health = truth.get(
-            "market_health",
-            "unknown"
-        )
-
-        snapshot.clean_listings = truth.get(
-            "clean_listings",
-            []
-        )
+        snapshot.median_price = truth.get("median_price")
+        snapshot.mean_price = truth.get("mean_price")
+        snapshot.q1 = truth.get("q1")
+        snapshot.q3 = truth.get("q3")
+        snapshot.price_min = truth.get("price_min")
+        snapshot.price_max = truth.get("price_max")
+        snapshot.sample_size = truth.get("sample_size", 0)
+        snapshot.outliers_detected = truth.get("outliers_removed", 0)
+        snapshot.confidence = truth.get("confidence", 0.0)
+        snapshot.market_health = truth.get("market_health", "unknown")
+        snapshot.clean_listings = truth.get("clean_listings", [])
 
 
         history = self.history_repository.get_city_history(
@@ -173,6 +121,15 @@ class MarketService:
         )
 
 
+        market_verdict = self.verdict_engine.verdict(
+            truth,
+            price_intelligence,
+            market_explanation,
+            {},
+            {},
+            segment_intelligence
+        )
+
 
         return {
 
@@ -188,6 +145,8 @@ class MarketService:
 
             "market_movement": market_movement,
 
-            "market_explanation": market_explanation
+            "market_explanation": market_explanation,
+
+            "market_verdict": market_verdict
 
         }

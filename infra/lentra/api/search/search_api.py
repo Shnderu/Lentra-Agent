@@ -9,8 +9,6 @@ from lentra.core.pipeline.canonical_entrypoint import (
     CanonicalSearchEntrypoint
 )
 
-from lentra.core.pipeline.search_pipeline import SearchPipeline
-
 from lentra.core.adapters.search_adapter import SearchAdapter
 
 
@@ -39,14 +37,11 @@ class SearchAPI:
 
         self.adapter = SearchAdapter()
 
-        self.pipeline = CanonicalSearchPipeline(
-            SearchPipeline()
-        )
+        self.pipeline = CanonicalSearchPipeline()
 
         self.entrypoint = CanonicalSearchEntrypoint(
             self.pipeline
         )
-
 
     def search_candidates(
         self,
@@ -57,53 +52,29 @@ class SearchAPI:
             embed(query)
         )
 
-
         if not raw_candidates:
-
             return []
 
-
         objects = []
-
 
         for item in raw_candidates:
 
             objects.append(
                 {
                     "id": item.get("id"),
-
-                    "title": item.get(
-                        "title",
-                        ""
-                    ),
-
-                    "price": item.get(
-                        "price",
-                        0
-                    ),
-
+                    "title": item.get("title", ""),
+                    "price": item.get("price", 0),
                     "currency": "USD",
-
-                    "city": item.get(
-                        "city",
-                        "Da Nang"
-                    ),
-
-                    "location": item.get(
-                        "location",
-                        ""
-                    ),
-
+                    "city": item.get("city", "Da Nang"),
+                    "location": item.get("location", ""),
                     "source": "vector",
-
-                    "query": query
+                    "query": query,
                 }
             )
-
 
         return self.entrypoint.execute(
             {
                 "query": query,
-                "objects": objects
+                "objects": objects,
             }
         )
