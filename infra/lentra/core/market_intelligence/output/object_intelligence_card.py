@@ -359,11 +359,6 @@ class ObjectIntelligenceCardBuilder:
                 ),
 
 
-            # legacy contract
-            "area": area,
-
-
-            # v9 product contract
             "area_intelligence":
                 area_intelligence,
 
