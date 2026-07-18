@@ -1,6 +1,6 @@
 from typing import Dict, Any
 
-from lentra.core.market_intelligence.segments.segment_signal import SegmentSignalAdapter
+from lentra.core.market_intelligence.segments.segment_signal_builder import SegmentSignalBuilder
 
 
 class DecisionLayer:
@@ -25,7 +25,7 @@ class DecisionLayer:
         segment_market: Dict[str, Any] = None,
     ) -> Dict[str, Any]:
 
-        segment_signal = SegmentSignalAdapter().build(
+        segment_signal = SegmentSignalBuilder().build(
             market.get(
                 "price",
                 0

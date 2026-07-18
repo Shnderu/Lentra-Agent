@@ -6,10 +6,8 @@ class SegmentSignalAdapter:
     Adapter between Segment Market Intelligence
     and Decision Layer.
 
-    Uses existing segment_market truth.
-
     Does NOT calculate market.
-    Calculates object position against segment truth.
+    Converts segment truth into decision contract.
     """
 
 
@@ -27,16 +25,23 @@ class SegmentSignalAdapter:
 
 
         try:
-            current_price = float(
-                price
-            )
+            current_price = float(price)
         except Exception:
             current_price = 0
 
 
         sample_size = segment_market.get(
             "sample_size",
-            0
+            segment_market.get(
+                "samples",
+                0
+            )
+        )
+
+
+        prices = segment_market.get(
+            "prices",
+            []
         )
 
 
@@ -46,10 +51,36 @@ class SegmentSignalAdapter:
         )
 
 
-        if median_price:
+        if not median_price and prices:
+
+            sorted_prices = sorted(
+                prices
+            )
+
+            middle = len(sorted_prices) // 2
+
+            if len(sorted_prices) % 2:
+
+                median_price = sorted_prices[middle]
+
+            else:
+
+                median_price = (
+                    sorted_prices[middle - 1]
+                    +
+                    sorted_prices[middle]
+                ) / 2
+
+
+        try:
             median_price = float(
                 median_price
             )
+        except Exception:
+            median_price = 0
+
+
+        if median_price:
 
             delta = (
                 current_price
@@ -59,35 +90,33 @@ class SegmentSignalAdapter:
 
             delta_percent = round(
                 (
-                    delta
-                    /
+                    delta /
                     median_price
-                )
-                *
-                100,
+                ) * 100,
                 2
             )
 
         else:
 
             delta = 0
-
             delta_percent = 0
 
 
-
         if sample_size >= 10:
+
             confidence = 1.0
 
         elif sample_size >= 5:
+
             confidence = 0.7
 
         elif sample_size >= 2:
+
             confidence = 0.4
 
         else:
-            confidence = 0.1
 
+            confidence = 0.1
 
 
         if delta_percent <= -10:
@@ -103,7 +132,6 @@ class SegmentSignalAdapter:
             position = "within_segment_market"
 
 
-
         return {
 
             "confidence":
@@ -116,14 +144,14 @@ class SegmentSignalAdapter:
                 sample_size,
 
             "price_min":
-                segment_market.get(
-                    "price_min"
-                ),
+                min(prices)
+                if prices
+                else None,
 
             "price_max":
-                segment_market.get(
-                    "price_max"
-                ),
+                max(prices)
+                if prices
+                else None,
 
             "segment_price_delta":
                 delta,
@@ -138,8 +166,13 @@ class SegmentSignalAdapter:
                 (
                     "strong"
                     if confidence >= 0.7
-                    else
-                    "limited"
+                    else "limited"
+                ),
+
+            "status":
+                segment_market.get(
+                    "status",
+                    "unknown"
                 )
 
         }

@@ -17,6 +17,9 @@ from lentra.core.market_intelligence.history.price_observation import (
 )
 
 
+from lentra.core.market_intelligence.segments.segment_signal_builder import SegmentSignalBuilder
+
+
 from lentra.core.market_intelligence.verdict.market_verdict_engine import (
     MarketVerdictEngine
 )
@@ -492,6 +495,24 @@ class SearchPipeline:
             )
 
 
+            segment_signal = {}
+
+            if isinstance(
+                segment_intelligence,
+                dict
+            ):
+                segments = segment_intelligence.get(
+                    "segments",
+                    {}
+                )
+
+                segment_signal = segments.get(
+                    listing.get("segment_key"),
+                    {}
+                )
+
+
+
 
             market_context = dict(
                 market
@@ -505,16 +526,23 @@ class SearchPipeline:
             )
 
 
-            segment_signal = (
-                market_truth.get(
-                    "segment_signal",
-                    {}
+            if not isinstance(
+                segment_signal,
+                dict
+            ):
+                segment_signal = {}
+
+
+            segment_signal = SegmentSignalBuilder().build(
+                listing.get(
+                    "segment_key",
+                    "unknown"
+                ),
+                segment_intelligence,
+                listing.get(
+                    "price",
+                    0
                 )
-                if isinstance(
-                    market_truth,
-                    dict
-                )
-                else {}
             )
 
 
@@ -532,6 +560,8 @@ class SearchPipeline:
             raw_cards.append(
                 {
                     "id": listing.get("id"),
+
+                    "market_verdict": market_verdict,
 
                     "price": listing.get(
                         "price",
@@ -727,8 +757,11 @@ class SearchPipeline:
                                 "price_intelligence":
                                     price_intelligence,
 
-                                "segment_intelligence":
-                                    segment_intelligence,
+                                "segment_signal":
+                                    segment_signal,
+
+                                "market_verdict":
+                                    market_verdict,
 
                                 "market_movement":
                                     market_movement,
@@ -738,13 +771,6 @@ class SearchPipeline:
 
                                 "market_verdict":
                                     item["market_verdict"],
-
-                                "segment_market":
-                                    market_truth.get(
-                                        "segment_market",
-                                        {}
-                                    ),
-
                                 "segment_key":
                                     listing.get(
                                         "segment_key",
@@ -778,8 +804,6 @@ class SearchPipeline:
                         "price_intelligence":
                             price_intelligence,
 
-                        "segment_intelligence":
-                            segment_intelligence,
 
                         "market_movement":
                             market_movement,

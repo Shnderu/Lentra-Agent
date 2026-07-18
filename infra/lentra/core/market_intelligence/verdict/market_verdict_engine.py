@@ -89,10 +89,29 @@ class MarketVerdictEngine:
             )
 
 
-        elif segment_position == "within_segment_market":
+        segment_status = segment_signal.get(
+            "status",
+            "unknown"
+        )
+
+
+        if segment_status == "premium":
+
+            if segment_position == "within_segment_market":
+
+                reasons.append(
+                    "Цена соответствует уровню своего сегмента."
+                )
 
             reasons.append(
-                "Цена соответствует уровню своего сегмента."
+                "Объект находится в премиальном сегменте района."
+            )
+
+
+        elif segment_status == "insufficient_data":
+
+            reasons.append(
+                "Сегмент недостаточно подтвержден рыночными данными."
             )
 
 

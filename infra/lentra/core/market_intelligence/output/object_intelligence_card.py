@@ -148,6 +148,12 @@ class ObjectIntelligenceCardBuilder:
         )
 
 
+        segment_signal = intelligence.get(
+            "segment_signal",
+            {}
+        )
+
+
         risk = self._extract_risk(
             intelligence.get(
                 "risk",
@@ -363,6 +369,10 @@ class ObjectIntelligenceCardBuilder:
 
 
             "ai_verdict": verdict,
+
+
+            "segment_signal":
+                segment_signal,
 
 
             "decision": decision,
