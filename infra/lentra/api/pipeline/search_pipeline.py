@@ -779,35 +779,6 @@ class SearchPipeline:
                             decision=item["decision"]
                         ),
 
-                    "intelligence": {
-
-                        "market_truth":
-                            market_truth,
-
-                        "market":
-                            item["market"],
-
-                        "area":
-                            item["area"],
-
-                        "risk":
-                            item["risk"],
-
-                        "dedup":
-                            item["dedup"],
-
-                        "price_intelligence":
-                            price_intelligence,
-
-
-                        "market_movement":
-                            market_movement,
-
-                        "market_explanation":
-                            market_explanation,
-
-                    },
-
                     "decision":
                         item["decision"],
 
