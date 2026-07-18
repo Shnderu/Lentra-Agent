@@ -505,13 +505,27 @@ class SearchPipeline:
             )
 
 
+            segment_signal = (
+                market_truth.get(
+                    "segment_signal",
+                    {}
+                )
+                if isinstance(
+                    market_truth,
+                    dict
+                )
+                else {}
+            )
+
+
             market_verdict = self.verdict_engine.verdict(
                 market_context,
                 price_intelligence,
                 market_explanation,
                 risk_result,
                 dedup_result,
-                area
+                area,
+                segment_signal
             )
 
 

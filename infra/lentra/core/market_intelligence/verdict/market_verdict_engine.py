@@ -13,6 +13,7 @@ class MarketVerdictEngine:
 
     Responsibility:
         explain market situation
+        combine market + segment context
     """
 
 
@@ -24,9 +25,16 @@ class MarketVerdictEngine:
         risk: Dict[str, Any],
         dedup: Dict[str, Any],
         area: Dict[str, Any],
+        segment_signal: Dict[str, Any] = None,
     ) -> Dict[str, Any]:
 
         reasons = []
+
+        segment_signal = (
+            segment_signal
+            if isinstance(segment_signal, dict)
+            else {}
+        )
 
 
         difference = market.get(
@@ -38,21 +46,53 @@ class MarketVerdictEngine:
         if difference < -10:
 
             reasons.append(
-                f"Цена ниже рынка на {abs(difference)}%."
+                f"Цена ниже общего рынка на {abs(difference)}%."
             )
 
 
         elif difference > 10:
 
             reasons.append(
-                f"Цена выше рынка на {difference}%."
+                f"Цена выше общего рынка на {difference}%."
             )
 
 
         else:
 
             reasons.append(
-                "Цена находится в пределах рыночного диапазона."
+                "Цена находится в пределах общего рыночного диапазона."
+            )
+
+
+        segment_position = segment_signal.get(
+            "position",
+            "unknown"
+        )
+
+        segment_delta = segment_signal.get(
+            "segment_price_delta_percent",
+            0
+        )
+
+
+        if segment_position == "below_segment_market":
+
+            reasons.append(
+                f"Объект дешевле своего сегмента на {abs(segment_delta)}%."
+            )
+
+
+        elif segment_position == "above_segment_market":
+
+            reasons.append(
+                f"Объект дороже своего сегмента на {segment_delta}%."
+            )
+
+
+        elif segment_position == "within_segment_market":
+
+            reasons.append(
+                "Цена соответствует уровню своего сегмента."
             )
 
 
@@ -133,7 +173,10 @@ class MarketVerdictEngine:
                     duplicates,
 
                 "market_trend":
-                    trend
+                    trend,
+
+                "segment":
+                    segment_signal
 
             }
 
