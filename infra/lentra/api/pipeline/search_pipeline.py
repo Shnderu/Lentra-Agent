@@ -853,15 +853,7 @@ class SearchPipeline:
                                         {}
                                     ).get(
                                         "price_signal"
-                                    )
-                                    or
-                                    item["market_verdict"].get(
-                                        "signals",
-                                        {}
-                                    ).get(
-                                        "price_signal"
-                                    )
-                                    or
+                                    )                                    or
                                     "unknown"
                                 ),
 
